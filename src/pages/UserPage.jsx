@@ -68,55 +68,93 @@ const UserPage = () => {
   return (
     <Box sx={{ p: 3 }}>
       <Card>
-        <CardContent>
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-            <Typography variant="h6">User Management</Typography>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleOpenAdd}
+        <Box
+          display="flex"
+          justifyContent="space-between"
+          alignItems="center"
+          mb={2}
+          px={2}
+        >
+          <Typography variant="h6">User Management</Typography>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleOpenAdd}
+          >
+            Add User
+          </Button>
+        </Box>
+        <div style={{ height: "75vh", overflowY: "auto" }}>
+        <Table size="small" >
+          <TableHead>
+            <TableRow
+              sx={{
+                backgroundColor: "#1f6306",
+                fontSize: "1rem",
+                color: "white",
+              }}
             >
-              Add User
-            </Button>
-          </Box>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>#</TableCell>
-                <TableCell>Name</TableCell>
-                <TableCell>Email</TableCell>
-                <TableCell>Phone</TableCell>
-                <TableCell>Role</TableCell>
-                <TableCell align="right">Actions</TableCell>
+              <TableCell
+                sx={{ fontSize: "1rem", color: "white", fontWeight: "bold" }}
+              >
+                {" "}
+                #
+              </TableCell>
+              <TableCell
+                sx={{ fontSize: "1rem", color: "white", fontWeight: "bold" }}
+              >
+                Name
+              </TableCell>
+              <TableCell
+                sx={{ fontSize: "1rem", color: "white", fontWeight: "bold" }}
+              >
+                Email
+              </TableCell>
+              <TableCell
+                sx={{ fontSize: "1rem", color: "white", fontWeight: "bold" }}
+              >
+                Phone
+              </TableCell>
+              <TableCell
+                sx={{ fontSize: "1rem", color: "white", fontWeight: "bold" }}
+              >
+                Role
+              </TableCell>
+              <TableCell
+                align="right"
+                sx={{ fontSize: "1rem", color: "white", fontWeight: "bold" }}
+              >
+                Actions
+              </TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody >
+            {users.map((user, index) => (
+              <TableRow key={user.id}>
+                <TableCell>{index + 1}</TableCell>
+                <TableCell>{user.name}</TableCell>
+                <TableCell>{user.email}</TableCell>
+                <TableCell>{user.phone}</TableCell>
+                <TableCell>{user.role}</TableCell>
+                <TableCell align="right">
+                  <IconButton
+                    color="primary"
+                    onClick={() => handleOpenView(user)}
+                  >
+                    <VisibilityIcon />
+                  </IconButton>
+                  <IconButton
+                    color="secondary"
+                    onClick={() => handleOpenEdit(user)}
+                  >
+                    <EditIcon />
+                  </IconButton>
+                </TableCell>
               </TableRow>
-            </TableHead>
-            <TableBody>
-              {users.map((user, index) => (
-                <TableRow key={user.id}>
-                  <TableCell>{index + 1}</TableCell>
-                  <TableCell>{user.name}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>{user.phone}</TableCell>
-                  <TableCell>{user.role}</TableCell>
-                  <TableCell align="right">
-                    <IconButton
-                      color="primary"
-                      onClick={() => handleOpenView(user)}
-                    >
-                      <VisibilityIcon />
-                    </IconButton>
-                    <IconButton
-                      color="secondary"
-                      onClick={() => handleOpenEdit(user)}
-                    >
-                      <EditIcon />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
+            ))}
+          </TableBody>
+        </Table>
+        </div>
       </Card>
 
       <UserFormDialog
