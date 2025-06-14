@@ -186,6 +186,7 @@ const EventFormDialog = ({
           <Grid item size={{ md: 6 }}>
             <TextField
               label="Title"
+              size="small"
               value={formData.title}
               onChange={(e) =>
                 setFormData({ ...formData, title: e.target.value })
@@ -193,16 +194,30 @@ const EventFormDialog = ({
               fullWidth
             />
           </Grid>
-          <Grid item size={{ md: 6 }}>
+          <Grid item size={{ md: 3 }}>
             <TextField
               type="date"
-              label="Date"
+              label="Start Date"
               InputLabelProps={{ shrink: true }}
               value={formData.date}
               onChange={(e) =>
-                setFormData({ ...formData, date: e.target.value })
+                setFormData({ ...formData, startDate: e.target.value })
               }
               fullWidth
+              size="small"
+            />
+          </Grid>{" "}
+          <Grid item size={{ md: 3 }}>
+            <TextField
+              type="date"
+              label="End Date"
+              InputLabelProps={{ shrink: true }}
+              value={formData.endDate}
+              onChange={(e) =>
+                setFormData({ ...formData, endDate: e.target.value })
+              }
+              fullWidth
+              size="small"
             />
           </Grid>
           <Grid item size={{ md: 6 }}>
@@ -215,6 +230,7 @@ const EventFormDialog = ({
                 setFormData({ ...formData, time: e.target.value })
               }
               fullWidth
+              size="small"
             />
           </Grid>
           <Grid item size={{ md: 6 }}>
@@ -225,6 +241,7 @@ const EventFormDialog = ({
                 setFormData({ ...formData, category: e.target.value })
               }
               fullWidth
+              size="small"
             />
           </Grid>
           <Grid item size={{ md: 6 }}>
@@ -235,6 +252,7 @@ const EventFormDialog = ({
                 setFormData({ ...formData, organizer: e.target.value })
               }
               fullWidth
+              size="small"
             />
           </Grid>
           <Grid item size={{ md: 6 }}>
@@ -245,6 +263,7 @@ const EventFormDialog = ({
                 setFormData({ ...formData, contact: e.target.value })
               }
               fullWidth
+              size="small"
             />
           </Grid>
           <Grid item size={{ md: 6 }}>
@@ -256,18 +275,7 @@ const EventFormDialog = ({
                 setFormData({ ...formData, attendees: e.target.value })
               }
               fullWidth
-            />
-          </Grid>
-          <Grid item size={{ md: 6 }}>
-            <TextField
-              label="Description"
-              multiline
-              rows={3}
-              value={formData.description || ""}
-              onChange={(e) =>
-                setFormData({ ...formData, description: e.target.value })
-              }
-              fullWidth
+              size="small"
             />
           </Grid>
           <Grid item size={{ md: 6 }}>
@@ -278,6 +286,7 @@ const EventFormDialog = ({
                 setFormData({ ...formData, venue: e.target.value })
               }
               fullWidth
+              size="small"
             />
           </Grid>
           <Grid item size={{ md: 6 }}>
@@ -288,6 +297,7 @@ const EventFormDialog = ({
                 setFormData({ ...formData, address: e.target.value })
               }
               fullWidth
+              size="small"
             />
           </Grid>
           <Grid item size={{ md: 12 }}>
@@ -303,6 +313,7 @@ const EventFormDialog = ({
                   label="Search Place"
                   placeholder="e.g. McDonald's, Ayala Center"
                   fullWidth
+                  size="small"
                 />
               )}
             />
@@ -332,6 +343,19 @@ const EventFormDialog = ({
                 Coordinates: {formData.latitude}, {formData.longitude}
               </Typography>
             )}
+          </Grid>
+          <Grid item size={{ md: 12 }}>
+            <TextField
+              label="Description"
+              multiline
+              rows={3}
+              value={formData.description || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
+              fullWidth
+              size="small"
+            />
           </Grid>
         </Grid>
       </DialogContent>

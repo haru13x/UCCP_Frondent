@@ -16,8 +16,11 @@ const EventPage = () => {
   const [openView, setOpenView] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
-    date: "",
+    startDate: "",
+    endDate:"",
     time: "",
+    endDate: "",
+    address:"",
     location: "",
     description: "",
   });
@@ -29,7 +32,8 @@ const EventPage = () => {
     setFormData(
       event || {
         title: "",
-        date: "",
+        startDate: "",
+        endDate: "",
         time: "",
         location: "",
         description: "",
@@ -53,10 +57,11 @@ const EventPage = () => {
   };
 
   const columns = [
-    { field: "title", headerName: "Title", flex: 1 },
-    { field: "date", headerName: "Date", width: 120 },
+    { field: "title", headerName: "Event Title", flex: 1 },
+    { field: "startDate" , headerName: "Start Date", width: 120 },
+    { field: "endDate", headerName: "End Date", width: 120 },
     { field: "time", headerName: "Time", width: 120 },
-    { field: "location", headerName: "Location", flex: 1 },
+    { field: "venue", headerName: "Venue", flex: 1 },
     {
       field: "actions",
       headerName: "Actions",
