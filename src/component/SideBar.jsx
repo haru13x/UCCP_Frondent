@@ -19,12 +19,15 @@ import {
   ExpandLess,
   ExpandMore,
   Rule,
+  Groups,
+  EventNote,
+  HowToReg,
   MeetingRoom,
   BreakfastDining,
   History,
   Upcoming,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
 } from "@mui/icons-material";
 import ChurchIcon from '@mui/icons-material/Church';
 import { useState } from "react";
@@ -40,111 +43,123 @@ const Sidebar = () => {
   const drawerWidth = collapsed ? DRAWER_WIDTH_COLLAPSED : DRAWER_WIDTH_EXPANDED;
 
   return (
- <Drawer
-  variant="permanent"
-  sx={{
-    width: drawerWidth,
-    flexShrink: 0,
-    whiteSpace: "nowrap",
-    boxSizing: "border-box",
-    "& .MuiDrawer-paper": {
-      width: drawerWidth,
-      transition: "width 0.3s",
-      overflowX: "hidden",
-      background: "linear-gradient(to bottom right, #e3f2fd, #ffffff)",
-      borderRight: "1px solid #ccc",
-    },
-  }}
->
-
-
-     
-     <Box sx={{ marginTop: '86px', textAlign: 'center' }}>
-    
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: collapsed ? 'center' : 'space-between',
-          px: collapsed ? 0 : 2,
-          py: 1,
-          transition: 'all 0.3s ease-in-out'
-        }}
-      >
-
-        {!collapsed && (
-          <Box sx={{display:'flex' , alignItems: 'center',
-          justifyContent: collapsed ? 'center' : 'flex-start',}}>     
-             <ChurchIcon sx={{ color: '#1565c0', fontSize: 30 }} />
-          <Typography variant="h6" sx={{ ml: 1, color: '#1565c0', fontWeight: 'bold' }}>
-            UCCP
-          </Typography></Box>  
-          
-        )}
-         <IconButton
-          onClick={() => setCollapsed(!collapsed)}
+    <Drawer
+      variant="permanent"
+      sx={{
+        width: drawerWidth,
+        flexShrink: 0,
+        whiteSpace: "nowrap",
+        boxSizing: "border-box",
+        "& .MuiDrawer-paper": {
+          width: drawerWidth,
+          transition: "width 0.3s",
+          overflowX: "hidden",
+          background: "linear-gradient(to bottom right, #e3f2fd, #ffffff)",
+          borderRight: "1px solid #ccc",
+        },
+      }}
+    >
+      <Box sx={{ marginTop: "86px", textAlign: "center" }}>
+        <Box
           sx={{
-            bgcolor: '#e3f2fd',
-            borderRadius: 2,
-            boxShadow: 1,
-             justifyContent:  'flex-end',
-            '&:hover': {
-              bgcolor: '#bbdefb',
-            },
+            display: "flex",
+            alignItems: "center",
+            justifyContent: collapsed ? "center" : "space-between",
+            px: collapsed ? 0 : 2,
+            py: 1,
+            transition: "all 0.3s ease-in-out",
           }}
         >
-          {collapsed ? <ChevronRight /> : <ChevronLeft />}
-        </IconButton>
+          {!collapsed && (
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: collapsed ? "center" : "flex-start",
+              }}
+            >
+              <ChurchIcon sx={{ color: "#1565c0", fontSize: 30 }} />
+              <Typography
+                variant="h6"
+                sx={{ ml: 1, color: "#1565c0", fontWeight: "bold" }}
+              >
+                UCCP
+              </Typography>
+            </Box>
+          )}
+          <IconButton
+            onClick={() => setCollapsed(!collapsed)}
+            sx={{
+              bgcolor: "#e3f2fd",
+              borderRadius: 2,
+              boxShadow: 1,
+              justifyContent: "flex-end",
+              "&:hover": {
+                bgcolor: "#bbdefb",
+              },
+            }}
+          >
+            {collapsed ? <ChevronRight /> : <ChevronLeft />}
+          </IconButton>
+        </Box>
+
+        <Divider sx={{ my: 1, backgroundColor: "#cfd8dc" }} />
+
+        {/* Collapse Button */}
       </Box>
 
-      <Divider sx={{ my: 1, backgroundColor: '#cfd8dc' }} />
-
-      {/* Collapse Button */}
-     
-    </Box>
-    
-
       <List>
-        <Tooltip title="Dashboard" placement="right" disableHoverListener={!collapsed}>
+        <Tooltip
+          title="Dashboard"
+          placement="right"
+          disableHoverListener={!collapsed}
+        >
           <ListItem button component={Link} to="/dashboard">
-            <ListItemIcon><Dashboard color="primary" /></ListItemIcon>
+            <ListItemIcon>
+              <Dashboard color="primary" />
+            </ListItemIcon>
             {!collapsed && <ListItemText primary="Dashboard" />}
           </ListItem>
         </Tooltip>
 
-        <Tooltip title="Users" placement="right" disableHoverListener={!collapsed}>
-          <ListItem button component={Link} to="/users">
-            <ListItemIcon><People color="primary" /></ListItemIcon>
-            {!collapsed && <ListItemText primary="Users" />}
-          </ListItem>
-        </Tooltip>
-
-        <Tooltip title="Events" placement="right" disableHoverListener={!collapsed}>
-          <ListItem button onClick={() => setOpenEvents(!openEvents)} >
-            <ListItemIcon><Event color="primary" /></ListItemIcon>
-            {!collapsed && <ListItemText primary="Events" />}
-                {!collapsed && (openEvents ? <ExpandLess /> : <ExpandMore />)}
+        <Tooltip
+          title="Events"
+          placement="right"
+          disableHoverListener={!collapsed}
+        >
+          <ListItem button onClick={() => setOpenEvents(!openEvents)}>
+            <ListItemIcon>
+              <Event color="primary" />
+            </ListItemIcon>
+            {!collapsed && <ListItemText primary="Management" />}
+            {!collapsed && (openEvents ? <ExpandLess /> : <ExpandMore />)}
           </ListItem>
         </Tooltip>
         <Collapse in={openEvents && !collapsed} timeout="auto" unmountOnExit>
           <List component="div" disablePadding>
-            <ListItem button component={Link} to="/settings/role" sx={{ pl: 4 }}>
-              <ListItemIcon><Rule color="action" /></ListItemIcon>
-              <ListItemText primary="Today" />
+            <ListItem button component={Link} to="/events" sx={{ pl: 4 }}>
+              <ListItemIcon>
+                <Groups color="action" />
+              </ListItemIcon>
+              <ListItemText primary="Events" />
             </ListItem>
-            <ListItem button component={Link} to="/settings/rules" sx={{ pl: 4 }}>
-              <ListItemIcon><Rule color="action" /></ListItemIcon>
-              <ListItemText primary="Upcoming" />
+            <ListItem button component={Link} to="/meetings" sx={{ pl: 4 }}>
+              <ListItemIcon>
+                <EventNote color="action" />
+              </ListItemIcon>
+              <ListItemText primary="Meetings" />
             </ListItem>
-            <ListItem button component={Link} to="/settings/rules" sx={{ pl: 4 }}>
-              <ListItemIcon><Rule color="action" /></ListItemIcon>
-              <ListItemText primary="Past" />
+            <ListItem button component={Link} to="/attendance" sx={{ pl: 4 }}>
+              <ListItemIcon>
+                <HowToReg color="action" />
+              </ListItemIcon>
+              <ListItemText primary="Attendance" />
             </ListItem>
           </List>
         </Collapse>
-  
+
         {/* Meetings */}
-        <Tooltip title="Meetings" placement="right" disableHoverListener={!collapsed}>
+        {/* <Tooltip title="Meetings" placement="right" disableHoverListener={!collapsed}>
           <ListItem button onClick={() => setOpenMeetings(!openMeetings)}>
             <ListItemIcon><MeetingRoom color="primary" /></ListItemIcon>
             {!collapsed && <ListItemText primary="Meetings" />}
@@ -166,29 +181,54 @@ const Sidebar = () => {
               <ListItemText primary="Past" />
             </ListItem>
           </List>
-        </Collapse>
+        </Collapse> */}
 
-            {/* Settings */}
-        <Tooltip title="Settings" placement="right" disableHoverListener={!collapsed}>
+        {/* Settings */}
+        <Tooltip
+          title="User's & Settings"
+          placement="right"
+          disableHoverListener={!collapsed}
+        >
           <ListItem button onClick={() => setOpenSettings(!openSettings)}>
-            <ListItemIcon><Settings color="primary" /></ListItemIcon>
-            {!collapsed && <ListItemText primary="Settings" />}
+            <ListItemIcon>
+              <Settings color="primary" />
+            </ListItemIcon>
+            {!collapsed && <ListItemText primary="User's & Settings" />}
             {!collapsed && (openSettings ? <ExpandLess /> : <ExpandMore />)}
           </ListItem>
         </Tooltip>
         <Collapse in={openSettings && !collapsed} timeout="auto" unmountOnExit>
           <List component="div" disablePadding>
-            <ListItem button component={Link} to="/settings/role" sx={{ pl: 4 }}>
-              <ListItemIcon><Rule color="action" /></ListItemIcon>
+            <ListItem button component={Link} to="/users" sx={{ pl: 4 }}>
+              <ListItemIcon>
+                <People color="action" />
+              </ListItemIcon>
+              <ListItemText primary="User's" />
+            </ListItem>
+            <ListItem
+              button
+              component={Link}
+              to="/settings/role"
+              sx={{ pl: 4 }}
+            >
+              <ListItemIcon>
+                <Rule color="action" />
+              </ListItemIcon>
               <ListItemText primary="Role" />
             </ListItem>
-            <ListItem button component={Link} to="/settings/rules" sx={{ pl: 4 }}>
-              <ListItemIcon><Rule color="action" /></ListItemIcon>
+            <ListItem
+              button
+              component={Link}
+              to="/settings/rules"
+              sx={{ pl: 4 }}
+            >
+              <ListItemIcon>
+                <Rule color="action" />
+              </ListItemIcon>
               <ListItemText primary="Rules" />
             </ListItem>
           </List>
         </Collapse>
-
       </List>
     </Drawer>
   );

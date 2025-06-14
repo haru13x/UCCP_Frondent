@@ -1,6 +1,7 @@
 const usersData = [
   {
     id: 1,
+    name : 'Dela Cruz, Juan Garcia',
     firstName: "Juan",
     middleName: "Garcia",
     lastName: "Dela Cruz",
@@ -18,6 +19,7 @@ const usersData = [
   },
   {
     id: 2,
+    name : 'Santos, Maria Luz',
     firstName: "Maria",
     middleName: "Luz",
     lastName: "Santos",
@@ -35,6 +37,7 @@ const usersData = [
   },
   {
     id: 3,
+    name: 'Reyes, Carlos Domingo',
     firstName: "Carlos",
     middleName: "Domingo",
     lastName: "Reyes",
