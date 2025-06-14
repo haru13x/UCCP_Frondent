@@ -2,17 +2,19 @@ const events = [
   {
     id: 1,
     title: "Company Meeting",
-    date: "2025-06-10",
+    startDate: "2025-06-10",
+    endDate: "2025-06-10",
     time: "10:00 AM",
-    location: "Main Conference Room",
+    venue: "Main Conference Room",
     description: "Quarterly strategy meeting",
   },
   {
     id: 2,
     title: "Team Building",
-    date: "2025-06-15",
+    startDate: "2025-06-15",
+    endDate: "2025-06-16",
     time: "3:00 PM",
-    location: "City Park",
+    venue: "City Park",
     description: "Fun activities and games",
   },
 ];
