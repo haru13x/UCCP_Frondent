@@ -21,17 +21,17 @@ const TopBar = () => {
         boxShadow: 2,
       }}
     >
-      <Container maxWidth="lg">
+    
         <Toolbar
-          disableGutters
+         
           sx={{
             display: "flex",
             justifyContent: "space-between",
-            alignItems: "center",
+            
           }}
         >
           {/* Left: Logo + Name */}
-          <Box display="flex" alignItems="center" gap={1}>
+          <Box display="flex" alignItems="left" gap={1}>
             <ChurchIcon sx={{ color: "#0d47a1", fontSize: 30 }} />
             <Typography
               variant="h6"
@@ -49,9 +49,7 @@ const TopBar = () => {
           {/* Center: Nav */}
           <Box
             sx={{
-              position: "absolute",
-              left: "50%",
-              transform: "translateX(-50%)",
+             
               display: "flex",
               gap: 3,
             }}
@@ -79,7 +77,7 @@ const TopBar = () => {
             ))}
           </Box>
         </Toolbar>
-      </Container>
+      
     </AppBar>
   );
 };

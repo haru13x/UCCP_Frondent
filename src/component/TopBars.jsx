@@ -20,8 +20,16 @@ const TopBars = ({ toggleDrawer }) => {
  const navigate = useNavigate();
 
   const handleLogOut = () => {
-    navigate("/");
-  };
+  // Clear token and user data
+  localStorage.removeItem("api_token");
+  localStorage.removeItem("user");
+
+  // Optionally clear all localStorage
+  // localStorage.clear();
+
+  // Redirect to login page
+  navigate("/", { replace: true });
+};
 
 
 

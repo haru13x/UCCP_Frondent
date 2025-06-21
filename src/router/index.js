@@ -2,39 +2,47 @@
 import { createBrowserRouter } from "react-router-dom";
 import Login from "../pages/Login";
 import Register from "../pages/Register";
-import Dashboard from "../pages/Dashboard"
+import Dashboard from "../pages/Dashboard";
 import About from "../pages/About";
 import MainLayout from "../layout/MainLayout";
 import UserPage from "../pages/UserPage";
 import EventPage from "../pages/EventPage";
-const router = createBrowserRouter([
-  {
-    path: "/",
-    element: <Login />,
-  },
-  {
-    path: "/register",
-    element: <Register />,
-  },
-  {
-    path : '/dashboard',
-    element : <MainLayout><Dashboard /></MainLayout>
- 
-  },
-   {
-    path : '/users',
-    element : <MainLayout><UserPage /></MainLayout>
- 
-  },
-    {
-    path : '/events',
-    element : <MainLayout><EventPage /></MainLayout>
- 
-  },
-  {
-    path:'/about',
-    element :<About />
-  }
-]);
+import Middleware from "./middleware";
 
+// Public route definitions (no need to wrap manually)
+const publicRoutes = [
+  { path: "/", component: Login },
+  { path: "/register", component: Register },
+  { path: "/about", component: About },
+];
+
+// Private route definitions (will be wrapped in MainLayout)
+const privateRoutes = [
+  { path: "/dashboard", component: Dashboard },
+  { path: "/users", component: UserPage },
+  { path: "/events", component: EventPage },
+];
+
+// Combine and wrap routes with Middleware
+const allRoutes = [
+  ...publicRoutes.map(route => ({
+    path: route.path,
+    element: <Middleware element={<route.component />} isPublic />,
+  })),
+  ...privateRoutes.map(route => ({
+    path: route.path,
+    element: (
+      <Middleware
+        element={
+          <MainLayout>
+            <route.component />
+          </MainLayout>
+        }
+      />
+    ),
+  })),
+];
+
+// Create and export router
+const router = createBrowserRouter(allRoutes);
 export default router;
