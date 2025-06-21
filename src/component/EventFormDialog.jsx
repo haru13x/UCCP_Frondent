@@ -42,11 +42,11 @@ const EventFormDialog = ({
   const [placeOptions, setPlaceOptions] = useState([]);
 
   const initializeMap = () => {
-    if (!mapRef.current) return;
+    if (!mapRef.current || map) return;
 
     const initialPosition = {
-      lat: formData.latitude || 10.3157,
-      lng: formData.longitude || 123.8854,
+      lat: parseFloat(formData.latitude) || 10.3157,
+      lng: parseFloat(formData.longitude) || 123.8854,
     };
 
     const mapInstance = new window.google.maps.Map(mapRef.current, {
@@ -84,11 +84,10 @@ const EventFormDialog = ({
     setMap(mapInstance);
     setMarker(mapMarker);
 
-    // Ensure map resizes properly after render
     setTimeout(() => {
-      window.google.maps.event.trigger(mapInstance, "resize");
       mapInstance.setCenter(initialPosition);
-    }, 200);
+      mapMarker.setPosition(initialPosition);
+    }, 300);
   };
 
   useEffect(() => {
@@ -98,18 +97,27 @@ const EventFormDialog = ({
       loadGoogleMapsScript(() => {
         initializeMap();
       });
-    }, 100); // Delay ensures dialog is rendered
+    }, 100);
 
     return () => {
       clearTimeout(timeout);
-      if (mapRef.current) {
-        mapRef.current.innerHTML = "";
-      }
+      if (mapRef.current) mapRef.current.innerHTML = "";
       setMap(null);
       setMarker(null);
     };
   }, [open]);
-  
+
+  useEffect(() => {
+    if (map && marker && open) {
+      const position = {
+        lat: parseFloat(formData.latitude) || 10.3157,
+        lng: parseFloat(formData.longitude) || 123.8854,
+      };
+      map.setCenter(position);
+      marker.setPosition(position);
+    }
+  }, [formData.latitude, formData.longitude, open]);
+
   const handlePlaceSelect = (event, value) => {
     if (!value) return;
     const placesService = new window.google.maps.places.PlacesService(map);
@@ -166,6 +174,7 @@ const EventFormDialog = ({
       });
     }
   };
+
 
   return (
     <Dialog

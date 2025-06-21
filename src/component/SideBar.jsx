@@ -81,7 +81,7 @@ const Sidebar = () => {
               <ChurchIcon sx={{ color: "#1565c0", fontSize: 30 }} />
               <Typography
                 variant="h6"
-                sx={{ ml: 1, color: "#1565c0", fontWeight: "bold" }}
+                sx={{  color: "#1565c0", fontWeight: "bold" }}
               >
                 UCCP
               </Typography>
@@ -135,15 +135,15 @@ const Sidebar = () => {
             {!collapsed && (openEvents ? <ExpandLess /> : <ExpandMore />)}
           </ListItem>
         </Tooltip>
-        <Collapse in={openEvents && !collapsed} timeout="auto" unmountOnExit>
+        <Collapse in={openEvents } timeout="auto" unmountOnExit>
           <List component="div" disablePadding>
-            <ListItem button component={Link} to="/events" sx={{ pl: 4 }}>
+            <ListItem title="Manage Event's" button component={Link} to="/events" sx={{ pl: 4 }}>
               <ListItemIcon>
                 <Groups color="action" />
               </ListItemIcon>
               <ListItemText primary="Events" />
             </ListItem>
-            <ListItem button component={Link} to="/meetings" sx={{ pl: 4 }}>
+            <ListItem title="Manage Meeting's" button component={Link} to="/meetings" sx={{ pl: 4 }}>
               <ListItemIcon>
                 <EventNote color="action" />
               </ListItemIcon>
@@ -197,9 +197,9 @@ const Sidebar = () => {
             {!collapsed && (openSettings ? <ExpandLess /> : <ExpandMore />)}
           </ListItem>
         </Tooltip>
-        <Collapse in={openSettings && !collapsed} timeout="auto" unmountOnExit>
+        <Collapse in={openSettings} timeout="auto" unmountOnExit>
           <List component="div" disablePadding>
-            <ListItem button component={Link} to="/users" sx={{ pl: 4 }}>
+            <ListItem title="User's" button component={Link} to="/users" sx={{ pl: 4 }}>
               <ListItemIcon>
                 <People color="action" />
               </ListItemIcon>
@@ -207,6 +207,7 @@ const Sidebar = () => {
             </ListItem>
             <ListItem
               button
+              title="Roles"
               component={Link}
               to="/settings/role"
               sx={{ pl: 4 }}
@@ -221,11 +222,12 @@ const Sidebar = () => {
               component={Link}
               to="/settings/rules"
               sx={{ pl: 4 }}
+              title="Permissions"
             >
               <ListItemIcon>
                 <Rule color="action" />
               </ListItemIcon>
-              <ListItemText primary="Rules" />
+              <ListItemText primary="Permissions" />
             </ListItem>
           </List>
         </Collapse>
