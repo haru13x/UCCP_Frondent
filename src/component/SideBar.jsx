@@ -28,6 +28,10 @@ import {
   Upcoming,
   ChevronLeft,
   ChevronRight,
+  ListAltTwoTone,
+  Report,
+  ReportOff,
+  EditDocument,
 } from "@mui/icons-material";
 import ChurchIcon from '@mui/icons-material/Church';
 import { useState } from "react";
@@ -38,7 +42,7 @@ const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(true);
   const [openSettings, setOpenSettings] = useState(false);
   const [openMeetings, setOpenMeetings] = useState(false);
-    const [openEvents, setOpenEvents] = useState(false);
+  const [openEvents, setOpenEvents] = useState(false);
 
   const drawerWidth = collapsed ? DRAWER_WIDTH_COLLAPSED : DRAWER_WIDTH_EXPANDED;
 
@@ -81,7 +85,7 @@ const Sidebar = () => {
               <ChurchIcon sx={{ color: "#1565c0", fontSize: 30 }} />
               <Typography
                 variant="h6"
-                sx={{  color: "#1565c0", fontWeight: "bold" }}
+                sx={{ color: "#1565c0", fontWeight: "bold" }}
               >
                 UCCP
               </Typography>
@@ -121,8 +125,43 @@ const Sidebar = () => {
             {!collapsed && <ListItemText primary="Dashboard" />}
           </ListItem>
         </Tooltip>
-
         <Tooltip
+          title="List"
+          placement="right"
+          disableHoverListener={!collapsed}
+        >
+          <ListItem button component={Link} to="/list">
+            <ListItemIcon>
+              <ListAltTwoTone color="primary" />
+            </ListItemIcon>
+            {!collapsed && <ListItemText primary="List" />}
+          </ListItem>
+        </Tooltip>
+        <Tooltip
+          title="Events"
+          placement="right"
+          disableHoverListener={!collapsed}
+        >
+          <ListItem button component={Link} to="/events">
+            <ListItemIcon>
+              <Groups color="primary" />
+            </ListItemIcon>
+            {!collapsed && <ListItemText primary="Events" />}
+          </ListItem>
+        </Tooltip>
+        <Tooltip
+          title="Reports"
+          placement="right"
+          disableHoverListener={!collapsed}
+        >
+          <ListItem button component={Link} to="/report">
+            <ListItemIcon>
+              <EditDocument color="primary" />
+            </ListItemIcon>
+            {!collapsed && <ListItemText primary="Report" />}
+          </ListItem>
+        </Tooltip>
+        {/* <Tooltip
           title="Events"
           placement="right"
           disableHoverListener={!collapsed}
@@ -135,7 +174,7 @@ const Sidebar = () => {
             {!collapsed && (openEvents ? <ExpandLess /> : <ExpandMore />)}
           </ListItem>
         </Tooltip>
-        <Collapse in={openEvents } timeout="auto" unmountOnExit>
+        <Collapse in={openEvents} timeout="auto" unmountOnExit>
           <List component="div" disablePadding>
             <ListItem title="Manage Event's" button component={Link} to="/events" sx={{ pl: 4 }}>
               <ListItemIcon>
@@ -156,7 +195,7 @@ const Sidebar = () => {
               <ListItemText primary="Attendance" />
             </ListItem>
           </List>
-        </Collapse>
+        </Collapse> */}
 
         {/* Meetings */}
         {/* <Tooltip title="Meetings" placement="right" disableHoverListener={!collapsed}>
