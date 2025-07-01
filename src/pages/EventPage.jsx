@@ -13,21 +13,25 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import EditIcon from "@mui/icons-material/Edit";
 import SearchOffSharp from "@mui/icons-material/SearchOffSharp";
 import { UseMethod } from "../composables/UseMethod";
-import EventFormDialog from "../component/EventFormDialog";
-import EventViewDialog from "../component/EventViewDialog";
+import EventFormDialog from "../component/event/EventFormDialog";
+import EventViewDialog from "../component/event/EventViewDialog";
+import { EditDocument } from "@mui/icons-material";
+
+// ... (imports unchanged)
 
 const EventPage = () => {
   const [loading, setLoading] = useState(false);
-
   const [events, setEvents] = useState([]);
   const [openForm, setOpenForm] = useState(false);
   const [openView, setOpenView] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
   const [formData, setFormData] = useState({
+    id: "",
     title: "",
     startDate: "",
     endDate: "",
-    time: "",
+    endTime: "",
+    startTime: "",
     category: "",
     organizer: "",
     contact: "",
@@ -37,10 +41,11 @@ const EventPage = () => {
     latitude: "",
     longitude: "",
     description: "",
+    sponsors: [],
+    programs: [],
   });
   const [selectedEvent, setSelectedEvent] = useState(null);
 
-  // Fetch events from backend
   const fetchEvents = async () => {
     setLoading(true);
     const response = await UseMethod("get", "get-events");
@@ -48,9 +53,10 @@ const EventPage = () => {
       const mappedEvents = response.data.map((event, index) => ({
         id: event.id || index,
         title: event.title,
+        startTime: event.start_time,
         startDate: event.start_date,
         endDate: event.end_date,
-        time: event.time,
+        endTime: event.end_time,
         category: event.category,
         organizer: event.organizer,
         contact: event.contact,
@@ -60,24 +66,29 @@ const EventPage = () => {
         latitude: event.latitude,
         longitude: event.longitude,
         description: event.description,
+        programs: event.event_programs ?? [],
+        sponsors: event.events_sponser ?? [], // ✅ include sponsors
       }));
       setEvents(mappedEvents);
-      setLoading(false); 
+     
     }
+    setLoading(false);
   };
 
   useEffect(() => {
     fetchEvents();
   }, []);
 
-  const handleOpenForm = (event = null) => {
+const handleOpenForm = (event = null) => {
     setIsEdit(!!event);
     setFormData(
       event || {
+        id: "",
         title: "",
         startDate: "",
+        startTime:"",
         endDate: "",
-        time: "",
+        endTime: "",
         category: "",
         organizer: "",
         contact: "",
@@ -87,17 +98,20 @@ const EventPage = () => {
         latitude: "",
         longitude: "",
         description: "",
+        sponsors:[],
+        programs:[]
       }
     );
     setOpenForm(true);
   };
-
-  const handleSave = async () => {
+  const handleSubmit = async () => {
     const payload = {
+      id: formData.id,
       title: formData.title,
       start_date: formData.startDate,
+      start_time: formData.startTime,
       end_date: formData.endDate,
-      time: formData.time,
+      end_time: formData.endTime,
       category: formData.category,
       organizer: formData.organizer,
       contact: formData.contact,
@@ -107,13 +121,17 @@ const EventPage = () => {
       latitude: formData.latitude,
       longitude: formData.longitude,
       description: formData.description,
+      programs: formData.programs,
+      sponsors: formData.sponsors,
     };
 
-    const response = await UseMethod("post", "store-events", payload);
+    const api = isEdit ? "update-events" : "store-events";
+    const response = await UseMethod("post", api, payload);
+
     if (response?.data) {
       alert("Event saved successfully!");
       setOpenForm(false);
-      fetchEvents(); // refresh list
+      fetchEvents();
     } else {
       alert("Failed to save event.");
     }
@@ -126,14 +144,14 @@ const EventPage = () => {
 
   const columns = [
     { field: "title", headerName: "Event Title", flex: 1 },
-    { field: "startDate", headerName: "Start Date", width: 120 },
-    { field: "endDate", headerName: "End Date", width: 120 },
-    { field: "time", headerName: "Time", width: 120 },
+    { field: "startDate", headerName: "Start Date", width: 100 },
+    { field: "endDate", headerName: "End Date", width: 100 },
     { field: "venue", headerName: "Venue", flex: 1 },
+    { field: "organizer", headerName: "Organizer", flex: 1 },
     {
       field: "actions",
       headerName: "Actions",
-      width: 200,
+      width: 290,
       renderCell: (params) => (
         <>
           <Button
@@ -155,13 +173,22 @@ const EventPage = () => {
           >
             Edit
           </Button>
+          <Button
+            sx={{ ml: 1 }}
+            size="small"
+            variant="contained"
+            color="error"
+            startIcon={<EditDocument />}
+          >
+            Report
+          </Button>
         </>
       ),
     },
   ];
 
   return (
-    <Box sx={{ pr: 1 }}>
+    <Box>
       <Paper elevation={3} sx={{ p: 2 }}>
         <Grid container spacing={2} alignItems="center" mb={2}>
           <Grid item xs={12} md={6}>
@@ -175,7 +202,7 @@ const EventPage = () => {
               }
             />
           </Grid>
-          <Grid item xs={12} md={3}>
+          <Grid item xs={12} md={4}>
             <Button
               fullWidth
               variant="outlined"
@@ -200,11 +227,10 @@ const EventPage = () => {
         <DataGrid
           rows={events}
           columns={columns}
-          autoHeight
           loading={loading}
           pageSize={5}
           rowsPerPageOptions={[5]}
-          sx={{ backgroundColor: "#fff", borderRadius: 3 }}
+          sx={{ backgroundColor: "#fff", borderRadius: 3, height: "75vh" }}
         />
       </Paper>
 
@@ -212,10 +238,11 @@ const EventPage = () => {
       <EventFormDialog
         key={openForm ? "open" : "closed"}
         open={openForm}
+        programs={formData.programs}
         onClose={() => setOpenForm(false)}
         formData={formData}
         setFormData={setFormData}
-        onSave={handleSave}
+        onSave={handleSubmit}
         isEdit={isEdit}
       />
 

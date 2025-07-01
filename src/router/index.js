@@ -9,6 +9,8 @@ import UserPage from "../pages/UserPage";
 import EventPage from "../pages/EventPage";
 import Middleware from "./middleware";
 
+import ListPage from "../pages/ListPage";
+import Role from "../pages/Role";
 // Public route definitions (no need to wrap manually)
 const publicRoutes = [
   { path: "/", component: Login },
@@ -21,6 +23,10 @@ const privateRoutes = [
   { path: "/dashboard", component: Dashboard },
   { path: "/users", component: UserPage },
   { path: "/events", component: EventPage },
+  
+  { path: "/settings/role", component: Role },
+
+  { path: "/list", component: ListPage },
 ];
 
 // Combine and wrap routes with Middleware

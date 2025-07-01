@@ -15,11 +15,13 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import VisibilityIcon from "@mui/icons-material/Visibility";
-import usersData from "../data/users";
-import UserFormDialog from "../component/UserFormDialog";
-import UserViewDialog from "../component/UserViewDialog";
+
+import UserFormDialog from "../component/users/UserFormDialog";
+import UserViewDialog from "../component/users/UserViewDialog";
+import { UseMethod } from "../composables/UseMethod";
 const UserPage = () => {
- const [users, setUsers] = useState(usersData);
+const [users, setUsers] = useState([]);
+
   const [openForm, setOpenForm] = useState(false);
   const [openView, setOpenView] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
@@ -33,7 +35,19 @@ const UserPage = () => {
 
   // Dummy fetch simulation
 
+useEffect(() => {
+  const fetchUsers = async () => {
+    try {
+      const response = await UseMethod('get','get-users');
+      
+      setUsers(response.data);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    }
+  };
 
+  fetchUsers();
+}, []);
   const handleOpenAdd = () => {
     setIsEdit(false);
     setFormData({ name: "", email: "", phone: "", role: "" });
@@ -118,6 +132,11 @@ const UserPage = () => {
               <TableCell
                 sx={{ fontSize: "1rem", color: "white", fontWeight: "bold" }}
               >
+                Gender
+              </TableCell>
+              <TableCell
+                sx={{ fontSize: "1rem", color: "white", fontWeight: "bold" }}
+              >
                 Role
               </TableCell>
               <TableCell
@@ -134,8 +153,9 @@ const UserPage = () => {
                 <TableCell>{index + 1}</TableCell>
                 <TableCell>{user.name}</TableCell>
                 <TableCell>{user.email}</TableCell>
-                <TableCell>{user.phone}</TableCell>
-                <TableCell>{user.role}</TableCell>
+                <TableCell>{user.details.phone_number}</TableCell>
+                <TableCell>{user.details.sex.name}</TableCell>
+                <TableCell>{user.role.name}</TableCell>
                 <TableCell align="right">
                   <IconButton
                     color="primary"

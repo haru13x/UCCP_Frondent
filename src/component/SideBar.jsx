@@ -1,46 +1,73 @@
+import React, { useState } from "react";
 import {
   Drawer,
   List,
   ListItem,
-  ListItemText,
   ListItemIcon,
+  ListItemText,
   Collapse,
   IconButton,
-  Typography,
   Box,
+  Typography,
   Divider,
-  Tooltip
+  Tooltip,
 } from "@mui/material";
 import {
-  Dashboard,
-  People,
-  Event,
-  Settings,
-  ExpandLess,
-  ExpandMore,
-  Rule,
-  Groups,
-  EventNote,
-  HowToReg,
-  MeetingRoom,
-  BreakfastDining,
-  History,
-  Upcoming,
   ChevronLeft,
   ChevronRight,
+  ExpandLess,
+  ExpandMore,
 } from "@mui/icons-material";
-import ChurchIcon from '@mui/icons-material/Church';
-import { useState } from "react";
+import ChurchIcon from "@mui/icons-material/Church";
 import { Link } from "react-router-dom";
+import { sidebarConfig } from "../composables/sidebarConfig";
 import { DRAWER_WIDTH_EXPANDED, DRAWER_WIDTH_COLLAPSED } from "../layout/constants";
+
+// Example permissions from login/API
+
+const getUserPermissions = () => {
+  try {
+    const user = JSON.parse(localStorage.getItem("user"));
+    const permissions =
+      user?.role?.role_permissions?.map((rp) => rp.permission?.code) || [];
+    return permissions;
+  } catch (error) {
+    console.error("Failed to extract permissions:", error);
+    return [];
+  }
+};
+
+// Example usage
+const userPermissions = getUserPermissions();
+
+console.log("User Permissions:", userPermissions);
+
+
+const filterSidebarByPermissions = (items, permissions) => {
+  return items
+    .filter(item => !item.rule || permissions.includes(item.rule))
+    .map(item => {
+      if (item.children) {
+        const filteredChildren = filterSidebarByPermissions(item.children, permissions);
+        return filteredChildren.length > 0
+          ? { ...item, children: filteredChildren }
+          : null;
+      }
+      return item;
+    })
+    .filter(Boolean);
+};
 
 const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(true);
-  const [openSettings, setOpenSettings] = useState(false);
-  const [openMeetings, setOpenMeetings] = useState(false);
-    const [openEvents, setOpenEvents] = useState(false);
+  const [openIndex, setOpenIndex] = useState(null);
 
   const drawerWidth = collapsed ? DRAWER_WIDTH_COLLAPSED : DRAWER_WIDTH_EXPANDED;
+  const filteredSidebar = filterSidebarByPermissions(sidebarConfig, userPermissions);
+
+  const toggleOpen = (index) => {
+    setOpenIndex(openIndex === index ? null : index);
+  };
 
   return (
     <Drawer
@@ -71,18 +98,9 @@ const Sidebar = () => {
           }}
         >
           {!collapsed && (
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: collapsed ? "center" : "flex-start",
-              }}
-            >
+            <Box sx={{ display: "flex", alignItems: "center" }}>
               <ChurchIcon sx={{ color: "#1565c0", fontSize: 30 }} />
-              <Typography
-                variant="h6"
-                sx={{  color: "#1565c0", fontWeight: "bold" }}
-              >
+              <Typography variant="h6" sx={{ color: "#1565c0", fontWeight: "bold" }}>
                 UCCP
               </Typography>
             </Box>
@@ -93,144 +111,61 @@ const Sidebar = () => {
               bgcolor: "#e3f2fd",
               borderRadius: 2,
               boxShadow: 1,
-              justifyContent: "flex-end",
-              "&:hover": {
-                bgcolor: "#bbdefb",
-              },
+              "&:hover": { bgcolor: "#bbdefb" },
             }}
           >
             {collapsed ? <ChevronRight /> : <ChevronLeft />}
           </IconButton>
         </Box>
-
         <Divider sx={{ my: 1, backgroundColor: "#cfd8dc" }} />
-
-        {/* Collapse Button */}
       </Box>
 
       <List>
-        <Tooltip
-          title="Dashboard"
-          placement="right"
-          disableHoverListener={!collapsed}
-        >
-          <ListItem button component={Link} to="/dashboard">
-            <ListItemIcon>
-              <Dashboard color="primary" />
-            </ListItemIcon>
-            {!collapsed && <ListItemText primary="Dashboard" />}
-          </ListItem>
-        </Tooltip>
+        {filteredSidebar.map((item, index) => {
+          const Icon = item.icon;
 
-        <Tooltip
-          title="Events"
-          placement="right"
-          disableHoverListener={!collapsed}
-        >
-          <ListItem button onClick={() => setOpenEvents(!openEvents)}>
-            <ListItemIcon>
-              <Event color="primary" />
-            </ListItemIcon>
-            {!collapsed && <ListItemText primary="Management" />}
-            {!collapsed && (openEvents ? <ExpandLess /> : <ExpandMore />)}
-          </ListItem>
-        </Tooltip>
-        <Collapse in={openEvents } timeout="auto" unmountOnExit>
-          <List component="div" disablePadding>
-            <ListItem title="Manage Event's" button component={Link} to="/events" sx={{ pl: 4 }}>
-              <ListItemIcon>
-                <Groups color="action" />
-              </ListItemIcon>
-              <ListItemText primary="Events" />
-            </ListItem>
-            <ListItem title="Manage Meeting's" button component={Link} to="/meetings" sx={{ pl: 4 }}>
-              <ListItemIcon>
-                <EventNote color="action" />
-              </ListItemIcon>
-              <ListItemText primary="Meetings" />
-            </ListItem>
-            <ListItem button component={Link} to="/attendance" sx={{ pl: 4 }}>
-              <ListItemIcon>
-                <HowToReg color="action" />
-              </ListItemIcon>
-              <ListItemText primary="Attendance" />
-            </ListItem>
-          </List>
-        </Collapse>
+          if (item.children) {
+            return (
+              <React.Fragment key={index}>
+                <Tooltip title={item.label} placement="right" disableHoverListener={!collapsed}>
+                  <ListItem button onClick={() => toggleOpen(index)}>
+                    <ListItemIcon><Icon color="primary" /></ListItemIcon>
+                    {!collapsed && <ListItemText primary={item.label} />}
+                    {!collapsed && (openIndex === index ? <ExpandLess /> : <ExpandMore />)}
+                  </ListItem>
+                </Tooltip>
+                <Collapse in={openIndex === index} timeout="auto" unmountOnExit>
+                  <List component="div" disablePadding>
+                    {item.children.map((child, j) => {
+                      const ChildIcon = child.icon;
+                      return (
+                        <ListItem
+                          key={j}
+                          button
+                          component={Link}
+                          to={child.path}
+                          sx={{ pl: 4 }}
+                        >
+                          <ListItemIcon><ChildIcon color="action" /></ListItemIcon>
+                          <ListItemText primary={child.label} />
+                        </ListItem>
+                      );
+                    })}
+                  </List>
+                </Collapse>
+              </React.Fragment>
+            );
+          }
 
-        {/* Meetings */}
-        {/* <Tooltip title="Meetings" placement="right" disableHoverListener={!collapsed}>
-          <ListItem button onClick={() => setOpenMeetings(!openMeetings)}>
-            <ListItemIcon><MeetingRoom color="primary" /></ListItemIcon>
-            {!collapsed && <ListItemText primary="Meetings" />}
-            {!collapsed && (openMeetings ? <ExpandLess /> : <ExpandMore />)}
-          </ListItem>
-        </Tooltip>
-        <Collapse in={openMeetings && !collapsed} timeout="auto" unmountOnExit>
-          <List component="div" disablePadding>
-            <ListItem button component={Link} to="/meetings/breakfast" sx={{ pl: 4 }}>
-              <ListItemIcon><BreakfastDining /></ListItemIcon>
-              <ListItemText primary="Breakfast" />
-            </ListItem>
-            <ListItem button component={Link} to="/meetings/upcoming" sx={{ pl: 4 }}>
-              <ListItemIcon><Upcoming /></ListItemIcon>
-              <ListItemText primary="Upcoming" />
-            </ListItem>
-            <ListItem button component={Link} to="/meetings/past" sx={{ pl: 4 }}>
-              <ListItemIcon><History /></ListItemIcon>
-              <ListItemText primary="Past" />
-            </ListItem>
-          </List>
-        </Collapse> */}
-
-        {/* Settings */}
-        <Tooltip
-          title="User's & Settings"
-          placement="right"
-          disableHoverListener={!collapsed}
-        >
-          <ListItem button onClick={() => setOpenSettings(!openSettings)}>
-            <ListItemIcon>
-              <Settings color="primary" />
-            </ListItemIcon>
-            {!collapsed && <ListItemText primary="User's & Settings" />}
-            {!collapsed && (openSettings ? <ExpandLess /> : <ExpandMore />)}
-          </ListItem>
-        </Tooltip>
-        <Collapse in={openSettings} timeout="auto" unmountOnExit>
-          <List component="div" disablePadding>
-            <ListItem title="User's" button component={Link} to="/users" sx={{ pl: 4 }}>
-              <ListItemIcon>
-                <People color="action" />
-              </ListItemIcon>
-              <ListItemText primary="User's" />
-            </ListItem>
-            <ListItem
-              button
-              title="Roles"
-              component={Link}
-              to="/settings/role"
-              sx={{ pl: 4 }}
-            >
-              <ListItemIcon>
-                <Rule color="action" />
-              </ListItemIcon>
-              <ListItemText primary="Role" />
-            </ListItem>
-            <ListItem
-              button
-              component={Link}
-              to="/settings/rules"
-              sx={{ pl: 4 }}
-              title="Permissions"
-            >
-              <ListItemIcon>
-                <Rule color="action" />
-              </ListItemIcon>
-              <ListItemText primary="Permissions" />
-            </ListItem>
-          </List>
-        </Collapse>
+          return (
+            <Tooltip title={item.label} placement="right" disableHoverListener={!collapsed} key={index}>
+              <ListItem button component={Link} to={item.path}>
+                <ListItemIcon><Icon color="primary" /></ListItemIcon>
+                {!collapsed && <ListItemText primary={item.label} />}
+              </ListItem>
+            </Tooltip>
+          );
+        })}
       </List>
     </Drawer>
   );
