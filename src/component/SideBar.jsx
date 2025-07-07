@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Drawer,
   List,
@@ -23,8 +23,7 @@ import { Link } from "react-router-dom";
 import { sidebarConfig } from "../composables/sidebarConfig";
 import { DRAWER_WIDTH_EXPANDED, DRAWER_WIDTH_COLLAPSED } from "../layout/constants";
 
-// Example permissions from login/API
-
+// ✅ Function to get user permissions from localStorage
 const getUserPermissions = () => {
   try {
     const user = JSON.parse(localStorage.getItem("user"));
@@ -37,21 +36,14 @@ const getUserPermissions = () => {
   }
 };
 
-// Example usage
-const userPermissions = getUserPermissions();
-
-console.log("User Permissions:", userPermissions);
-
-
+// ✅ Recursive filtering based on permission rules
 const filterSidebarByPermissions = (items, permissions) => {
   return items
-    .filter(item => !item.rule || permissions.includes(item.rule))
-    .map(item => {
+    .filter((item) => !item.rule || permissions.includes(item.rule))
+    .map((item) => {
       if (item.children) {
         const filteredChildren = filterSidebarByPermissions(item.children, permissions);
-        return filteredChildren.length > 0
-          ? { ...item, children: filteredChildren }
-          : null;
+        return filteredChildren.length > 0 ? { ...item, children: filteredChildren } : null;
       }
       return item;
     })
@@ -61,8 +53,15 @@ const filterSidebarByPermissions = (items, permissions) => {
 const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(true);
   const [openIndex, setOpenIndex] = useState(null);
+  const [userPermissions, setUserPermissions] = useState([]);
 
   const drawerWidth = collapsed ? DRAWER_WIDTH_COLLAPSED : DRAWER_WIDTH_EXPANDED;
+
+  useEffect(() => {
+    const permissions = getUserPermissions();
+    setUserPermissions(permissions);
+  }, []);
+
   const filteredSidebar = filterSidebarByPermissions(sidebarConfig, userPermissions);
 
   const toggleOpen = (index) => {
@@ -129,7 +128,9 @@ const Sidebar = () => {
               <React.Fragment key={index}>
                 <Tooltip title={item.label} placement="right" disableHoverListener={!collapsed}>
                   <ListItem button onClick={() => toggleOpen(index)}>
-                    <ListItemIcon><Icon color="primary" /></ListItemIcon>
+                    <ListItemIcon>
+                      <Icon color="primary" />
+                    </ListItemIcon>
                     {!collapsed && <ListItemText primary={item.label} />}
                     {!collapsed && (openIndex === index ? <ExpandLess /> : <ExpandMore />)}
                   </ListItem>
@@ -146,7 +147,9 @@ const Sidebar = () => {
                           to={child.path}
                           sx={{ pl: 4 }}
                         >
-                          <ListItemIcon><ChildIcon color="action" /></ListItemIcon>
+                          <ListItemIcon>
+                            <ChildIcon color="action" />
+                          </ListItemIcon>
                           <ListItemText primary={child.label} />
                         </ListItem>
                       );
@@ -160,7 +163,9 @@ const Sidebar = () => {
           return (
             <Tooltip title={item.label} placement="right" disableHoverListener={!collapsed} key={index}>
               <ListItem button component={Link} to={item.path}>
-                <ListItemIcon><Icon color="primary" /></ListItemIcon>
+                <ListItemIcon>
+                  <Icon color="primary" />
+                </ListItemIcon>
                 {!collapsed && <ListItemText primary={item.label} />}
               </ListItem>
             </Tooltip>

@@ -41,7 +41,7 @@ const groupByDate = (items) => {
   return groups;
 };
 
-const ListPage = () => {
+const Mylist = () => {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("today");
   const [events, setEvents] = useState({ today: [], upcoming: [], past: [] });
@@ -58,17 +58,17 @@ const ListPage = () => {
 
     if (tabName === "today") {
       [response1, response2] = await Promise.all([
-        UseMethod("get", "events/today"),
+        UseMethod("get", "my-events/today"),
         // UseMethod("get", "meetings/today"),
       ]);
     } else if (tabName === "upcoming") {
       [response1, response2] = await Promise.all([
-        UseMethod("get", "events/upcoming"),
+        UseMethod("get", "my-events/upcoming"),
         // UseMethod("get", "meetings/upcoming"),
       ]);
     } else if (tabName === "past") {
       [response1, response2] = await Promise.all([
-        UseMethod("get", "events/past"),
+        UseMethod("get", "my-events/past"),
         // UseMethod("get", "meetings/past"),
       ]);
     }
@@ -225,7 +225,7 @@ const ListPage = () => {
           <Box textAlign="center" mt={5}>
             <EventBusy color="disabled" sx={{ fontSize: 60 }} />
             <Typography variant="h6" mt={2}>
-              No {tab} events or meetings.
+              No {tab} events.
             </Typography>
           </Box>
         )}
@@ -247,4 +247,4 @@ const ListPage = () => {
   );
 };
 
-export default ListPage;
+export default Mylist;

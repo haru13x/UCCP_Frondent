@@ -13,11 +13,25 @@ import {
   CardContent,
   useMediaQuery,
   useTheme,
+  Slide,
+  Tab,
+  Tabs,
+  Paper,
 } from "@mui/material";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import LocationOnIcon from "@mui/icons-material/LocationOn";
+import EventAvailableIcon from "@mui/icons-material/EventAvailable";
+import PhoneIcon from "@mui/icons-material/Phone";
+import GroupIcon from "@mui/icons-material/Group";
+import DescriptionIcon from "@mui/icons-material/Description"
 import { UseMethod } from "../../composables/UseMethod";
 import QRCodeIcon from "@mui/icons-material/QrCode";
-import { ViewList } from "@mui/icons-material";
+import { ArrowBackSharp, ViewList } from "@mui/icons-material";
 import EventRegisteredDialog from "./EventRegisteredDialog";
+const Transition = React.forwardRef(function Transition(props, ref) {
+  return <Slide direction="left" ref={ref} {...props} />;
+});
 
 const EventViewDialog = ({ open, onClose, event }) => {
   const [qrPath, setQrPath] = useState(null);
@@ -26,6 +40,11 @@ const EventViewDialog = ({ open, onClose, event }) => {
   const [openRegistered, setOpenRegistered] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const [tabIndex, setTabIndex] = useState(0);
+
+  const handleTabChange = (event, newValue) => {
+    setTabIndex(newValue);
+  };
 
   const mapUrl =
     event?.latitude && event?.longitude
@@ -78,232 +97,221 @@ const EventViewDialog = ({ open, onClose, event }) => {
 
   return (
     <>
-      <Dialog open={open} onClose={onClose} fullScreen>
-        <DialogContent sx={{ p: 0 }}>
-          {/* Header */}
-          <Box
-            sx={{
-              height: 180,
-              background: "linear-gradient(90deg, #1976d2, #42a5f5)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#fff",
-              flexDirection: "column",
-              textAlign: "center",
-            }}
-          >
-            <DialogTitle
-              sx={{
-                fontSize: "1.5rem",
-                fontWeight: "bold",
-                textAlign: "center",
-                py: 2,
-              }}
-            >
-              📋 {event?.title || "Event Details"}
-            </DialogTitle>
-            <Typography variant="h6" fontWeight="bold">
-              {formatDateTime(event?.startDate, event?.startTime)} –{" "}
-              {formatDateTime(event?.endDate, event?.endTime)}
-            </Typography>
+      <Dialog
+        open={open}
+        onClose={onClose}
+        TransitionComponent={Transition}
+        fullScreen
+        height="100vh"
+        PaperProps={{
+          sx: {
+            height: "100vh",
+            ml: "auto",
 
-            {/* QR View / Generate */}
-         
-          </Box>
-
-          {/* Main Content */}
-          <Grid container spacing={2} p={1}>
-            <Grid item size={{md:6}}>
-              <Card variant="outlined">
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    📌 Event Details
-                  </Typography>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} sm={6}>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Organizer
-                      </Typography>
-                      <Typography>{event?.organizer}</Typography>
-                      <Typography
-                        variant="subtitle2"
-                        color="text.secondary"
-                        mt={2}
-                      >
-                        Contact
-                      </Typography>
-                      <Typography>{event?.contact}</Typography>
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Category
-                      </Typography>
-                      <Typography>{event?.category}</Typography>
-                      <Typography
-                        variant="subtitle2"
-                        color="text.secondary"
-                        mt={2}
-                      >
-                        Attendees
-                      </Typography>
-                      <Typography>{event?.attendees}</Typography>
-                    </Grid>
-                  </Grid>
-                  <Divider sx={{ my: 2 }} />
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Venue
-                  </Typography>
-                  <Typography>{event?.venue}</Typography>
-                  <Typography
-                    variant="subtitle2"
-                    color="text.secondary"
-                    mt={2}
-                  >
-                    Address
-                  </Typography>
-                  <Typography>{event?.address}</Typography>
-                  {event?.description && (
-                    <>
-                      <Typography
-                        variant="subtitle2"
-                        color="text.secondary"
-                        mt={2}
-                      >
-                        Description
-                      </Typography>
-                      <Typography>{event?.description}</Typography>
-                    </>
-                  )}
-                  
-                </CardContent>
-
-              </Card>
-            </Grid>
-
-            {/* Map Side */}
-            <Grid item xs={12} size={{md: 6}}>
-                 
-              <Card variant="outlined" sx={{ height: "100%" }}>
-                <CardContent>
-                  <Box m={1}>
-              {qrPath ? (
-                <Button
-                  startIcon={<QRCodeIcon />}
-                  variant="contained"
-                  size="small"
-                  color="success"
-                  onClick={() => setQrModal(true)}
-                >
-                  View QR Code
-                </Button>
-              ) : (
-                <Button
-                  startIcon={<QRCodeIcon />}
-                  variant="contained"
-                  size="small"
-                  color="warning"
-                  onClick={handleGenerateQR}
-                  disabled={loadingQR}
-                >
-                  {loadingQR ? "Generating..." : "Generate QR Code"}
-                </Button>
-              )}
-              <Button
-              startIcon={<ViewList/>}
-              size="small"
-              color="primary"
-              variant="contained"
-              sx={{ml:1}}
-              onClick={()=> setOpenRegistered(true)}
-              >View Registered</Button>
-            </Box>
-                  <Typography variant="h6" gutterBottom>
-                    🗺️ Event Location
-                  </Typography>
-                  {mapUrl ? (
-                    <Box
-                      sx={{
-                        mt: 1,
-                        borderRadius: 2,
-                        overflow: "hidden",
-                        border: "1px solid #ccc",
-                        height: 300,
-                      }}
-                    >
-                      <iframe
-                        src={mapUrl}
-                        title="Event Map"
-                        style={{ border: 0, width: "100%", height: "100%" }}
-                        loading="lazy"
-                      />
-                    </Box>
-                  ) : (
-                    <Typography color="text.secondary">
-                      Map not available.
-                    </Typography>
-                  )}
-                  {event?.latitude && event?.longitude && (
-                    <Typography mt={1} fontSize="0.875rem" color="text.secondary">
-                      📍 {event.latitude}, {event.longitude}
-                    </Typography>
-                  )}
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
-        </DialogContent>
-
-        <DialogActions sx={{ p: 2 }}>
+            display: "flex",
+            flexDirection: "column",
+            width: { xs: "100%", sm: "90%", md:"55%" },
+          },
+        }}
+      >
+        <DialogTitle sx={{ pb: 0, mb: 2, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <Button
             onClick={onClose}
             variant="contained"
-            color="primary"
+            color="error"
             size="large"
             fullWidth={isMobile}
           >
-            Close
+              <ArrowBackSharp fontSize="small" sx={{mr:1}} />  Back
           </Button>
-        </DialogActions>
+          <Tabs value={tabIndex} onChange={handleTabChange}>
+            <Tab label="Details" />
+            <Tab label="QR CODE" />
+            <Tab label="Attendance" />
+            <Tab label="Comments & Reviews" />
+          </Tabs>
+        </DialogTitle>
+        <DialogContent sx={{ overflowY: "auto", height: "100vh" }}>
+          {tabIndex === 0 && (
+            <Grid container sx={{ width: "100%" , display: "flex", flexDirection: "column", alignItems: "center"  }}>
+              <Box
+                sx={{
+                  width: '68%',
+                  height: 230,
+                  border: "2px dashed #ccc",
+                  borderRadius: 2,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  overflow: "hidden",
+                  backgroundColor: "#f9f9f9",
+                }}
+
+              >
+                <Grid item xs={12} sm={6}>
+                  {event?.image && (
+                    <img
+                      src={
+                        typeof event?.image === "string"
+                          ? `http://127.0.0.1:8000/storage/${event?.image}`
+                          : URL.createObjectURL(event?.image)
+                      }
+                      alt="Preview"
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    />
+                  )}
+                </Grid>
+              </Box>
+
+              <Paper
+
+                elevation={1}
+                sx={{
+                  p: 4,
+                  mt: 2,
+                  borderRadius: 4,
+                  backgroundColor: "#fff",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+                }}
+              >
+                <Grid container spacing={3}>
+                  {/* Title and Organizer */}
+                  <Grid size={{ md: 12 }} xs={12}>
+                    <Typography variant="h4" fontWeight={700} gutterBottom>
+                      {event?.title}
+                    </Typography>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      <EventAvailableIcon sx={{ fontSize: 18, mr: 1, verticalAlign: "middle" }} />
+                      Organized by <strong>{event?.organizer}</strong>
+                    </Typography>
+                  </Grid>
+
+                  {/* Date */}
+                  <Grid size={{ md: 6 }} xs={12} sm={6}>
+                    <Typography variant="body2" color="text.secondary">
+                      <CalendarMonthIcon sx={{ fontSize: 18, mr: 1, verticalAlign: "middle" }} />
+                      <strong>Date:</strong> {event?.startDate} to {event?.endDate}
+                    </Typography>
+                  </Grid>
+
+                  {/* Time */}
+                  <Grid size={{ md: 6 }} xs={12} sm={6}>
+                    <Typography variant="body2" color="text.secondary">
+                      <AccessTimeIcon sx={{ fontSize: 18, mr: 1, verticalAlign: "middle" }} />
+                      <strong>Time:</strong> {event?.startTime} – {event?.endTime}
+                    </Typography>
+                  </Grid>
+
+                  {/* Venue */}
+                  <Grid size={{ md: 12 }} xs={12} sm={6}>
+                    <Typography variant="body2" color="text.secondary">
+                      <LocationOnIcon sx={{ fontSize: 18, mr: 1, verticalAlign: "middle" }} />
+                      <strong>Venue:</strong> {event?.venue}
+                    </Typography>
+                  </Grid>
+
+                  {/* Address */}
+                  <Grid size={{ md: 12 }} xs={12} sm={6}>
+                    <Typography variant="body2" color="text.secondary">
+                      <LocationOnIcon sx={{ fontSize: 18, mr: 1, verticalAlign: "middle" }} />
+                      <strong>Address:</strong> {event?.address}
+                    </Typography>
+                  </Grid>
+
+                  {/* Contact */}
+                  <Grid size={{ md: 6 }} xs={12} sm={6}>
+                    <Typography variant="body2" color="text.secondary">
+                      <PhoneIcon sx={{ fontSize: 18, mr: 1, verticalAlign: "middle" }} />
+                      <strong>Contact:</strong> {event?.contact}
+                    </Typography>
+                  </Grid>
+
+                  {/* Attendees */}
+                  <Grid size={{ md: 6 }} xs={12} sm={6}>
+                    <Typography variant="body2" color="text.secondary">
+                      <GroupIcon sx={{ fontSize: 18, mr: 1, verticalAlign: "middle" }} />
+                      <strong>Expected Attendees:</strong> {event?.attendees}
+                    </Typography>
+                  </Grid>
+
+                  {/* Description */}
+                  <Grid size={{ md: 12 }} xs={12}>
+                    <Typography variant="body2" color="text.secondary">
+                      <DescriptionIcon sx={{ fontSize: 20, mr: 1, verticalAlign: "middle" }} />
+                      <strong>Description</strong> {event?.description}
+
+                    </Typography>
+
+                  </Grid>
+                </Grid>
+              </Paper>
+
+            </Grid>
+          )}
+          {tabIndex === 1 && (
+            <Box p={2}>
+              {qrPath ? (
+                <Box textAlign="center" sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <img
+                    src={qrPath}
+                    alt="QR Code"
+                    style={{ maxWidth: "100%" ,height:"45vh"}}
+                  />
+                  <Button
+                    onClick={() => printImage(qrPath)}
+                    variant="contained"
+                    color="success"
+                    sx={{ mt: 2 }}
+                  >
+                    Print Event QR
+                  </Button>
+                </Box>
+              ) : (
+                <Box textAlign="center" sx={{ mt: 2 }}>
+                  <Typography>No QR code available.</Typography>
+                  <Button
+                    startIcon={<QRCodeIcon />}
+                    variant="contained"
+                    size="small"
+                    color="warning"
+                    onClick={handleGenerateQR}
+                    disabled={loadingQR}
+                  >
+                    {loadingQR ? "Generating..." : "Generate QR Code"}
+                  </Button>
+                </Box>
+
+              )}
+              {/* Add attendance info here */}
+            </Box>
+          )}
+          {tabIndex === 2 && (
+            <Box p={2}>
+              <h3>Attendance</h3>
+              {/* Add attendance info here */}
+            </Box>
+          )}
+          {tabIndex === 3 && (
+            <Box p={2}>
+              <h3>Comments & Reviews</h3>
+              {/* Add comments & reviews here */}
+            </Box>
+          )}
+
+
+
+        </DialogContent>
+
+      
       </Dialog>
 
       {/* QR Code Modal */}
-      <Dialog
-        open={qrModal}
-        onClose={() => setQrModal(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>QR Code for {event?.title}</DialogTitle>
-        <DialogContent dividers>
-          {qrPath ? (
-            <Box textAlign="center">
-              <img
-                src={qrPath}
-                alt="QR Code"
-                style={{ maxWidth: "100%" }}
-              />
-              <Button
-                onClick={() => printImage(qrPath)}
-                variant="contained"
-                color="success"
-                sx={{ mt: 2 }}
-              >
-                Print QR
-              </Button>
-            </Box>
-          ) : (
-            <Typography>No QR code available.</Typography>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setQrModal(false)}>Close</Button>
-        </DialogActions>
-      </Dialog>
+     
 
-      <EventRegisteredDialog 
-      open={openRegistered}
-      onClose={()=>setOpenRegistered(false)}/>
+      <EventRegisteredDialog
+        open={openRegistered}
+        onClose={() => setOpenRegistered(false)} />
     </>
   );
 };

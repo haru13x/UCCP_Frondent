@@ -43,7 +43,7 @@ const Login = () => {
           localStorage.removeItem("remember_email");
         }
 
-        navigate("/dashboard");
+        navigate("/list");
       } else {
         alert("Invalid login credentials.");
       }
@@ -94,7 +94,7 @@ const Login = () => {
             <Box component="form" display="flex" flexDirection="column" gap={2} onSubmit={handleLogin}>
               <TextField
                 label="Email"
-                type="email"
+            
                 fullWidth
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}

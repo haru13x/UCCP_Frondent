@@ -53,21 +53,29 @@ const RoleFormModal = ({ open, onClose, role }) => {
     }));
   };
 
-  const handleSubmit = async () => {
-    const payload = {
-      ...form,
-      created_by: 1,
-    };
+const handleSubmit = async () => {
+  const payload = {
+    name: form.name,
+    slug: form.slug,
+    description: form.description,
+    permissions: form.permissions, // permission IDs (checked)
+    created_by: 1, // or from logged in user
+  };
 
-    const method = role ? "put" : "post";
-    const url = role ? `roles/${role.id}` : "roles";
+  const method = role ? "put" : "post";
+  const url = role ? `roles/${role.id}` : "roles";
 
+  try {
     const res = await UseMethod(method, url, payload);
     if (res) {
       alert(role ? "Role updated successfully" : "Role created successfully");
       onClose();
     }
-  };
+  } catch (err) {
+    console.error("Failed to save role:", err);
+  }
+};
+
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
