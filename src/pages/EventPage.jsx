@@ -15,7 +15,7 @@ import SearchOffSharp from "@mui/icons-material/SearchOffSharp";
 import { UseMethod } from "../composables/UseMethod";
 import EventFormDialog from "../component/event/EventFormDialog";
 import EventViewDialog from "../component/event/EventViewDialog";
-import { EditDocument } from "@mui/icons-material";
+import { Cancel, CancelPresentation, EditDocument } from "@mui/icons-material";
 
 // ... (imports unchanged)
 
@@ -28,6 +28,7 @@ const EventPage = () => {
   const [formData, setFormData] = useState({
     id: "",
     title: "",
+    image:"",
     startDate: "",
     endDate: "",
     endTime: "",
@@ -51,7 +52,9 @@ const EventPage = () => {
     const response = await UseMethod("get", "get-events");
     if (response?.data) {
       const mappedEvents = response.data.map((event, index) => ({
+        
         id: event.id || index,
+        image: event.image || "",
         title: event.title,
         startTime: event.start_time,
         startDate: event.start_date,
@@ -66,6 +69,7 @@ const EventPage = () => {
         latitude: event.latitude,
         longitude: event.longitude,
         description: event.description,
+        image: event.image,
         programs: event.event_programs ?? [],
         sponsors: event.events_sponser ?? [], // ✅ include sponsors
       }));
@@ -84,6 +88,7 @@ const handleOpenForm = (event = null) => {
     setFormData(
       event || {
         id: "",
+        image: "",
         title: "",
         startDate: "",
         startTime:"",
@@ -98,44 +103,51 @@ const handleOpenForm = (event = null) => {
         latitude: "",
         longitude: "",
         description: "",
+        image:"",
         sponsors:[],
         programs:[]
       }
     );
     setOpenForm(true);
   };
-  const handleSubmit = async () => {
-    const payload = {
-      id: formData.id,
-      title: formData.title,
-      start_date: formData.startDate,
-      start_time: formData.startTime,
-      end_date: formData.endDate,
-      end_time: formData.endTime,
-      category: formData.category,
-      organizer: formData.organizer,
-      contact: formData.contact,
-      attendees: formData.attendees,
-      venue: formData.venue,
-      address: formData.address,
-      latitude: formData.latitude,
-      longitude: formData.longitude,
-      description: formData.description,
-      programs: formData.programs,
-      sponsors: formData.sponsors,
-    };
+const handleSubmit = async () => {
+  const form = new FormData();
+  form.append("id", formData.id);
+  form.append("title", formData.title);
+  form.append("start_date", formData.startDate);
+  form.append("start_time", formData.startTime);
+  form.append("end_date", formData.endDate);
+  form.append("end_time", formData.endTime);
+  form.append("category", formData.category);
+  form.append("organizer", formData.organizer);
+  form.append("contact", formData.contact);
+  form.append("attendees", formData.attendees);
+  form.append("venue", formData.venue);
+  form.append("address", formData.address);
+  form.append("latitude", formData.latitude);
+  form.append("longitude", formData.longitude);
+  form.append("description", formData.description);
 
-    const api = isEdit ? "update-events" : "store-events";
-    const response = await UseMethod("post", api, payload);
+  // Attach image file
+  if (formData.image instanceof File) {
+    form.append("image", formData.image);
+  }
 
-    if (response?.data) {
-      alert("Event saved successfully!");
-      setOpenForm(false);
-      fetchEvents();
-    } else {
-      alert("Failed to save event.");
-    }
-  };
+  // Attach programs and sponsors as JSON strings
+  form.append("programs", JSON.stringify(formData.programs));
+  form.append("sponsors", JSON.stringify(formData.sponsors));
+
+  const api = isEdit ? "update-events" : "store-events";
+  const response = await UseMethod("post", api, form , "", true);
+
+  if (response?.data) {
+    alert("Event saved successfully!");
+    setOpenForm(false);
+    fetchEvents();
+  } else {
+    alert("Failed to save event.");
+  }
+};
 
   const handleView = (event) => {
     setSelectedEvent(event);
@@ -178,9 +190,9 @@ const handleOpenForm = (event = null) => {
             size="small"
             variant="contained"
             color="error"
-            startIcon={<EditDocument />}
+            startIcon={<CancelPresentation />}
           >
-            Report
+            Cancel
           </Button>
         </>
       ),
@@ -191,7 +203,7 @@ const handleOpenForm = (event = null) => {
     <Box>
       <Paper elevation={3} sx={{ p: 2 }}>
         <Grid container spacing={2} alignItems="center" mb={2}>
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12} md={6} size={{ md: 4 }}>
             <TextField
               fullWidth
               label="Search Events"
@@ -247,6 +259,7 @@ const handleOpenForm = (event = null) => {
       />
 
       <EventViewDialog
+      height="100vh"
         open={openView}
         onClose={() => setOpenView(false)}
         event={selectedEvent}

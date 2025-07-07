@@ -1,20 +1,32 @@
+// src/router/middleware.jsx
 import { Navigate } from "react-router-dom";
 import { useEffect } from "react";
 
-const Middleware = ({ element, isPublic = false }) => {
+const getUserPermissions = () => {
+  try {
+    const user = JSON.parse(localStorage.getItem("user"));
+    return user?.role?.role_permissions?.map((rp) => rp.permission?.code) || [];
+  } catch (e) {
+    return [];
+  }
+};
+
+const Middleware = ({ element, isPublic = false, rule = null }) => {
   const token = localStorage.getItem("api_token");
+  const permissions = getUserPermissions();
 
-  useEffect(() => {
-    if (!isPublic && !token) {
-      console.warn("Unauthorized access attempt to a private route.");
-    }
-  }, [isPublic, token]);
-
-  // Public route - always allow
+  // Public route: always allow
   if (isPublic) return element;
 
-  // Private route - allow only if authenticated
-  return token ? element : <Navigate to="/" replace />;
+  // Not authenticated
+  if (!token) return <Navigate to="/" replace />;
+
+  // Authenticated but lacks permission
+  if (rule && !permissions.includes(rule)) {
+    return <Navigate to="/no-permission" replace />;
+  }
+
+  return element;
 };
 
 export default Middleware;

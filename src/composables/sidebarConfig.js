@@ -5,7 +5,12 @@ import {
   Settings,
   Groups,
   EditDocument,
+  Report,
+  DocumentScanner,
+  ListAlt,
+  EventNote,
 } from "@mui/icons-material";
+import { List } from "@mui/material";
 
 export const sidebarConfig = [
   {
@@ -15,10 +20,16 @@ export const sidebarConfig = [
     rule: "view_dashboard",
   },
   {
-    label: "Generate Report",
-    icon: People,
-    path: "/",
-    rule: "view_generate",
+    label: "Lists",
+    icon: ListAlt,
+    path: "/list",
+    // rule: "view_events",
+  },
+    {
+    label: "My Events",
+    icon: EventNote,
+    path: "/my-list",
+    // rule: "view_my_events",
   },
   {
     label: "Events",
@@ -26,23 +37,24 @@ export const sidebarConfig = [
     path: "/events",
     rule: "view_events",
   },
-//   {
-//     label: "Reports",
-//     icon: EditDocument,
-//     path: "/report",
-//     rule: "report_users",
-//   },
+  {
+    label: "Report",
+    icon: DocumentScanner,
+    path: "/",
+    rule: "view_report",
+  },
+  {
+    label: "Users",
+    icon: People,
+    path: "/users",
+    rule: "view_users",
+  },
   {
     label: "Settings",
     icon: Settings,
     rule: null,
     children: [
-      {
-        label: "User Management",
-        icon: People,
-        path: "/users",
-        rule: "view_users",
-      },
+
       {
         label: "Roles",
         icon: Rule,

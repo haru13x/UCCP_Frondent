@@ -1,4 +1,7 @@
 import React, { useRef, useEffect, useState } from "react";
+import { useTheme } from '@mui/material/styles';
+
+
 import {
   Dialog,
   DialogTitle,
@@ -16,9 +19,12 @@ import {
   TableBody,
   Table,
   TableHead,
+  Slide,
 } from "@mui/material";
 import MyLocationIcon from "@mui/icons-material/MyLocation";
 import EventProgramFormDialog from "./EventProgramFormDialog";
+import { GridCloseIcon } from "@mui/x-data-grid";
+import { ArrowBackSharp } from "@mui/icons-material";
 
 const loadGoogleMapsScript = (callback) => {
   if (window.google?.maps) {
@@ -33,7 +39,19 @@ const loadGoogleMapsScript = (callback) => {
   script.onload = callback;
   document.head.appendChild(script);
 };
-
+const Transition = React.forwardRef(function Transition(props, ref) {
+  return (
+    <Slide
+      direction="left"
+      ref={ref}
+      timeout={{
+        enter: 3000, // 3 seconds for entering
+        exit: 3000,  // 3 seconds for exiting
+      }}
+      {...props}
+    />
+  );
+});
 const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit, }) => {
   const mapRef = useRef(null);
   const [map, setMap] = useState(null);
@@ -44,6 +62,10 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit,
   const [sponsors, setSponsors] = useState([]);
   const [editingPrograms, setEditingPrograms] = useState([]);
   const [editingSponsors, setEditingSponsors] = useState([]);
+  const [selectedImage, setSelectedImage] = useState(null); // raw File
+  const [previewImage, setPreviewImage] = useState("");     // preview URL
+  const fileInputRef = useRef();
+
   const initializeMap = () => {
     if (!mapRef.current || map) return;
 
@@ -134,7 +156,7 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit,
         map.setCenter(location);
         setFormData({
           ...formData,
-       
+
           latitude: location.lat(),
           longitude: location.lng(),
           venue: place.name || "",
@@ -178,335 +200,367 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit,
       });
     }
   };
-useEffect(() => {
-  setPrograms(formData.programs || []);
-  setSponsors(formData.sponsors || []);
-  console.log("FormData Sponsors:", formData);
-}, [open, formData]);
+  useEffect(() => {
+    setPrograms(formData.programs || []);
+    setSponsors(formData.sponsors || []);
+    console.log("FormData Sponsors:", formData);
+  }, [open, formData]);
 
-
+  const theme = useTheme();
 
   return (
     <Dialog
       open={open}
-      onClose={(event, reason) => {
-        if (reason !== "backdropClick" && reason !== "escapeKeyDown") {
-          onClose();
-        }
-      }}
+      onClose={onClose}
+      TransitionComponent={Transition}
       fullScreen
-      fullWidth
-      maxWidth="xl"
+      height="100vh"
       PaperProps={{
         sx: {
-          height: '100vh',  // Full viewport height
-          display: 'flex',
-          flexDirection: 'column',
+          height: "100vh",
+          ml: "auto",
+
+          display: "flex",
+          flexDirection: "column",
+          width: { xs: "100%", sm: "90%", md: "85%" },
         },
       }}
     >
+      <DialogTitle
+        sx={{
+          backgroundColor: theme.palette.primary.main, // background: primary
+          color: '#fff', // text color: white
+          display:'flex'            // text color: error (red)
+        }}
+      >
+        <Button onClick={onClose} color="error" variant="contained">
+          <ArrowBackSharp fontSize="small" />Back
+        </Button>
+        <Typography variant="h5" sx={{ ml: 2,mt:1  }}>
+        {isEdit ? `Edit Event -  ${formData?.title}` : "Create Event"}
 
-      <DialogTitle>
-        {isEdit ? "Edit Event" : "Add New Meetings"}
+        </Typography>
       </DialogTitle>
       <DialogContent
         sx={{
           flex: 1,
           overflowY: 'auto',
+          background: 'linear-gradient(to bottom right,rgb(227, 222, 222),rgb(240, 236, 236),rgb(199, 197, 197))', // dark gradient
+          color: '#f0f0f0', // light text color
         }}
       >
 
-        <Grid container spacing={2} mt={1}>
+        <Grid container spacing={2} sx={{ mt: 1, display: 'flex', justifyContent: 'center', alignContent: 'center', alignItems: 'center', height: '90%' }}>
 
-       
-          <Grid item size={{ md: 6 }} xs={12}>
-            <Grid container spacing={2}>
-              <Grid item size={{ md: 12 }}>
-                <TextField
-                  label="Title"
-                  size="small"
-                  value={formData.title}
-                  onChange={(e) =>
-                    setFormData({ ...formData, title: e.target.value })
+          <Grid size={{ md: 6 }} sx={{ display: 'flex', justifyContent: 'start', flexDirection: 'column', alignItems: 'center' }}>
+            <Box
+              sx={{
+                width: 500,
+                height: 200,
+                border: "2px dashed #ccc",
+                borderRadius: 2,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                overflow: "hidden",
+                backgroundColor: "#f9f9f9",
+              }}
+              onClick={() => fileInputRef.current.click()}
+            >
+              {formData.image ? (
+                <img
+                  src={
+                    typeof formData.image === "string"
+                      ? `http://127.0.0.1:8000/storage/${formData.image}` // ← use Laravel public path
+                      : URL.createObjectURL(formData.image)
                   }
-                  fullWidth
+                  alt="Preview"
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
                 />
-              </Grid>
-              <Grid item size={{ md: 6 }}>
-                <TextField
-                  type="date"
-                  label="Start Date"
-                  InputLabelProps={{ shrink: true }}
-                  value={formData.startDate}
-                  onChange={(e) =>
-                    setFormData({ ...formData, startDate: e.target.value })
-                  }
-                  inputProps={{
-                    min: new Date().toISOString().split("T")[0], // 👈 this disables past dates
-                  }}
-                  fullWidth
-                  size="small"
-                />
+              ) : (
+                <Typography color="textSecondary">Click to upload event image</Typography>
+              )}
 
-              </Grid>
-              <Grid item size={{ md: 6 }}>
-                <TextField
-                  type="time"
-                  label="Start Time"
-                  InputLabelProps={{ shrink: true }}
-                  value={formData.startTime}
-                  onChange={(e) =>
-                    setFormData({ ...formData, startTime: e.target.value })
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: "none" }}
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (file) {
+                    setFormData((prev) => ({
+                      ...prev,
+                      image: file, // replace previous string or File with new File
+                    }));
                   }
-                  fullWidth
-                  size="small"
-                />
-              </Grid>
-             
-              <Grid item size={{ md: 6 }}>
-                <TextField
-                  type="date"
-                  label="End Date"
-                  InputLabelProps={{ shrink: true }}
-                  value={formData.endDate}
-                  onChange={(e) =>
-                    setFormData({ ...formData, endDate: e.target.value })
-                  }
-                  inputProps={{
-                    min: new Date().toISOString().split("T")[0], // 👈 this disables past dates
-                  }}
-                  fullWidth
-                  size="small"
-                />
-              </Grid>
-              <Grid item size={{ md: 6 }}>
-                <TextField
-                  type="time"
-                  label="End Time"
-                  InputLabelProps={{ shrink: true }}
-                  value={formData.endTime}
-                  onChange={(e) =>
-                    setFormData({ ...formData, endTime: e.target.value })
-                  }
-                  fullWidth
-                  size="small"
-                />
-              </Grid>
-              <Grid item size={{ md: 8 }}>
-                <TextField
-                  label="Organizer"
-                  value={formData.organizer || ""}
-                  onChange={(e) =>
-                    setFormData({ ...formData, organizer: e.target.value })
-                  }
-                  fullWidth
-                  size="small"
-                />
-              </Grid>
-              <Grid item size={{ md: 4 }}>
-                <TextField
-                  label="Category"
-                  value={formData.category || ""}
-                  onChange={(e) =>
-                    setFormData({ ...formData, category: e.target.value })
-                  }
-                  fullWidth
-                  size="small"
-                />
-              </Grid>
-              <Grid item size={{ md: 8 }}>
-                <TextField
-                  label="Contact Person"
-                  value={formData.contact || ""}
-                  onChange={(e) =>
-                    setFormData({ ...formData, contact: e.target.value })
-                  }
-                  fullWidth
-                  size="small"
-                />
-              </Grid>
-              <Grid item size={{ md: 4 }}>
-                <TextField
-                  label="Expected Attendees"
-                  type="number"
-                  value={formData.attendees || ""}
-                  onChange={(e) =>
-                    setFormData({ ...formData, attendees: e.target.value })
-                  }
-                  fullWidth
-                  size="small"
-                />
-              </Grid>
-              <Grid item size={{ md: 12 }}>
-                <TextField
-                  label="Description"
-                  multiline
-                  rows={4}
-                  value={formData.description || ""}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
-                  fullWidth
-                  size="small"
-                />
-              </Grid>
-             <Button
-  onClick={() => {
-    setEditingPrograms(programs); // Pass current data for editing
-    setEditingSponsors(sponsors);
-    setOpenProgramForm(true);
-  }}
-  variant="contained"
->
-  {programs.length > 0 || sponsors.length > 0 ? "✏️ Edit Programs / Sponsors" : "➕ Add Programs / Sponsors"}
-</Button>
+                }}
+              />
+            </Box>
 
-            </Grid>
-             <Grid>
-             
-                {programs.length > 0 && (
-                  <Box mt={3}>
-                    <Typography variant="h6">📋 Saved Programs</Typography>
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell><strong>Start</strong></TableCell>
-                          <TableCell><strong>End</strong></TableCell>
-                          <TableCell><strong>Activity</strong></TableCell>
-                          <TableCell><strong>Speaker</strong></TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {programs.map((prog, idx) => (
-                          <TableRow key={idx}>
-                            <TableCell>{prog.start_time}</TableCell>
-                            <TableCell>{prog.end_time}</TableCell>
-                            <TableCell>{prog.activity}</TableCell>
-                            <TableCell>{prog.speaker}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </Box>
-                )}
 
-                {sponsors.length > 0 && (
-                  <Box mt={3}>
-                    <Typography variant="h6">🤝 Event Sponsors</Typography>
-                    <ul>
-                      {sponsors.map((s, idx) => (
-                        <li key={idx}>
-                          🏷 {s.name} — {s.donated || "No amount"}
-                        </li>
-                      ))}
-                    </ul>
-                  </Box>
-                )}
 
-              </Grid>
-          </Grid>
+            <Grid size={{ md: 10 }} sx={{ mb: 1, }}>
+              <Box display="flex" alignItems="center" gap={1}>
 
-          {/* RIGHT SIDE - Location Info */}
-          <Grid item size={{ md: 6 }} xs={12}>
-            <Grid container spacing={2}>
-              <Grid item size={{ md: 12 }}>
-                <TextField
-                  label="Venue / Establishment Name"
-                  value={formData.venue || ""}
-                  onChange={(e) =>
-                    setFormData({ ...formData, venue: e.target.value })
-                  }
-                  fullWidth
-                  size="small"
-                />
-              </Grid>
-              <Grid item size={{ md: 12 }}>
-                <TextField
-                  label="Full Address"
-                  value={formData.address || ""}
-                  onChange={(e) =>
-                    setFormData({ ...formData, address: e.target.value })
-                  }
-                  fullWidth
-                  size="small"
-                />
-              </Grid>
-              <Grid item size={{ md: 12 }}>
-                <Autocomplete
-                  freeSolo
-                  options={placeOptions}
-                  getOptionLabel={(option) => option.description || ""}
-                  onInputChange={handleSearchChange}
-                  onChange={handlePlaceSelect}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Search Place"
-                      placeholder="e.g. McDonald's, Ayala Center"
-                      fullWidth
-                      size="small"
-                    />
-                  )}
-                />
-              </Grid>
-              <Grid item size={{ md: 12 }}>
-                <Box display="flex" alignItems="center" gap={1}>
-                  <Typography fontWeight="bold">
-                    📍 Select Location on Map
-                  </Typography>
-                  <IconButton onClick={locateUser} color="primary" size="small">
-                    <MyLocationIcon />
-                  </IconButton>
-                </Box>
-                <Box
-                  ref={mapRef}
-                  sx={{
-                    height: 420,
-                    width: "100%",
-                    borderRadius: 2,
-                    border: "1px solid #ccc",
-                    boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
-                    mt: 1,
-                  }}
-                />
+                <IconButton onClick={locateUser} color="primary" size="small">
+                  <MyLocationIcon />
+                </IconButton>
                 {formData.latitude && (
                   <Typography mt={1} fontSize="0.9rem" color="text.secondary">
                     Coordinates: {formData.latitude}, {formData.longitude}
                   </Typography>
                 )}
+              </Box>
+              <Box
+                ref={mapRef}
+                sx={{
+                  height: 120,
+                  width: "100%",
+                  borderRadius: 2,
+                  border: "1px solid #ccc",
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
+                  mt: 1,
+                }}
+              />
+
+            </Grid>
+
+
+
+            <Grid item size={{ md: 10 }} sx={{ display: 'flex', justifyContent: 'center' }}>
+              <TextField
+                label="Event Descriptions"
+                multiline
+                rows={4}
+                value={formData.description || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
+                fullWidth
+                size="small"
+              />
+            </Grid>
+
+          </Grid>
+          <Grid container size={{ md: 6 }} sx={{mt:1}}>
+            <Grid size={{ md: 12 }}>
+              <TextField
+                label="Event Name"
+
+                value={formData.title}
+                onChange={(e) =>
+                  setFormData({ ...formData, title: e.target.value })
+                }
+                fullWidth
+              />
+
+            </Grid>
+            <Grid size={{ md: 12 }} >
+              <Grid container spacing={1}>
+                <Grid item size={{ md: 3 }} sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Typography variant="h6" color="black" gutterBottom>
+                    Start
+                  </Typography>
+                </Grid>
+                <Grid item size={{ md: 4 }}>
+                  <TextField
+                    type="date"
+                    label="Start Date"
+                    InputLabelProps={{ shrink: true }}
+                    value={formData.startDate}
+                    onChange={(e) =>
+                      setFormData({ ...formData, startDate: e.target.value })
+                    }
+                    inputProps={{
+                      min: new Date().toISOString().split("T")[0], // 👈 this disables past dates
+                    }}
+                    fullWidth
+                    size="small"
+                  />
+
+
+
+
+                </Grid>
+                <Grid item size={{ md: 5 }}>
+                  <TextField
+                    type="time"
+                    label="Start Time"
+                    InputLabelProps={{ shrink: true }}
+                    value={formData.startTime}
+                    onChange={(e) =>
+                      setFormData({ ...formData, startTime: e.target.value })
+                    }
+                    fullWidth
+                    size="small"
+                  />
+
+                </Grid>
               </Grid>
+              <Grid container spacing={1} sx={{ mt: 1 }}>
+                <Grid item size={{ md: 3 }} sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Typography color="black" variant="h6" gutterBottom>
+                    End
+                  </Typography>
+                </Grid>
+                <Grid item size={{ md: 4 }}>
+                  <TextField
+                    type="date"
+                    label="End Date"
+                    InputLabelProps={{ shrink: true }}
+                    value={formData.endDate}
+                    onChange={(e) =>
+                      setFormData({ ...formData, endDate: e.target.value })
+                    }
+                    inputProps={{
+                      min: new Date().toISOString().split("T")[0], // 👈 this disables past dates
+                    }}
+                    fullWidth
+                    size="small"
+                  />
+
+
+                </Grid>
+                <Grid item size={{ md: 5 }}>
+                  <TextField
+                    type="time"
+                    label="End Time"
+                    InputLabelProps={{ shrink: true }}
+                    value={formData.endTime}
+                    onChange={(e) =>
+                      setFormData({ ...formData, endTime: e.target.value })
+                    }
+                    fullWidth
+                    size="small"
+                  />
+                </Grid>
+              </Grid>
+            </Grid>
+            <Grid size={{ md: 6 }} >
+              <TextField
+                label="Organizer"
+                value={formData.organizer || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, organizer: e.target.value })
+                }
+                fullWidth
+                size="small"
+              />
+            </Grid>
+            <Grid size={{ md: 6 }}>
+              <TextField
+                label="Category"
+                value={formData.category || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, category: e.target.value })
+                }
+                fullWidth
+                size="small"
+              />
+            </Grid>
+            <Grid item size={{ md: 8 }}>
+              <TextField
+                label="Contact Person"
+                value={formData.contact || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, contact: e.target.value })
+                }
+                fullWidth
+                size="small"
+              />
+            </Grid>
+            <Grid item size={{ md: 4 }}>
+              <TextField
+                label="Expected Attendees"
+                type="number"
+                value={formData.attendees || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, attendees: e.target.value })
+                }
+                fullWidth
+                size="small"
+              />
+            </Grid>
+            <Grid item size={{ md: 12 }}>
+              <Autocomplete
+                freeSolo
+                options={placeOptions}
+                getOptionLabel={(option) => option.description || ""}
+                onInputChange={handleSearchChange}
+                onChange={handlePlaceSelect}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Search Place"
+                    placeholder="e.g. McDonald's, Ayala Center"
+                    fullWidth
+                    size="small"
+                  />
+                )}
+              />
+            </Grid>
+
+            <Grid item size={{ md: 12 }}>
+              <TextField
+                label="Venue / Establishment Name"
+                value={formData.venue || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, venue: e.target.value })
+                }
+                fullWidth
+                size="small"
+
+              />
+            </Grid>
+            <Grid item size={{ md: 12 }}>
+              <TextField
+                label="Full Address"
+                value={formData.address || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, address: e.target.value })
+                }
+                fullWidth
+                size="small"
+              />
+            </Grid>
+
+
+            <Grid size={{ md: 12 }} sx={{}}>
+              <Button onClick={onSave} variant="contained" color="primary" fullWidth>
+                {isEdit ? "Update" : "Create Event"}
+              </Button>
             </Grid>
           </Grid>
         </Grid>
 
       </DialogContent>
-      <DialogActions>
+      {/* <DialogActions>
         <Button onClick={onClose} color="inherit">
           Cancel
         </Button>
-        <Button onClick={onSave} variant="contained" color="primary">
-          {isEdit ? "Update" : "Save"}
-        </Button>
-      </DialogActions>
+        
+      </DialogActions> */}
 
-   <EventProgramFormDialog
-  open={openProgramForm}
-  onClose={() => setOpenProgramForm(false)}
-  programs={editingPrograms}
-  sponsors={editingSponsors}
-  onSaveAll={({ programs, sponsors }) => {
-    setPrograms(programs);
-    setSponsors(sponsors);
-    setOpenProgramForm(false);
- setFormData((prev) => ({
+      <EventProgramFormDialog
+        open={openProgramForm}
+        onClose={() => setOpenProgramForm(false)}
+        programs={editingPrograms}
+        sponsors={editingSponsors}
+        onSaveAll={({ programs, sponsors }) => {
+          setPrograms(programs);
+          setSponsors(sponsors);
+          setOpenProgramForm(false);
+          setFormData((prev) => ({
             ...prev,
-           sponsors: sponsors,
-            programs:programs
+            sponsors: sponsors,
+            programs: programs
           }));
-          
-  }}
- 
-/>
+
+        }}
+
+      />
 
     </Dialog>
   );
