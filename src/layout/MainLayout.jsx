@@ -13,28 +13,28 @@ const MainLayout = ({ children }) => {
       <CssBaseline />
 
       {/* Top Bar */}
-        <Sidebar open={drawerOpen} />
+      <Sidebar open={drawerOpen} />
 
       <TopBars toggleDrawer={() => setDrawerOpen(!drawerOpen)} />
 
       {/* Sidebar */}
-    
+
       {/* Main content */}
-     <Box
-  component="main"
-  sx={{
-    flexGrow: 1,
-    width: "86%",
-    transition: "margin-left 0.3s",
-    // marginLeft: drawerOpen ? `${drawerWidth}px` : "0px",  // Add this line
-    p: 2,
-    minHeight: "80vh",
-    
-  }}
->
-  <Toolbar />
-  {children}
-</Box>
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          width: "86%",
+          transition: "margin-left 0.3s",
+          // marginLeft: drawerOpen ? `${drawerWidth}px` : "0px",  // Add this line
+          p: 2,
+          minHeight: "80vh",
+
+        }}
+      >
+        <Toolbar />
+        {children}
+      </Box>
 
     </Box>
   );

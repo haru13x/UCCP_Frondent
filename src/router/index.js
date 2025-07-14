@@ -13,6 +13,8 @@ import ListPage from "../pages/ListPage";
 import Role from "../pages/Role";
 import NoPermission from "../pages/NoPermission";
 import Mylist from "../pages/MyList";
+import QRScannerPage from "../pages/QRScannerPage";
+import ProfilePage from "../pages/ProfilePage";
 // Public route definitions (no need to wrap manually)
 const publicRoutes = [
   { path: "/", component: Login },
@@ -27,8 +29,9 @@ const privateRoutes = [
   { path: "/events", component: EventPage, rule: "view_events" },
   { path: "/settings/role", component: Role, rule: "view_roles" },
   { path: "/list", component: ListPage },
-   { path: "/my-list", component: Mylist },
-
+  { path: "/my-list", component: Mylist },
+  { path: "/qrcode", component: QRScannerPage },
+   {path: "/profile", component: ProfilePage}
 ];
 
 
@@ -38,21 +41,21 @@ const allRoutes = [
     path: route.path,
     element: <Middleware element={<route.component />} isPublic />,
   })),
- ...privateRoutes.map(route => ({
-  path: route.path,
-  element: (
-    <Middleware
-      element={
-        <MainLayout>
-          <route.component />
-        </MainLayout>
-      }
-      rule={route.rule}
-    />
-  ),
-})),
+  ...privateRoutes.map(route => ({
+    path: route.path,
+    element: (
+      <Middleware
+        element={
+          <MainLayout>
+            <route.component />
+          </MainLayout>
+        }
+        rule={route.rule}
+      />
+    ),
+  })),
 
-    {
+  {
     path: "/no-permission",
     element: <NoPermission />,
   },

@@ -63,6 +63,7 @@ const UserFormDialog = ({ open, onClose, onSave, formData, setFormData, isEdit }
           <CardContent sx={{ pb: 1 }}>
             <Typography variant="subtitle2" gutterBottom>Personal Info </Typography>
             <Grid container spacing={1}>
+
               <Grid size={{ md: 6 }}>
                 <TextField label="First Name" size="small" value={formData.firstName || ""} onChange={handleChange("firstName")} fullWidth />
               </Grid>
@@ -72,9 +73,23 @@ const UserFormDialog = ({ open, onClose, onSave, formData, setFormData, isEdit }
               <Grid size={{ md: 6 }}>
                 <TextField label="Last Name" size="small" value={formData.lastName || ""} onChange={handleChange("lastName")} fullWidth />
               </Grid>
-              <Grid size={{ md: 6 }}>
-                <TextField label="Birthdate" type="date" size="small" value={formData.birthdate || ""} onChange={handleChange("birthdate")} fullWidth InputLabelProps={{ shrink: true }} />
+              <Grid size={{ md: 6 }} item xs={12} md={6}>
+                <TextField
+                  label="Birthdate"
+                  type="date"
+                  size="small"
+                  fullWidth
+                  value={formData.birthdate || ""}
+                  onChange={handleChange("birthdate")}
+                  InputLabelProps={{ shrink: true }}
+                  sx={{
+                    "& input": {
+                      padding: "10px 12px",
+                    },
+                  }}
+                />
               </Grid>
+
 
               <Grid size={{ md: 12 }}>
                 <TextField label="Address" size="small" value={formData.address || ""} onChange={handleChange("address")} fullWidth />

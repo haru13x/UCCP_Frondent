@@ -1,14 +1,8 @@
 import React, { useState, useEffect } from "react";
 import {
   Card,
-  CardContent,
   Typography,
   Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
   IconButton,
   Box,
 } from "@mui/material";
@@ -19,9 +13,10 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import UserFormDialog from "../component/users/UserFormDialog";
 import UserViewDialog from "../component/users/UserViewDialog";
 import { UseMethod } from "../composables/UseMethod";
+import { DataGrid } from "@mui/x-data-grid";
+
 const UserPage = () => {
   const [users, setUsers] = useState([]);
-
   const [openForm, setOpenForm] = useState(false);
   const [openView, setOpenView] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
@@ -33,21 +28,26 @@ const UserPage = () => {
   });
   const [selectedUser, setSelectedUser] = useState(null);
 
-  // Dummy fetch simulation
+  // ✅ Fetch and flatten nested user data
   const fetchUsers = async () => {
     try {
-      const response = await UseMethod('get', 'get-users');
-
-      setUsers(response.data);
+      const response = await UseMethod("get", "get-users");
+      const flatUsers = response.data.map((user) => ({
+        ...user,
+        phone: user.details?.phone_number || "N/A",
+        gender: user.details?.sex?.name || "N/A",
+        roleName: user.role?.name || "N/A",
+      }));
+      setUsers(flatUsers);
     } catch (error) {
       console.error("Error fetching users:", error);
     }
   };
+
   useEffect(() => {
-
-
     fetchUsers();
   }, []);
+
   const handleOpenAdd = () => {
     setIsEdit(false);
     setFormData({ name: "", email: "", phone: "", role: "" });
@@ -56,7 +56,20 @@ const UserPage = () => {
 
   const handleOpenEdit = (user) => {
     setIsEdit(true);
-    setFormData(user);
+    setFormData({
+      user_id: user.id,
+      username: user.username,
+      email: user.email,
+      password: "",
+      firstName: user.details?.first_name || "",
+      middleName: user.details?.middle_name || "",
+      lastName: user.details?.last_name || "",
+      birthdate: user.details?.birthdate || "",
+      address: user.details?.address || "",
+      phone: user.details?.phone_number || "",
+      gender: user.details?.sex_id || "",
+      role: user.role?.id || "",
+    });
     setOpenForm(true);
   };
 
@@ -66,29 +79,47 @@ const UserPage = () => {
   };
 
   const handleSave = async () => {
-    if (isEdit) {
-      setUsers((prev) =>
-        prev.map((u) => (u.id === formData.id ? formData : u))
-      );
-    } else {
-      try {
-        const payload = {
-          ...formData,
-          role: formData.role, // should be role ID
-        };
-        const response = await UseMethod('post', 'register', payload);
-        if (response) {
-          fetchUsers();
-          setOpenForm(false);
-        }
+    try {
+      const payload = { ...formData, role: formData.role };
+      const url = isEdit ? "update-users" : "register";
+      const response = await UseMethod("post", url, payload);
 
-      } catch (error) {
-        console.error("Failed to save user:", error);
-        alert("Error saving user. Check the console for details.");
+      if (response) {
+        fetchUsers();
+        setOpenForm(false);
       }
+    } catch (error) {
+      console.error("Failed to save user:", error);
+      alert("Error saving user. Check the console for details.");
     }
-    // setOpenForm(false);
   };
+
+  const columns = [
+    { field: "name", headerName: "Name", flex: 1 },
+    { field: "email", headerName: "Email", flex: 1 },
+    { field: "phone", headerName: "Phone", flex: 1 },
+    { field: "gender", headerName: "Gender", flex: 1 },
+    { field: "roleName", headerName: "Role", flex: 1 },
+    {
+      field: "actions",
+      headerName: "Actions",
+      flex: 1,
+      sortable: false,
+      filterable: false,
+      align: "right",
+      headerAlign: "right",
+      renderCell: (params) => (
+        <>
+          <IconButton color="primary" onClick={() => handleOpenView(params.row)}>
+            <VisibilityIcon />
+          </IconButton>
+          <IconButton color="secondary" onClick={() => handleOpenEdit(params.row)}>
+            <EditIcon />
+          </IconButton>
+        </>
+      ),
+    },
+  ];
 
   return (
     <Box sx={{ p: 3 }}>
@@ -97,8 +128,8 @@ const UserPage = () => {
           display="flex"
           justifyContent="space-between"
           alignItems="center"
-          mb={2}
           px={2}
+          py={2}
         >
           <Typography variant="h6">User Management</Typography>
           <Button
@@ -109,83 +140,17 @@ const UserPage = () => {
             Add User
           </Button>
         </Box>
-        <div style={{ height: "75vh", overflowY: "auto" }}>
-          <Table size="small" >
-            <TableHead>
-              <TableRow
-                sx={{
-                  backgroundColor: "#1f6306",
-                  fontSize: "1rem",
-                  color: "white",
-                }}
-              >
-                <TableCell
-                  sx={{ fontSize: "1rem", color: "white", fontWeight: "bold" }}
-                >
-                  {" "}
-                  #
-                </TableCell>
-                <TableCell
-                  sx={{ fontSize: "1rem", color: "white", fontWeight: "bold" }}
-                >
-                  Name
-                </TableCell>
-                <TableCell
-                  sx={{ fontSize: "1rem", color: "white", fontWeight: "bold" }}
-                >
-                  Email
-                </TableCell>
-                <TableCell
-                  sx={{ fontSize: "1rem", color: "white", fontWeight: "bold" }}
-                >
-                  Phone
-                </TableCell>
-                <TableCell
-                  sx={{ fontSize: "1rem", color: "white", fontWeight: "bold" }}
-                >
-                  Gender
-                </TableCell>
-                <TableCell
-                  sx={{ fontSize: "1rem", color: "white", fontWeight: "bold" }}
-                >
-                  Role
-                </TableCell>
-                <TableCell
-                  align="right"
-                  sx={{ fontSize: "1rem", color: "white", fontWeight: "bold" }}
-                >
-                  Actions
-                </TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody >
-              {users.map((user, index) => (
-                <TableRow key={user.id}>
-                  <TableCell>{index + 1}</TableCell>
-                  <TableCell>{user.name}</TableCell>
-                  <TableCell>{user?.email}</TableCell>
-                  <TableCell>{user?.details?.phone_number}</TableCell>
-                  <TableCell>{user?.details?.sex?.name}</TableCell>
-                  <TableCell>{user?.role.name}</TableCell>
-                  <TableCell align="right">
-                    <IconButton
-                      color="primary"
-                      onClick={() => handleOpenView(user)}
-                    >
-                      <VisibilityIcon />
-                    </IconButton>
-                    <IconButton
-                      color="secondary"
-                      onClick={() => handleOpenEdit(user)}
-                    >
-                      <EditIcon />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+
+        <Box sx={{ height: "75vh", width: "100%" }}>
+          <DataGrid
+            rows={Array.isArray(users) ? users : []}
+            getRowId={(row) => row.id}
+            columns={columns}
+            pageSize={10}
+            rowsPerPageOptions={[10, 20, 50]}
+            disableRowSelectionOnClick
+          />
+        </Box>
       </Card>
 
       <UserFormDialog
