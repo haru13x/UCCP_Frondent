@@ -19,7 +19,7 @@ import {
 } from "@mui/icons-material";
 import { UseMethod } from "../composables/UseMethod";
 import EventSlideDialog from "../component/event/EventSlideDialog";
-
+import { useSnackbar } from "../component/event/SnackbarProvider ";
 
 const formatTimelineDate = (dateStr) => {
   const date = new Date(dateStr);
@@ -41,46 +41,51 @@ const groupByDate = (items) => {
   return groups;
 };
 
-const Mylist = () => {
+const MyList = () => {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("today");
   const [events, setEvents] = useState({ today: [], upcoming: [], past: [] });
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [tabIndex, setTabIndex] = useState(0);
-
+  const { showSnackbar } = useSnackbar();
   const [qrPath, setQrPath] = useState(null);
   const [loadingQR, setLoadingQR] = useState(false);
 
   const fetchTabData = async (tabName) => {
     setLoading(true);
-    let response1 = null, response2 = null;
+    let type = 'today';
 
-    if (tabName === "today") {
-      [response1, response2] = await Promise.all([
-        UseMethod("get", "my-events/today"),
-        // UseMethod("get", "meetings/today"),
-      ]);
-    } else if (tabName === "upcoming") {
-      [response1, response2] = await Promise.all([
-        UseMethod("get", "my-events/upcoming"),
-        // UseMethod("get", "meetings/upcoming"),
-      ]);
-    } else if (tabName === "past") {
-      [response1, response2] = await Promise.all([
-        UseMethod("get", "my-events/past"),
-        // UseMethod("get", "meetings/past"),
-      ]);
+    switch (tabName) {
+        case 'today':
+            type = 'today';
+            break;
+        case 'upcoming':
+            type = 'upcoming';
+            break;
+        case 'past':
+            type = 'past';
+            break;
     }
 
-    const format = (arr, type) => (arr?.data || []).map((e) => ({ ...e, type }));
+    try {
+        const res = await UseMethod("get", `my-events-list/${type}`);
+        if (res?.data && res.data.length > 0) {
+            setEvents((prev) => ({
+                ...prev,
+                [tabName]: res.data.map((e) => ({ ...e, type: "event" })),
+            }));
+        } else {
+            // showSnackbar({ message: "No " +type+" Event found.", type: "warning" });
+        }
+    } catch (error) {
+        console.error("Failed to fetch events:", error);
+        showSnackbar({ message: "Server error while fetching events.", type: "error" });
+    } finally {
+        setLoading(false);
+    }
+};
 
-    setEvents((prev) => ({
-      ...prev,
-      [tabName]: [...format(response1, "event"), ...format(response2, "meeting")],
-    }));
-    setLoading(false);
-  };
 
   useEffect(() => {
     fetchTabData(tab);
@@ -222,11 +227,20 @@ const Mylist = () => {
         ) : events[tab].length > 0 ? (
           renderTimeline(events[tab])
         ) : (
-          <Box textAlign="center" mt={5}>
-            <EventBusy color="disabled" sx={{ fontSize: 60 }} />
-            <Typography variant="h6" mt={2}>
-              No {tab} events.
-            </Typography>
+          <Box textAlign="center" mt={2}>
+           
+                 <Box mt={0} textAlign="center">
+               <img
+                 src="no_data.svg" // change this to the actual path of your image
+                 alt="No Data"
+                 maxWidth="350px"
+                 style={{ maxWidth: "300px", marginBottom: 8, marginTop:5 }}
+               />
+               <Typography>
+                  No {tab.charAt(0).toUpperCase() + tab.slice(1)} Events Found
+               </Typography>
+              
+             </Box>
           </Box>
         )}
       </Box>
@@ -247,4 +261,4 @@ const Mylist = () => {
   );
 };
 
-export default Mylist;
+export default MyList;

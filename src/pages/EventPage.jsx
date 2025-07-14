@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, use } from "react";
 import {
   Box,
   Typography,
@@ -15,7 +15,8 @@ import SearchOffSharp from "@mui/icons-material/SearchOffSharp";
 import { UseMethod } from "../composables/UseMethod";
 import EventFormDialog from "../component/event/EventFormDialog";
 import EventViewDialog from "../component/event/EventViewDialog";
-import { Cancel, CancelPresentation, EditDocument } from "@mui/icons-material";
+import { Cancel, CancelPresentation, DocumentScanner, EditDocument, GeneratingTokensRounded, Report, ReportSharp } from "@mui/icons-material";
+import { useSnackbar } from "../component/event/SnackbarProvider ";
 
 // ... (imports unchanged)
 
@@ -25,6 +26,7 @@ const EventPage = () => {
   const [openForm, setOpenForm] = useState(false);
   const [openView, setOpenView] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
+     const { showSnackbar } = useSnackbar();
   const [formData, setFormData] = useState({
     id: "",
     title: "",
@@ -141,11 +143,11 @@ const handleSubmit = async () => {
   const response = await UseMethod("post", api, form , "", true);
 
   if (response?.data) {
-    alert("Event saved successfully!");
+    showSnackbar({ message: isEdit ? "Event updated successfully." : "Event created successfully.", type: "success" });
     setOpenForm(false);
     fetchEvents();
   } else {
-    alert("Failed to save event.");
+    showSnackbar({ message: "Failed to save event.", type: "error" });
   }
 };
 
@@ -232,6 +234,16 @@ const handleSubmit = async () => {
               onClick={() => handleOpenForm()}
             >
               Add Event
+            </Button>
+          </Grid>
+            <Grid item xs={12} md={3}>
+            <Button
+              fullWidth
+              variant="contained"
+              startIcon={<DocumentScanner />}
+              color="error"
+            >
+              Generate Reports
             </Button>
           </Grid>
         </Grid>

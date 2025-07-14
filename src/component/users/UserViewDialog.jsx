@@ -22,22 +22,43 @@ import WcIcon from "@mui/icons-material/Wc";
 import PublicIcon from "@mui/icons-material/Public";
 import GroupsIcon from "@mui/icons-material/Groups";
 
-const InfoItem = ({ icon, label }) => (
+const InfoItem = ({ icon, label, value }) => (
   <Box display="flex" alignItems="center" gap={1}>
     {icon}
-    <Typography>{label || "N/A"}</Typography>
+    <Typography fontWeight={500} color="text.secondary">
+      {label}:
+    </Typography>
+    <Typography>{value || "N/A"}</Typography>
   </Box>
 );
 
 const UserViewDialog = ({ open, onClose, user }) => {
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
-      <DialogTitle>👁️ View User</DialogTitle>
+      <DialogTitle sx={{ fontWeight: "bold", fontSize: 18, bgcolor: "#f5f5f5" }}>
+        👁️ View User Details
+      </DialogTitle>
+
       <DialogContent>
         {user && (
-          <Paper elevation={2} sx={{ p: 3, borderRadius: 3 }}>
-            <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", mb: 3,  }}>
-              <Avatar sx={{ width: 80, height: 80, mb: 1 }}>
+          <Paper elevation={3} sx={{ p: 4, borderRadius: 4, mt: 1 }}>
+            {/* Profile */}
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                mb: 4,
+              }}
+            >
+              <Avatar
+                sx={{
+                  width: 90,
+                  height: 90,
+                  mb: 1,
+                  background: "linear-gradient(to bottom right, #1976d2, #42a5f5)",
+                }}
+              >
                 <PersonIcon fontSize="large" />
               </Avatar>
               <Typography variant="h6" fontWeight="bold">
@@ -48,52 +69,61 @@ const UserViewDialog = ({ open, onClose, user }) => {
               </Typography>
             </Box>
 
-            <Divider sx={{ mb: 2 }} />
+            {/* Divider */}
+            <Divider sx={{ mb: 3 }} />
 
-            {/* Contact + Role Info */}
-            <Grid container spacing={2}>
-              <Grid size={{md:5}}>
-                <InfoItem icon={<EmailIcon fontSize="small" color="action" />} label={user.email} />
+            {/* Contact & Role */}
+            <Typography variant="subtitle1" fontWeight="bold" mb={2}>
+              Contact & Role
+            </Typography>
+            <Grid container spacing={2} mb={4}>
+              <Grid size={{md:4}} item xs={12} sm={6} md={4}>
+                <InfoItem icon={<EmailIcon color="primary" />} label="Email" value={user.email} />
               </Grid>
-              <Grid size={{md:4}}>
-                <InfoItem icon={<PhoneIcon fontSize="small" color="action" />} label={user.phone} />
+              <Grid size={{md:4}} item xs={12} sm={6} md={4}>
+                <InfoItem icon={<PhoneIcon color="primary" />} label="Phone" value={user.phone} />
               </Grid>
-              <Grid size={{md:3}}>
-                <InfoItem icon={<BadgeIcon fontSize="small" color="action" />} label={user.role} />
+              <Grid size={{md:4}} item xs={12} sm={6} md={4}>
+                <InfoItem icon={<BadgeIcon color="primary" />} label="Role" value={user.role?.name} />
               </Grid>
             </Grid>
 
-            {/* Personal Details */}
-            <Box mt={4}>
-              <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                Personal Details
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid size={{md:4}}>
-                  <InfoItem icon={<CakeIcon fontSize="small" color="action" />} label={user.birthdate} />
-                </Grid>
-                <Grid size={{md:4}}>
-                  <InfoItem icon={<WcIcon fontSize="small" color="action" />} label={user.gender} />
-                </Grid>
-                <Grid size={{md:4}}>
-                  <InfoItem icon={<PublicIcon fontSize="small" color="action" />} label={user.nationality} />
-                </Grid>
-                <Grid size={{md:4}}>
-                  <InfoItem icon={<HomeIcon fontSize="small" color="action" />} label={user.address} />
-                </Grid>
-                <Grid size={{md:4}}>
-                  <InfoItem icon={<GroupsIcon fontSize="small" color="action" />} label={`Father: ${user.fatherName}`} />
-                </Grid>
-                <Grid size={{md:4}}>
-                  <InfoItem icon={<GroupsIcon fontSize="small" color="action" />} label={`Mother: ${user.motherName}`} />
-                </Grid>
+            {/* Personal Info */}
+            <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+              Personal Details
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid size={{md:4}} item xs={12} sm={6} md={4}>
+                <InfoItem icon={<CakeIcon color="action" />} label="Birthdate" value={user.details.birthdate} />
               </Grid>
-            </Box>
+              <Grid size={{md:4}} item xs={12} sm={6} md={4}>
+                <InfoItem icon={<WcIcon color="action" />} label="Gender" value={user.details.sex.name} />
+              </Grid>
+              <Grid size={{md:4}} item xs={12} sm={6} md={4}>
+                <InfoItem icon={<PublicIcon color="action" />} label="Nationality" value={user.details.nationality} />
+              </Grid>
+              <Grid size={{md:4}} item xs={12} sm={6} md={6}>
+                <InfoItem icon={<HomeIcon color="action" />} label="Address" value={user.details.address} />
+              </Grid>
+              <Grid size={{md:4}} item xs={12} sm={6} md={6}>
+                <InfoItem icon={<GroupsIcon color="action" />} label="Father" value={user.details.fatherName} />
+              </Grid>
+              <Grid size={{md:4}} item xs={12} sm={6} md={6}>
+                <InfoItem icon={<GroupsIcon color="action" />} label="Mother" value={user.details.motherName} />
+              </Grid>
+            </Grid>
           </Paper>
         )}
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose} variant="contained" color="primary" size="small">
+
+      <DialogActions sx={{ p: 2 }}>
+        <Button
+          onClick={onClose}
+          variant="contained"
+          color="primary"
+          size="small"
+          sx={{ fontWeight: "bold" }}
+        >
           Close
         </Button>
       </DialogActions>

@@ -9,6 +9,7 @@ import {
   DocumentScanner,
   ListAlt,
   EventNote,
+  QrCode,
 } from "@mui/icons-material";
 import { List } from "@mui/material";
 
@@ -20,31 +21,37 @@ export const sidebarConfig = [
     rule: "view_dashboard",
   },
   {
-    label: "Lists",
+    label: "Events",
     icon: ListAlt,
     path: "/list",
-    // rule: "view_events",
+    rule: "view_event_list",
   },
     {
     label: "My Events",
     icon: EventNote,
     path: "/my-list",
-    // rule: "view_my_events",
+    rule: "view_my_events",
   },
   {
-    label: "Events",
+    label: "Manage Events",
     icon: Groups,
     path: "/events",
     rule: "view_events",
   },
+  //  {
+  //   label: "Scan QR Code",
+  //   icon: QrCode,
+  //   path: "/qrcode",
+  //   // rule: "view_events",
+  // },
+  // {
+  //   label: "Report",
+  //   icon: DocumentScanner,
+  //   path: "/",
+  //   rule: "view_report",
+  // },
   {
-    label: "Report",
-    icon: DocumentScanner,
-    path: "/",
-    rule: "view_report",
-  },
-  {
-    label: "Users",
+    label: "Manage Users",
     icon: People,
     path: "/users",
     rule: "view_users",

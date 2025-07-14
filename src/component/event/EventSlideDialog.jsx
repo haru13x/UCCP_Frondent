@@ -1,7 +1,7 @@
 import React from "react";
 import { useState, useEffect } from "react";
 import dayjs from "dayjs"; // If not installed: npm install dayjs
-import {UseMethod} from "../../composables/UseMethod"; // Adjust the import path as needed
+import { UseMethod } from "../../composables/UseMethod"; // Adjust the import path as needed
 import {
     Dialog,
     DialogTitle,
@@ -74,8 +74,8 @@ const EventSlideDialog = ({
             date: "June 29, 2025",
         },
     ]);
- const { showSnackbar } = useSnackbar();
-
+    const { showSnackbar } = useSnackbar();
+    const [isRegistered, setIsRegistered] = useState(false);
     const now = dayjs();
     const start = dayjs(`${event?.start_date}T${event?.start_time}`);
     const end = dayjs(`${event?.end_date}T${event?.end_time}`);
@@ -89,8 +89,27 @@ const EventSlideDialog = ({
         if (tabIndex !== 1) {
             setUserRating(0);
             setUserComment("");
+
         }
-    }, [tabIndex]);
+
+        const checkIfRegistered = async () => {
+            try {
+                const res = await UseMethod("get", `isregistered/${event?.id}`);
+                setIsRegistered(res?.data || false);
+            } catch (error) {
+                console.error(error);
+                showSnackbar({
+                    message: "An error occurred while checking registration status.",
+                    type: "error",
+                });
+            }
+
+        }
+        if (tabIndex !== 1) {
+            checkIfRegistered();
+        }
+    }, [open, tabIndex, event]);
+
 
     const handleSubmitReview = () => {
         if (!userRating && !userComment.trim()) return;
@@ -106,33 +125,36 @@ const EventSlideDialog = ({
                 year: "numeric",
             }),
         };
-
+        showSnackbar({
+            message: "Review submitted successfully!",
+            type: "success",
+        });
         setReviews([newReview, ...reviews]);
         setUserRating(0);
         setUserComment("");
     };
 
     const handleTabChange = (e, newValue) => setTabIndex(newValue);
-const handleRegister = async () => {
-  try {
-    const res = await UseMethod("post", `event/register/${event?.id}`);
-    if (res?.success) {
-         showSnackbar({
-      message: "Registration successful!.",
-      type: "success",
-    });
-
-    } else {
-               showSnackbar({
-      message: "Registration failed. Please try again.",
-      type: "error",
-    });
-    }
-  } catch (error) {
-    console.error(error);
-    alert("An error occurred while registering.");
-  }
-};
+    const handleRegister = async () => {
+        try {
+            const res = await UseMethod("post", `event-registration/${event?.id}`);
+            if (res && res.status === 200) {
+                showSnackbar({
+                    message: "Registration successful!.",
+                    type: "success",
+                });
+            setIsRegistered(true);
+            } else {
+                showSnackbar({
+                    message: "Registration failed. Please try again.",
+                    type: "error",
+                });
+            }
+        } catch (error) {
+            console.error(error);
+            alert("An error occurred while registering.");
+        }
+    };
 
     return (
         <Dialog
@@ -158,6 +180,12 @@ const handleRegister = async () => {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
+                    backgroundColor: "#007bb6", // modern blue tone
+                    color: "white",
+                    px: 3,
+                    py: 2,
+
+                    boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
                 }}
             >
                 <Button
@@ -169,7 +197,23 @@ const handleRegister = async () => {
                 >
                     <ArrowBackSharp fontSize="small" sx={{ mr: 1 }} /> Back
                 </Button>
-                <Tabs value={tabIndex} onChange={handleTabChange}>
+                <Tabs
+                    textColor="inherit"
+                    indicatorColor="secondary"
+                    sx={{
+                        "& .MuiTab-root": {
+                            color: "white",
+                            fontWeight: 500,
+                            textTransform: "none",
+                        },
+                        "& .Mui-selected": {
+                            color: "white",
+                            fontWeight: 800, // Highlight active tab with amber
+                        },
+                        "& .MuiTabs-indicator": {
+                            backgroundColor: "#ffc107", // Active tab underline
+                        },
+                    }} value={tabIndex} onChange={handleTabChange}>
                     <Tab label="About Event" />
 
                     <Tab label="Comments & Reviews" />
@@ -388,22 +432,24 @@ const handleRegister = async () => {
             </DialogContent>
 
             {/* Bottom Register Button */}
-          <DialogActions sx={{ p: 2 }}>
-  <Button
-    variant="contained"
-    size="large"
-    color="primary"
-    fullWidth={isMobile}
-    onClick={handleRegister}
-    disabled={!isBeforeEvent} // disable if event already started or ended
-  >
-    {isAfterEvent
-      ? "Event Ended"
-      : isDuringEvent
-      ? "Event Already Started"
-      : "Register for this Event"}
-  </Button>
-</DialogActions>
+            <DialogActions sx={{ p: 2 }}>
+                <Button
+                    variant="contained"
+                    size="large"
+                    color="primary"
+                    fullWidth={isMobile}
+                    onClick={handleRegister}
+                    disabled={!isBeforeEvent || isRegistered} // disable if event already started or ended
+                >
+                    {isAfterEvent
+                        ? "Event Ended"
+                        : isDuringEvent
+                            ? "Event Already Started"
+                            : isRegistered
+                                ? "Already Registered"
+                                : "Register for this Event"}
+                </Button>
+            </DialogActions>
 
         </Dialog>
     );

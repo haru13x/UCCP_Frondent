@@ -31,7 +31,10 @@ const TopBars = ({ toggleDrawer }) => {
   navigate("/", { replace: true });
 };
 
-
+const handleProfile = () => {
+  // Redirect to profile page   
+  navigate("/profile", { replace: true });
+};
 
   return (
    <AppBar
@@ -45,7 +48,7 @@ const TopBars = ({ toggleDrawer }) => {
       <Toolbar sx={{ justifyContent: "space-between" }}>
         <Box display="flex" alignItems="center" gap={2}>
           <Typography variant="h6" noWrap>
-            UCCP Event Management
+            United Church of Christ in the Philippines  Event Management
           </Typography>
         </Box>
 
@@ -58,7 +61,7 @@ const TopBars = ({ toggleDrawer }) => {
             anchorEl={anchorEl}
             onClose={() => setAnchorEl(null)}
           >
-            <MenuItem>Profile</MenuItem>
+            <MenuItem onClick={handleProfile}>Profile</MenuItem>
             <MenuItem onClick={handleLogOut}>Logout</MenuItem>
           </Menu>
         </Box>
