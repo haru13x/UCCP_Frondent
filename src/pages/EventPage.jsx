@@ -26,11 +26,11 @@ const EventPage = () => {
   const [openForm, setOpenForm] = useState(false);
   const [openView, setOpenView] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
-     const { showSnackbar } = useSnackbar();
+  const { showSnackbar } = useSnackbar();
   const [formData, setFormData] = useState({
     id: "",
     title: "",
-    image:"",
+    image: "",
     startDate: "",
     endDate: "",
     endTime: "",
@@ -44,8 +44,10 @@ const EventPage = () => {
     latitude: "",
     longitude: "",
     description: "",
+    accountGroupId: "",
     sponsors: [],
     programs: [],
+    participants: [],
   });
   const [selectedEvent, setSelectedEvent] = useState(null);
 
@@ -54,7 +56,7 @@ const EventPage = () => {
     const response = await UseMethod("get", "get-events");
     if (response?.data) {
       const mappedEvents = response.data.map((event, index) => ({
-        
+
         id: event.id || index,
         image: event.image || "",
         title: event.title,
@@ -72,11 +74,16 @@ const EventPage = () => {
         longitude: event.longitude,
         description: event.description,
         image: event.image,
+        // accountGroupId: event.accountGroupId,
         programs: event.event_programs ?? [],
-        sponsors: event.events_sponser ?? [], // ✅ include sponsors
+        sponsors: event.events_sponser ?? [],
+        // accountGroupId: event.event_types[0]?.group_id || "",
+        // participants: event.event_types.map((t) => t.id) || [],
+        participants: event.participants || [],
+        event_types: event.event_types || [],
       }));
       setEvents(mappedEvents);
-     
+
     }
     setLoading(false);
   };
@@ -85,7 +92,7 @@ const EventPage = () => {
     fetchEvents();
   }, []);
 
-const handleOpenForm = (event = null) => {
+  const handleOpenForm = (event = null) => {
     setIsEdit(!!event);
     setFormData(
       event || {
@@ -93,7 +100,7 @@ const handleOpenForm = (event = null) => {
         image: "",
         title: "",
         startDate: "",
-        startTime:"",
+        startTime: "",
         endDate: "",
         endTime: "",
         category: "",
@@ -105,51 +112,61 @@ const handleOpenForm = (event = null) => {
         latitude: "",
         longitude: "",
         description: "",
-        image:"",
-        sponsors:[],
-        programs:[]
+        image: "",
+        sponsors: [],
+        programs: [],
+        participants: [],
+        accountGroupId: "",
       }
     );
     setOpenForm(true);
   };
-const handleSubmit = async () => {
-  const form = new FormData();
-  form.append("id", formData.id);
-  form.append("title", formData.title);
-  form.append("start_date", formData.startDate);
-  form.append("start_time", formData.startTime);
-  form.append("end_date", formData.endDate);
-  form.append("end_time", formData.endTime);
-  form.append("category", formData.category);
-  form.append("organizer", formData.organizer);
-  form.append("contact", formData.contact);
-  form.append("attendees", formData.attendees);
-  form.append("venue", formData.venue);
-  form.append("address", formData.address);
-  form.append("latitude", formData.latitude);
-  form.append("longitude", formData.longitude);
-  form.append("description", formData.description);
+  const handleSubmit = async () => {
+    const form = new FormData();
+    form.append("id", formData.id);
+    form.append("title", formData.title);
+    form.append("start_date", formData.startDate);
+    form.append("start_time", formData.startTime);
+    form.append("end_date", formData.endDate);
+    form.append("end_time", formData.endTime);
+    form.append("category", formData.category);
+    form.append("organizer", formData.organizer);
+    form.append("contact", formData.contact);
+    form.append("attendees", formData.attendees);
+    form.append("venue", formData.venue);
+    form.append("address", formData.address);
+    form.append("latitude", formData.latitude);
+    form.append("longitude", formData.longitude);
+    form.append("description", formData.description);
+    form.append("account_group_id", formData.accountGroupId);
 
-  // Attach image file
-  if (formData.image instanceof File) {
-    form.append("image", formData.image);
-  }
+    if (Array.isArray(formData.participants)) {
+      form.append("participants", JSON.stringify(formData.participants));
+    }
 
-  // Attach programs and sponsors as JSON strings
-  form.append("programs", JSON.stringify(formData.programs));
-  form.append("sponsors", JSON.stringify(formData.sponsors));
+    // Attach image file
+    if (formData.image instanceof File) {
+      form.append("image", formData.image);
+    }
 
-  const api = isEdit ? "update-events" : "store-events";
-  const response = await UseMethod("post", api, form , "", true);
+    // Attach programs and sponsors as JSON strings
+    form.append("programs", JSON.stringify(formData.programs));
+    form.append("sponsors", JSON.stringify(formData.sponsors));
 
-  if (response?.data) {
-    showSnackbar({ message: isEdit ? "Event updated successfully." : "Event created successfully.", type: "success" });
-    setOpenForm(false);
-    fetchEvents();
-  } else {
-    showSnackbar({ message: "Failed to save event.", type: "error" });
-  }
-};
+    const api = isEdit ? "update-events" : "store-events";
+    const response = await UseMethod("post", api, form, "", true);
+
+    if (response?.data) {
+      showSnackbar({
+        message: isEdit ? "Event updated successfully." : "Event created successfully.",
+        type: "success",
+      });
+      setOpenForm(false);
+      fetchEvents();
+    } else {
+      showSnackbar({ message: "Failed to save event.", type: "error" });
+    }
+  };
 
   const handleView = (event) => {
     setSelectedEvent(event);
@@ -221,7 +238,7 @@ const handleSubmit = async () => {
               fullWidth
               variant="outlined"
               startIcon={<SearchOffSharp />}
-              onClick={() => {}}
+              onClick={() => { }}
             >
               Search
             </Button>
@@ -236,7 +253,7 @@ const handleSubmit = async () => {
               Add Event
             </Button>
           </Grid>
-            <Grid item xs={12} md={3}>
+          <Grid item xs={12} md={3}>
             <Button
               fullWidth
               variant="contained"
@@ -271,7 +288,7 @@ const handleSubmit = async () => {
       />
 
       <EventViewDialog
-      height="100vh"
+        height="100vh"
         open={openView}
         onClose={() => setOpenView(false)}
         event={selectedEvent}

@@ -16,6 +16,7 @@ import {
   CardContent,
   Divider,
   Box,
+  Autocomplete,
 } from "@mui/material";
 import { useState, useEffect } from "react";
 import CloseIcon from "@mui/icons-material/Close";
@@ -29,12 +30,40 @@ const genders = [
 
 const UserFormDialog = ({ open, onClose, onSave, formData, setFormData, isEdit }) => {
   const [roles, setRoles] = useState([]);
-
+  const [accountGroups, setAccountGroups] = useState([]);
+  const [accountTypes, setAccountTypes] = useState([]);
   const handleChange = (field) => (e) => {
     setFormData({ ...formData, [field]: e.target.value });
   };
-
-
+  useEffect(() => {
+    const fetchAccountGroups = async () => {
+      const res = await UseMethod("get", "account-groups");
+      if (res?.data) {
+        setAccountGroups(res.data);
+      }
+    };
+    if (open) fetchAccountGroups();
+  }, [open]);
+  useEffect(() => {
+    const fetchOnEdit = async () => {
+      if (formData.accountGroupId) {
+        const res = await UseMethod("get", `account-types/${formData.accountGroupId}`);
+        setAccountTypes(res?.data || []);
+      }
+    };
+    fetchOnEdit();
+  }, [formData.accountGroupId]);
+  const handleCategoryChange = async (event, value) => {
+    if (!value?.id) return;
+    setFormData((prev) => ({
+      ...prev,
+      accountGroupId: value.id,
+      category: value.description,
+      account_type_id: [],
+    }));
+    const res = await UseMethod("get", `account-types/${value.id}`);
+    setAccountTypes(res?.data || []);
+  };
   useEffect(() => {
     const fetchRoles = async () => {
       try {
@@ -152,7 +181,65 @@ const UserFormDialog = ({ open, onClose, onSave, formData, setFormData, isEdit }
                   ))}
                 </TextField>
               </Grid>
+              <Grid size={{ md: 12 }}>
+                <Autocomplete
+                  options={accountGroups}
+                  getOptionLabel={(option) => option.description}
+                  value={accountGroups.find((g) => g.id === formData.accountGroupId) || null}
+                  onChange={handleCategoryChange}
+                  renderInput={(params) => (
+                    <TextField {...params} label="Select Account Group" size="small" fullWidth />
+                  )}
+                />
 
+
+
+
+
+              </Grid>
+              <Grid size={{ md: 12 }}
+
+              >
+                <Autocomplete
+                  multiple
+                  disableCloseOnSelect
+                  options={accountTypes}
+                  getOptionLabel={(option) => option.description}
+                  value={accountTypes.filter((type) => formData.account_type_id?.includes(type.id))}
+                  onChange={(e, values) =>
+                    setFormData({
+                      ...formData,
+                      account_type_id: values.map((v) => v.id),
+                    })
+                  }
+                  renderOption={(props, option, { selected }) => (
+                    <li {...props}>
+                      <Box
+                        component="span"
+                        sx={{
+                          width: 20,
+                          height: 20,
+                          mr: 1,
+                          border: '1px solid gray',
+                          borderRadius: '4px',
+                          backgroundColor: selected ? '#1976d2' : '#fff',
+                        }}
+                      />
+                      {option.description}
+                    </li>
+                  )}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Users (Account Types)"
+                      size="small"
+                      fullWidth
+                    />
+                  )}
+                />
+
+
+              </Grid>
             </Grid>
           </CardContent>
         </Card>

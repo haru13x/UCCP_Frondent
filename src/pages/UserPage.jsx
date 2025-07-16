@@ -69,7 +69,12 @@ const UserPage = () => {
       phone: user.details?.phone_number || "",
       gender: user.details?.sex_id || "",
       role: user.role?.id || "",
+      accountGroupId: user.account_type[0]?.group_id || "",
+     account_type_id: user.account_type.map((t) => t.account_type_id)
+
+    
     });
+    
     setOpenForm(true);
   };
 
