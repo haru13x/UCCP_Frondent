@@ -34,7 +34,7 @@ import GroupIcon from "@mui/icons-material/Group";
 import DescriptionIcon from "@mui/icons-material/Description"
 import { UseMethod } from "../../composables/UseMethod";
 import QRCodeIcon from "@mui/icons-material/QrCode";
-import { ArrowBackSharp, ViewList } from "@mui/icons-material";
+import { ArrowBackSharp, CategorySharp, Event, Mode, ViewList } from "@mui/icons-material";
 import EventRegisteredDialog from "./EventRegisteredDialog";
 import { useMemo } from "react";
 import SearchIcon from "@mui/icons-material/Search";
@@ -210,7 +210,7 @@ const EventViewDialog = ({ open, onClose, event }) => {
 
             display: "flex",
             flexDirection: "column",
-            width: { xs: "100%", sm: "90%", md: "70%" },
+            width: { xs: "100%", sm: "90%", md: "80%" },
           },
         }}
       >
@@ -311,32 +311,27 @@ const EventViewDialog = ({ open, onClose, event }) => {
                         style={{ width: "100%", height: "100%", objectFit: "cover" }}
                       />
                     )}
-                  </Grid>
-                </Box>
 
+                  </Grid>
+
+                </Box>
+                <Typography sx={{ mt: 1 }} variant="h4" fontWeight={700} gutterBottom>
+                  {event?.title}
+                </Typography>
                 <Paper
 
                   elevation={1}
                   sx={{
-                    p: 4,
-                    mt: 2,
+                    p: 2,
+                    mx: 3,
                     borderRadius: 4,
                     backgroundColor: "#fff",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+                    boxShadow: "0 10px 13px rgba(5, 4, 4, 0.08)",
                   }}
                 >
                   <Grid container spacing={3}>
                     {/* Title and Organizer */}
-                    <Grid size={{ md: 12 }} xs={12}>
-                      <Typography variant="h4" fontWeight={700} gutterBottom>
-                        {event?.title}
-                      </Typography>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        <EventAvailableIcon sx={{ fontSize: 18, mr: 1, verticalAlign: "middle" }} />
-                        Organized by <strong>{event?.organizer}</strong>
-                      </Typography>
-                    </Grid>
-
+                  
                     {/* Date */}
                     <Grid size={{ md: 6 }} xs={12} sm={6}>
                       <Typography variant="body2" color="text.secondary">
@@ -354,7 +349,7 @@ const EventViewDialog = ({ open, onClose, event }) => {
                     </Grid>
 
                     {/* Venue */}
-                    <Grid size={{ md: 12 }} xs={12} sm={6}>
+                    <Grid size={{ md: 6 }} xs={12} sm={6}>
                       <Typography variant="body2" color="text.secondary">
                         <LocationOnIcon sx={{ fontSize: 18, mr: 1, verticalAlign: "middle" }} />
                         <strong>Venue:</strong> {event?.venue}
@@ -362,7 +357,7 @@ const EventViewDialog = ({ open, onClose, event }) => {
                     </Grid>
 
                     {/* Address */}
-                    <Grid size={{ md: 12 }} xs={12} sm={6}>
+                    <Grid size={{ md: 6 }} xs={12} sm={6}>
                       <Typography variant="body2" color="text.secondary">
                         <LocationOnIcon sx={{ fontSize: 18, mr: 1, verticalAlign: "middle" }} />
                         <strong>Address:</strong> {event?.address}
@@ -373,17 +368,32 @@ const EventViewDialog = ({ open, onClose, event }) => {
                     <Grid size={{ md: 6 }} xs={12} sm={6}>
                       <Typography variant="body2" color="text.secondary">
                         <PhoneIcon sx={{ fontSize: 18, mr: 1, verticalAlign: "middle" }} />
-                        <strong>Contact:</strong> {event?.contact}
+                        <strong>Organizer :</strong> {event?.organizer}
+                      </Typography>
+                    </Grid>
+                    <Grid size={{ md: 6 }} xs={12} sm={6}>
+                      <Typography variant="body2" color="text.secondary">
+                        <PhoneIcon sx={{ fontSize: 18, mr: 1, verticalAlign: "middle" }} />
+                        <strong>Contact No:</strong> {event?.contact}
+                      </Typography>
+                    </Grid>
+                    <Grid size={{ md: 6 }} xs={12} sm={6}>
+                      <Typography variant="body2" color="text.secondary">
+                        <CategorySharp sx={{ fontSize: 18, mr: 1, verticalAlign: "middle" }} />
+                        <strong>Event Mode:</strong> {event?.category}
                       </Typography>
                     </Grid>
 
                     {/* Attendees */}
-                    <Grid size={{ md: 6 }} xs={12} sm={6}>
+                    <Grid size={{ md: 6 }} item xs={12} sm={6} md={6}>
                       <Typography variant="body2" color="text.secondary">
                         <GroupIcon sx={{ fontSize: 18, mr: 1, verticalAlign: "middle" }} />
-                        <strong>Expected Attendees:</strong> {event?.attendees}
+                        <strong>Expected Attendees:</strong>{" "}
+                        
+                        {event?.event_types?.map((type) => type.description).join(", ") || "None"}
                       </Typography>
                     </Grid>
+
 
                     {/* Description */}
                     <Grid size={{ md: 12 }} xs={12}>
@@ -417,13 +427,13 @@ const EventViewDialog = ({ open, onClose, event }) => {
                       Print Event QR
                     </Button> */}
                     <Button
-  onClick={() => window.open(`http://127.0.0.1:8000/api/event-summary/${event.id}`, "_blank")}
-  variant="outlined"
-  color="primary"
-  sx={{ mt: 2 }}
->
-  🖨️ Print Event QRCode
-</Button>
+                      onClick={() => window.open(`http://127.0.0.1:8000/api/event-summary/${event.id}`, "_blank")}
+                      variant="outlined"
+                      color="primary"
+                      sx={{ mt: 2 }}
+                    >
+                      🖨️ Print Event QRCode
+                    </Button>
 
                   </Box>
                 ) : (
@@ -643,9 +653,9 @@ const EventViewDialog = ({ open, onClose, event }) => {
             justifyContent: "space-between",
           }}
         >
-              <Typography>📝 Confirm Attendance</Typography>
-          
-            <Button
+          <Typography>📝 Confirm Attendance</Typography>
+
+          <Button
             onClick={() => setConfirmModal(false)}
             variant="contained"
             color="error"
@@ -684,7 +694,7 @@ const EventViewDialog = ({ open, onClose, event }) => {
         </DialogContent>
 
         <DialogActions sx={{ justifyContent: "flex-end", mt: 1 }}>
-        
+
           {(() => {
             const now = new Date();
             const startDateTime = new Date(`${selectedUser?.event?.start_date}T${selectedUser?.event?.start_time}`);
