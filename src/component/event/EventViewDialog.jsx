@@ -47,6 +47,7 @@ const Transition = React.forwardRef(function Transition(props, ref) {
 });
 
 const EventViewDialog = ({ open, onClose, event }) => {
+              const apiUrl = process.env.REACT_APP_API_URL;
   const [qrPath, setQrPath] = useState(null);
   const [loadingQR, setLoadingQR] = useState(false);
   const [qrModal, setQrModal] = useState(false);
@@ -304,7 +305,7 @@ const EventViewDialog = ({ open, onClose, event }) => {
                       <img
                         src={
                           typeof event?.image === "string"
-                            ? `http://127.0.0.1:8000/storage/${event?.image}`
+                            ? `${apiUrl}/storage/${event?.image}`
                             : URL.createObjectURL(event?.image)
                         }
                         alt="Preview"

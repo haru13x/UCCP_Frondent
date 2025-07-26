@@ -36,6 +36,7 @@ const Transition = React.forwardRef(function Transition(props, ref) {
 });
 
 const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit }) => {
+        const apiUrl = process.env.REACT_APP_API_URL;
   const mapRef = useRef(null);
   const [map, setMap] = useState(null);
   const [marker, setMarker] = useState(null);
@@ -230,7 +231,7 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
                 <img
                   src={
                     typeof formData.image === "string"
-                      ? `http://127.0.0.1:8000/storage/${formData.image}`
+                      ? `${apiUrl}/storage/${formData.image}`
                       : URL.createObjectURL(formData.image)
                   }
                   alt="Preview"

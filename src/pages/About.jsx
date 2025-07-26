@@ -13,6 +13,7 @@ import ChurchIcon from "@mui/icons-material/Church";
 import TopBar from "../component/TopBar";
 
 const About = () => {
+
   const pastors = [
     {
       name: "Rev. Maria Santos",
@@ -47,7 +48,7 @@ const About = () => {
         <Box textAlign="center" mb={5}>
           <ChurchIcon sx={{ fontSize: 60, color: "#0d47a1" }} />
           <Typography variant="h4" fontWeight="bold" color="primary.dark" gutterBottom>
-              United Church of Christ in the Philippines
+              United Church of Christ in the Philippines 
           </Typography>
           <Typography variant="subtitle1" color="text.secondary">
             United Church of Christ in the Philippines – Bringing people closer to Christ through worship, service, and digital innovation.
@@ -117,7 +118,7 @@ const About = () => {
      
 
       
-        {/* Church Event Gallery */}
+        {/* Church Event Gallery
         <Typography variant="h5" fontWeight="bold" gutterBottom>
           Church Events Gallery
         </Typography>
@@ -148,7 +149,7 @@ const About = () => {
               </Card>
             </Grid>
           ))}
-        </Grid>
+        </Grid> */}
 
         {/* Event Management System Info */}
         <Card sx={{ backgroundColor: "#bbdefb", py: 3, px: 2, boxShadow: 2 }}>
