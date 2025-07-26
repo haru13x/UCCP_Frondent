@@ -74,6 +74,7 @@ const EventSlideDialog = ({
             date: "June 29, 2025",
         },
     ]);
+            const apiUrl = process.env.REACT_APP_API_URL;
     const { showSnackbar } = useSnackbar();
     const [isRegistered, setIsRegistered] = useState(false);
     const now = dayjs();
@@ -85,30 +86,30 @@ const EventSlideDialog = ({
     const isDuringEvent = now.isAfter(start) && now.isBefore(end); // 🟢 Event is ongoing
     const isAfterEvent = now.isAfter(end);
 
-    useEffect(() => {
-        if (tabIndex !== 1) {
-            setUserRating(0);
-            setUserComment("");
+    // useEffect(() => {
+    //     if (tabIndex !== 1) {
+    //         setUserRating(0);
+    //         setUserComment("");
 
-        }
+    //     }
 
-        const checkIfRegistered = async () => {
-            try {
-                const res = await UseMethod("get", `isregistered/${event?.id}`);
-                setIsRegistered(res?.data || false);
-            } catch (error) {
-                console.error(error);
-                showSnackbar({
-                    message: "An error occurred while checking registration status.",
-                    type: "error",
-                });
-            }
+    //     const checkIfRegistered = async () => {
+    //         try {
+    //             const res = await UseMethod("get", `isregistered/${event?.id}`);
+    //             setIsRegistered(res?.data || false);
+    //         } catch (error) {
+    //             console.error(error);
+    //             showSnackbar({
+    //                 message: "An error occurred while checking registration status.",
+    //                 type: "error",
+    //             });
+    //         }
 
-        }
-        if (tabIndex !== 1) {
-            checkIfRegistered();
-        }
-    }, [open, tabIndex, event]);
+    //     }
+    //     if (tabIndex !== 1) {
+    //         checkIfRegistered();
+    //     }
+    // }, [open, tabIndex, event]);
 
 
     const handleSubmitReview = () => {
@@ -197,28 +198,32 @@ const EventSlideDialog = ({
                 >
                     <ArrowBackSharp fontSize="small" sx={{ mr: 1 }} /> Back
                 </Button>
-                <Tabs
-                    textColor="inherit"
-                    indicatorColor="secondary"
-                    sx={{
-                        "& .MuiTab-root": {
-                            color: "white",
-                            fontWeight: 500,
-                            textTransform: "none",
-                        },
-                        "& .Mui-selected": {
-                            color: "white",
-                            fontWeight: 800, // Highlight active tab with amber
-                        },
-                        "& .MuiTabs-indicator": {
-                            backgroundColor: "#ffc107", // Active tab underline
-                        },
-                    }} value={tabIndex} onChange={handleTabChange}>
-                    <Tab label="About Event" />
-
-                    <Tab label="Comments & Reviews" />
-                </Tabs>
-            </DialogTitle>
+<Tabs
+  textColor="inherit"
+  indicatorColor="secondary"
+  sx={{
+    "& .MuiTab-root": {
+      color: "white",
+      fontWeight: 500,
+      textTransform: "none",
+    },
+    "& .Mui-selected": {
+      color: "white",
+      fontWeight: 800,
+    },
+    "& .MuiTabs-indicator": {
+      backgroundColor: "#ffc107",
+    },
+  }}
+  value={tabIndex}
+  onChange={handleTabChange}
+>
+  <Tab label="About Event" />
+  
+  {event?.is_registered === 1 && isAfterEvent && (
+    <Tab label="Comments & Reviews" />
+  )}
+</Tabs></DialogTitle>
 
             {/* Content */}
             <DialogContent sx={{ overflowY: "auto", flex: 1 }}>
@@ -244,7 +249,7 @@ const EventSlideDialog = ({
                                     <img
                                         src={
                                             typeof event?.image === "string"
-                                                ? `http://127.0.0.1:8000/storage/${event?.image}`
+                                                ? `${apiUrl}/storage/${event?.image}`
                                                 : URL.createObjectURL(event?.image)
                                         }
                                         alt="Preview"
@@ -428,28 +433,28 @@ const EventSlideDialog = ({
                         </List>
                     </Box>
                 )}
-
+    
             </DialogContent>
 
             {/* Bottom Register Button */}
-            <DialogActions sx={{ p: 2 }}>
-                <Button
-                    variant="contained"
-                    size="large"
-                    color="primary"
-                    fullWidth={isMobile}
-                    onClick={handleRegister}
-                    disabled={!isBeforeEvent || isRegistered} // disable if event already started or ended
-                >
-                    {isAfterEvent
-                        ? "Event Ended"
-                        : isDuringEvent
-                            ? "Event Already Started"
-                            : isRegistered
-                                ? "Already Registered"
-                                : "Register for this Event"}
-                </Button>
-            </DialogActions>
+           <DialogActions sx={{ p: 2 }}>
+  <Button
+    variant="contained"
+    size="large"
+    color="primary"
+    fullWidth={isMobile}
+    onClick={handleRegister}
+    disabled={!isBeforeEvent || event?.is_registered === 1} // Disable if event started or already registered
+  >
+    {isAfterEvent
+      ? "Event Ended"
+      : isDuringEvent
+        ? "Event Already Started"
+        : event?.is_registered === 1
+          ? "Already Registered"
+          : "Register for this Event"}
+  </Button>
+</DialogActions>
 
         </Dialog>
     );

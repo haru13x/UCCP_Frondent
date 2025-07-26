@@ -9,6 +9,7 @@ export const UseMethod = async (
   responseType = "json"
 ) => {
   try {
+      const apiUrl = process.env.REACT_APP_API_URL;
     const authToken = localStorage.getItem("api_token");
     // if (!authToken) throw new Error("No token found in localStorage");
 
@@ -22,7 +23,7 @@ export const UseMethod = async (
       headers["Content-Type"] = "application/json";
     }
 
-    const api = `http://127.0.0.1:8000/api/${url}`;
+    const api = `${apiUrl}/api/${url}`;
     let response;
 
     switch (method.toLowerCase()) {

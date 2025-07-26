@@ -44,6 +44,7 @@ const groupByDate = (items) => {
 };
 
 const ListPage = () => {
+  const apiUrl = process.env.REACT_APP_API_URL;
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("today");
   const [events, setEvents] = useState({ today: [], upcoming: [], past: [] });
@@ -143,7 +144,7 @@ useEffect(() => {
             {item.image && (
               <Box
                 component="img"
-                src={`http://127.0.0.1:8000/storage/${item.image}`}
+                src={`${apiUrl}/storage/${item.image}`}
                 sx={{
                   width: 100,
                   height: 100,
