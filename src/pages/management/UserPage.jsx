@@ -5,15 +5,18 @@ import {
   Button,
   IconButton,
   Box,
+  Grid,
+  TextField,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 
-import UserFormDialog from "../component/users/UserFormDialog";
-import UserViewDialog from "../component/users/UserViewDialog";
-import { UseMethod } from "../composables/UseMethod";
+import UserFormDialog from "../../component/users/UserFormDialog";
+import UserViewDialog from "../../component/users/UserViewDialog"
+import { UseMethod } from "../../composables/UseMethod";
 import { DataGrid } from "@mui/x-data-grid";
+import UploadExcelDialog from "../../component/users/UploadExcelDialog";
 
 const UserPage = () => {
   const [users, setUsers] = useState([]);
@@ -27,11 +30,15 @@ const UserPage = () => {
     role: "",
   });
   const [selectedUser, setSelectedUser] = useState(null);
+  const [excelDialogOpen, setExcelDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [searchText, setSearchText] = useState('');
 
   // ✅ Fetch and flatten nested user data
-  const fetchUsers = async () => {
+  const fetchUsers = async (search = '') => {
+    setLoading(true);
     try {
-      const response = await UseMethod("get", "get-users");
+      const response = await UseMethod("post", "get-users", { search });
       const flatUsers = response.data.map((user) => ({
         ...user,
         phone: user.details?.phone_number || "N/A",
@@ -41,6 +48,8 @@ const UserPage = () => {
       setUsers(flatUsers);
     } catch (error) {
       console.error("Error fetching users:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -70,11 +79,11 @@ const UserPage = () => {
       gender: user.details?.sex_id || "",
       role: user.role?.id || "",
       accountGroupId: user.account_type[0]?.group_id || "",
-     account_type_id: user.account_type.map((t) => t.account_type_id)
+      account_type_id: user.account_type.map((t) => t.account_type_id)
 
-    
+
     });
-    
+
     setOpenForm(true);
   };
 
@@ -98,7 +107,9 @@ const UserPage = () => {
       alert("Error saving user. Check the console for details.");
     }
   };
-
+  const handleSearchClick = () => {
+    fetchUsers(searchText);
+  };
   const columns = [
     { field: "name", headerName: "Name", flex: 1 },
     { field: "email", headerName: "Email", flex: 1 },
@@ -127,8 +138,8 @@ const UserPage = () => {
   ];
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Card>
+    <Box sx={{ p: 1 }}>
+      <Card sx={{ px: 1 }}>
         <Box
           display="flex"
           justifyContent="space-between"
@@ -136,20 +147,54 @@ const UserPage = () => {
           px={2}
           py={2}
         >
-          <Typography variant="h6">User Management</Typography>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleOpenAdd}
-          >
-            Add User
-          </Button>
+        <Typography variant="h6">User Management</Typography>
+
+          <Grid
+          width={'4 0vw'}
+           sx={{
+            display: 'flex',
+            gap: 2
+            
+          }}>
+              
+            <TextField
+              variant="outlined"
+              placeholder="Search by name, group, type…"
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              fullWidth
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSearchClick();
+              }}
+              size='small'
+            />
+            <Button variant="contained" onClick={handleSearchClick}>
+              Search
+            </Button>
+          </Grid>
+          <Grid sx={{
+            display: 'flex',
+            gap: 2
+          }}>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleOpenAdd}
+            >
+              Add User
+            </Button>
+            <Button variant="outlined" onClick={() => setExcelDialogOpen(true)}>
+              Upload Excel
+            </Button>
+          </Grid>
+
         </Box>
 
         <Box sx={{ height: "75vh", width: "100%" }}>
           <DataGrid
             rows={Array.isArray(users) ? users : []}
             getRowId={(row) => row.id}
+            loading={loading}
             columns={columns}
             pageSize={10}
             rowsPerPageOptions={[10, 20, 50]}
@@ -171,6 +216,12 @@ const UserPage = () => {
         open={openView}
         onClose={() => setOpenView(false)}
         user={selectedUser}
+      />
+
+
+      <UploadExcelDialog
+        open={excelDialogOpen}
+        onClose={() => setExcelDialogOpen(false)}
       />
     </Box>
   );

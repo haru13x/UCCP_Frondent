@@ -1,15 +1,8 @@
 import axios from "axios";
 
-export const UseMethod = async (
-  method,
-  url,
-  payload = null,
-  params = "",
-  isMultipart = false,
-  responseType = "json"
-) => {
+export const UseMethod = async (method,url, payload = null, params = "", isMultipart = false, responseType = "json") => {
   try {
-      const apiUrl = process.env.REACT_APP_API_URL;
+    const apiUrl = process.env.REACT_APP_API_URL;
     const authToken = localStorage.getItem("api_token");
     // if (!authToken) throw new Error("No token found in localStorage");
 
@@ -32,24 +25,15 @@ export const UseMethod = async (
         break;
 
       case "post":
-        response = await axios.post(api, payload, {
-          headers,
-          responseType,
-        });
+        response = await axios.post(api, payload, { headers, responseType, });
         break;
 
       case "put":
-        response = await axios.put(api, payload, {
-          headers,
-          responseType,
-        });
+        response = await axios.put(api, payload, {headers, responseType, });
         break;
 
       case "delete":
-        response = await axios.delete(`${api}/${params}`, {
-          headers,
-          responseType,
-        });
+        response = await axios.delete(`${api}/${params}`, { headers, responseType,});
         break;
 
       default:

@@ -9,6 +9,8 @@ import {
   Tabs,
   Tab,
   CircularProgress,
+  TextField,
+  Button,
 } from "@mui/material";
 import {
   Event as EventIcon,
@@ -42,7 +44,7 @@ const groupByDate = (items) => {
 };
 
 const MyList = () => {
-    const apiUrl = process.env.REACT_APP_API_URL;
+  const apiUrl = process.env.REACT_APP_API_URL;
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("today");
   const [events, setEvents] = useState({ today: [], upcoming: [], past: [] });
@@ -52,40 +54,41 @@ const MyList = () => {
   const { showSnackbar } = useSnackbar();
   const [qrPath, setQrPath] = useState(null);
   const [loadingQR, setLoadingQR] = useState(false);
-
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
   const fetchTabData = async (tabName) => {
     setLoading(true);
     let type = 'today';
 
     switch (tabName) {
-        case 'today':
-            type = 'today';
-            break;
-        case 'upcoming':
-            type = 'upcoming';
-            break;
-        case 'past':
-            type = 'past';
-            break;
+      case 'today':
+        type = 'today';
+        break;
+      case 'upcoming':
+        type = 'upcoming';
+        break;
+      case 'past':
+        type = 'past';
+        break;
     }
 
     try {
-        const res = await UseMethod("get", `my-events-list/${type}`);
-        if (res?.data && res.data.length > 0) {
-            setEvents((prev) => ({
-                ...prev,
-                [tabName]: res.data.map((e) => ({ ...e, type: "event" })),
-            }));
-        } else {
-            // showSnackbar({ message: "No " +type+" Event found.", type: "warning" });
-        }
+      const res = await UseMethod("get", `my-events-list/${type}`);
+      if (res?.data && res.data.length > 0) {
+        setEvents((prev) => ({
+          ...prev,
+          [tabName]: res.data.map((e) => ({ ...e, type: "event" })),
+        }));
+      } else {
+        // showSnackbar({ message: "No " +type+" Event found.", type: "warning" });
+      }
     } catch (error) {
-        console.error("Failed to fetch events:", error);
-        showSnackbar({ message: "Server error while fetching events.", type: "error" });
+      console.error("Failed to fetch events:", error);
+      showSnackbar({ message: "Server error while fetching events.", type: "error" });
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
-};
+  };
 
 
   useEffect(() => {
@@ -216,6 +219,38 @@ const MyList = () => {
           <Tab value="upcoming" label="Upcoming" />
           <Tab value="past" label="Past" />
         </Tabs>
+        <Box display="flex" alignItems="center" gap={1} mt={{ xs: 2, sm: 0, width: '50%' }}>
+          <TextField
+            fullWidth
+            size="small"
+            variant="outlined"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") fetchTabData(tab);
+            }}
+            placeholder="Search events..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+          />
+          <Box>
+            <Button
+              onClick={() => {
+                setSearch(searchInput);
+                fetchTabData(tab); // Trigger search
+              }}
+              style={{
+                padding: '6px 16px',
+                border: 'none',
+                borderRadius: 4,
+                backgroundColor: '#1976d2',
+                color: 'white',
+                cursor: 'pointer',
+                fontWeight: 'bold'
+              }}
+            >
+              Search
+            </Button>
+          </Box>
+        </Box>
       </Box>
 
       {/* Content */}
@@ -229,19 +264,19 @@ const MyList = () => {
           renderTimeline(events[tab])
         ) : (
           <Box textAlign="center" mt={2}>
-           
-                 <Box mt={0} textAlign="center">
-               <img
-                 src="no_data.svg" // change this to the actual path of your image
-                 alt="No Data"
-                 maxWidth="350px"
-                 style={{ maxWidth: "300px", marginBottom: 8, marginTop:5 }}
-               />
-               <Typography>
-                  No {tab.charAt(0).toUpperCase() + tab.slice(1)} Events Found
-               </Typography>
-              
-             </Box>
+
+            <Box mt={0} textAlign="top">
+              <img
+                src="event.png" // change this to the actual path of your image
+                alt="No Data"
+                maxWidth="450px"
+                style={{ maxWidth: "450px", marginTop: 5 }}
+              />
+              <Typography>
+                No {tab.charAt(0).toUpperCase() + tab.slice(1)} Events Found
+              </Typography>
+
+            </Box>
           </Box>
         )}
       </Box>

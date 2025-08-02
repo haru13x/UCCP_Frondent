@@ -10,7 +10,7 @@ import {
   CardMedia,
 } from "@mui/material";
 import ChurchIcon from "@mui/icons-material/Church";
-import TopBar from "../component/TopBar";
+import TopBar from "../../component/TopBar";
 
 const About = () => {
 

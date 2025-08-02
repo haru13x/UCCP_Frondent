@@ -74,7 +74,7 @@ const EventSlideDialog = ({
             date: "June 29, 2025",
         },
     ]);
-            const apiUrl = process.env.REACT_APP_API_URL;
+    const apiUrl = process.env.REACT_APP_API_URL;
     const { showSnackbar } = useSnackbar();
     const [isRegistered, setIsRegistered] = useState(false);
     const now = dayjs();
@@ -144,7 +144,7 @@ const EventSlideDialog = ({
                     message: "Registration successful!.",
                     type: "success",
                 });
-            setIsRegistered(true);
+                setIsRegistered(true);
             } else {
                 showSnackbar({
                     message: "Registration failed. Please try again.",
@@ -198,32 +198,32 @@ const EventSlideDialog = ({
                 >
                     <ArrowBackSharp fontSize="small" sx={{ mr: 1 }} /> Back
                 </Button>
-<Tabs
-  textColor="inherit"
-  indicatorColor="secondary"
-  sx={{
-    "& .MuiTab-root": {
-      color: "white",
-      fontWeight: 500,
-      textTransform: "none",
-    },
-    "& .Mui-selected": {
-      color: "white",
-      fontWeight: 800,
-    },
-    "& .MuiTabs-indicator": {
-      backgroundColor: "#ffc107",
-    },
-  }}
-  value={tabIndex}
-  onChange={handleTabChange}
->
-  <Tab label="About Event" />
-  
-  {event?.is_registered === 1 && isAfterEvent && (
-    <Tab label="Comments & Reviews" />
-  )}
-</Tabs></DialogTitle>
+                <Tabs
+                    textColor="inherit"
+                    indicatorColor="secondary"
+                    sx={{
+                        "& .MuiTab-root": {
+                            color: "white",
+                            fontWeight: 500,
+                            textTransform: "none",
+                        },
+                        "& .Mui-selected": {
+                            color: "white",
+                            fontWeight: 800,
+                        },
+                        "& .MuiTabs-indicator": {
+                            backgroundColor: "#ffc107",
+                        },
+                    }}
+                    value={tabIndex}
+                    onChange={handleTabChange}
+                >
+                    <Tab label="About Event" />
+
+                    {event?.is_registered === 1 && isAfterEvent && (
+                        <Tab label="Comments & Reviews" />
+                    )}
+                </Tabs></DialogTitle>
 
             {/* Content */}
             <DialogContent sx={{ overflowY: "auto", flex: 1 }}>
@@ -433,28 +433,28 @@ const EventSlideDialog = ({
                         </List>
                     </Box>
                 )}
-    
+
             </DialogContent>
 
             {/* Bottom Register Button */}
-           <DialogActions sx={{ p: 2 }}>
-  <Button
-    variant="contained"
-    size="large"
-    color="primary"
-    fullWidth={isMobile}
-    onClick={handleRegister}
-    disabled={!isBeforeEvent || event?.is_registered === 1} // Disable if event started or already registered
-  >
-    {isAfterEvent
-      ? "Event Ended"
-      : isDuringEvent
-        ? "Event Already Started"
-        : event?.is_registered === 1
-          ? "Already Registered"
-          : "Register for this Event"}
-  </Button>
-</DialogActions>
+            <DialogActions sx={{ p: 2 }}>
+                <Button
+                    variant="contained"
+                    size="large"
+                    color="primary"
+                    fullWidth={isMobile}
+                    onClick={handleRegister}
+                    disabled={!isBeforeEvent || event?.is_registered === 1} // Disable if event started or already registered
+                >
+                    {isAfterEvent
+                        ? "Event Ended"
+                        : isDuringEvent
+                            ? "Event Already Started"
+                            : event?.is_registered === 1
+                                ? "Already Registered"
+                                : "Register for this Event"}
+                </Button>
+            </DialogActions>
 
         </Dialog>
     );
