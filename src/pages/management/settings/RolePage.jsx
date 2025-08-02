@@ -9,8 +9,8 @@ import {
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import { Visibility, Edit } from "@mui/icons-material";
-import RoleFormModal from "../component/users/RoleFormModal";
-import { UseMethod } from "../composables/UseMethod";
+import RoleFormModal from "../../../component/users/RoleFormModal";
+import { UseMethod } from "../../../composables/UseMethod";
 
 const RolePage = () => {
   const [open, setOpen] = useState(false);

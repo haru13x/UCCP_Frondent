@@ -97,7 +97,7 @@ const UserViewDialog = ({ open, onClose, user }) => {
                 <InfoItem icon={<CakeIcon color="action" />} label="Birthdate" value={user.details.birthdate} />
               </Grid>
               <Grid size={{md:4}} item xs={12} sm={6} md={4}>
-                <InfoItem icon={<WcIcon color="action" />} label="Gender" value={user.details.sex.name} />
+                <InfoItem icon={<WcIcon color="action" />} label="Gender" value={user.details.sex?.name} />
               </Grid>
               <Grid size={{md:4}} item xs={12} sm={6} md={4}>
                 <InfoItem icon={<PublicIcon color="action" />} label="Nationality" value={user.details.nationality} />

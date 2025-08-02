@@ -1,20 +1,21 @@
 // src/router/index.jsx
 import { createBrowserRouter } from "react-router-dom";
-import Login from "../pages/Login";
-import Register from "../pages/Register";
+import Login from "../pages/public/Login";
+import Register from "../pages/public/Register";
 import Dashboard from "../pages/Dashboard";
-import About from "../pages/About";
+import About from "../pages/public/About";
 import MainLayout from "../layout/MainLayout";
-import UserPage from "../pages/UserPage";
-import EventPage from "../pages/EventPage";
+import UserPage from "../pages/management/UserPage";
+import EventPage from "../pages/management/EventPage";
 import Middleware from "./middleware";
 
-import ListPage from "../pages/ListPage";
-import Role from "../pages/Role";
-import NoPermission from "../pages/NoPermission";
+import Role from "../pages/management/settings/RolePage";
+import NoPermission from "../pages/public/NoPermission";
 import Mylist from "../pages/MyList";
 import QRScannerPage from "../pages/QRScannerPage";
 import ProfilePage from "../pages/ProfilePage";
+import EventList from "../pages/EventList";
+import RequestRegistration from "../pages/management/RequestRegistration";
 // Public route definitions (no need to wrap manually)
 const publicRoutes = [
   { path: "/", component: Login },
@@ -27,8 +28,9 @@ const privateRoutes = [
   { path: "/dashboard", component: Dashboard, rule: "view_dashboard" },
   { path: "/users", component: UserPage, rule: "view_users" },
   { path: "/events", component: EventPage, rule: "view_events" },
+    { path: "/request-registration", component: RequestRegistration },
   { path: "/settings/role", component: Role, rule: "view_roles" },
-  { path: "/list", component: ListPage },
+  { path: "/list", component: EventList },
   { path: "/my-list", component: Mylist },
   { path: "/qrcode", component: QRScannerPage },
    {path: "/profile", component: ProfilePage}

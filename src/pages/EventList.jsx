@@ -43,7 +43,7 @@ const groupByDate = (items) => {
   return groups;
 };
 
-const ListPage = () => {
+const EventList = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("today");
@@ -267,10 +267,10 @@ useEffect(() => {
 
             <Box mt={0} textAlign="center">
               <img
-                src="no_data.svg" // change this to the actual path of your image
+                src="event.png" // change this to the actual path of your image
                 alt="No Data"
-                maxWidth="350px"
-                style={{ maxWidth: "300px", marginBottom: 8, marginTop: 5 }}
+                maxWidth="450px"
+                style={{ maxWidth: "450px", marginTop: 5 }}
               />
               <Typography>
                 No {tab.charAt(0).toUpperCase() + tab.slice(1)} Events Found
@@ -297,4 +297,4 @@ useEffect(() => {
   );
 };
 
-export default ListPage;
+export default EventList;

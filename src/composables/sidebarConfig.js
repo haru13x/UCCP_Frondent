@@ -10,12 +10,16 @@ import {
   ListAlt,
   EventNote,
   QrCode,
+  PeopleOutlineSharp,
+  Man,
+  ManageAccounts,
+  ManageHistory,
 } from "@mui/icons-material";
 import { List } from "@mui/material";
 
 export const sidebarConfig = [
   {
-    label: "Dashboard",
+    label: "Dashboards",
     icon: Dashboard,
     path: "/dashboard",
     rule: "view_dashboard",
@@ -32,8 +36,16 @@ export const sidebarConfig = [
     path: "/my-list",
     rule: "view_my_events",
   },
+
+ {
+    label: "Management",
+    icon: ManageHistory,
+    rule: null,
+    children: [
+
+
   {
-    label: "Manage Events",
+    label: "Events",
     icon: Groups,
     path: "/events",
     rule: "view_events",
@@ -50,12 +62,18 @@ export const sidebarConfig = [
   //   path: "/",
   //   rule: "view_report",
   // },
+    {
+    label: "User's Request",
+    icon: PeopleOutlineSharp,
+    path: "/request-registration",
+    rule: "",
+  },
   {
-    label: "Manage Users",
+    label: "Users",
     icon: People,
     path: "/users",
     rule: "view_users",
-  },
+  }]},
   {
     label: "Settings",
     icon: Settings,

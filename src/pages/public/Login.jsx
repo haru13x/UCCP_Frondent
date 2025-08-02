@@ -13,9 +13,11 @@ import {
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import ChurchIcon from "@mui/icons-material/Church";
-import TopBar from "../component/TopBar";
-import { UseMethod } from "../composables/UseMethod";
+import TopBar from "../../component/TopBar";
+import { UseMethod } from "../../composables/UseMethod";
+import { useSnackbar } from "../../component/event/SnackbarProvider ";
 const Login = () => {
+  const { showSnackbar } = useSnackbar();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
@@ -45,11 +47,16 @@ const Login = () => {
 
         navigate("/list");
       } else {
-        alert("Invalid login credentials.");
+        showSnackbar({
+          message:  res.data.msg,
+          type: "error",
+        });
       }
     } catch (err) {
-      console.error("Login error:", err);
-      alert("Login failed. Please try again.");
+     showSnackbar({
+        message: "Login failed" + err.msg,
+        type: "error",
+      });
     }
   };
 
