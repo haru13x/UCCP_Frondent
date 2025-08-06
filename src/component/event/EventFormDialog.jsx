@@ -1,5 +1,4 @@
 import React, { useRef, useEffect, useState } from "react";
-import { useTheme } from '@mui/material/styles';
 import {
   Dialog,
   DialogTitle,
@@ -12,12 +11,27 @@ import {
   IconButton,
   Autocomplete,
   Slide,
+  Paper,
+  Card,
+  CardContent,
+  Divider,
+  Chip,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import MyLocationIcon from "@mui/icons-material/MyLocation";
-import EventProgramFormDialog from "./EventProgramFormDialog";
-import { ArrowBackSharp } from "@mui/icons-material";
+import LocationOnIcon from "@mui/icons-material/LocationOn";
+import ImageIcon from "@mui/icons-material/Image";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import PeopleIcon from "@mui/icons-material/People";
+import DescriptionIcon from "@mui/icons-material/Description";
+import ArrowBackSharp from "@mui/icons-material/ArrowBackSharp";
 import { UseMethod } from "../../composables/UseMethod";
+import EventProgramFormDialog from "./EventProgramFormDialog";
+import { CategorySharp } from "@mui/icons-material";
 
+// Load Google Maps Script
 const loadGoogleMapsScript = (callback) => {
   if (window.google?.maps) {
     callback();
@@ -31,27 +45,49 @@ const loadGoogleMapsScript = (callback) => {
   document.head.appendChild(script);
 };
 
-const Transition = React.forwardRef(function Transition(props, ref) {
-  return <Slide direction="left" ref={ref} {...props} />;
-});
+const Transition = React.forwardRef((props, ref) => (
+  <Slide direction="left" ref={ref} {...props} />
+));
 
 const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit }) => {
   const apiUrl = process.env.REACT_APP_API_URL;
   const mapRef = useRef(null);
+  const fileInputRef = useRef();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
   const [map, setMap] = useState(null);
   const [marker, setMarker] = useState(null);
   const [placeOptions, setPlaceOptions] = useState([]);
   const [accountGroups, setAccountGroups] = useState([]);
   const [accountTypes, setAccountTypes] = useState([]);
-  const fileInputRef = useRef();
   const [openProgramForm, setOpenProgramForm] = useState(false);
   const [programs, setPrograms] = useState([]);
   const [sponsors, setSponsors] = useState([]);
-  const theme = useTheme();
 
+  // Load account groups
+  useEffect(() => {
+    const fetchAccountGroups = async () => {
+      const res = await UseMethod("get", "account-groups");
+      if (res?.data) setAccountGroups(res.data);
+    };
+    if (open) fetchAccountGroups();
+  }, [open]);
+
+  // Load account types when group changes
+  useEffect(() => {
+    const fetchAccountTypes = async () => {
+      if (formData.accountGroupId) {
+        const res = await UseMethod("get", `account-types/${formData.accountGroupId}`);
+        setAccountTypes(res?.data || []);
+      }
+    };
+    fetchAccountTypes();
+  }, [formData.accountGroupId]);
+
+  // Initialize Google Maps
   useEffect(() => {
     if (!open) return;
-
     const timeout = setTimeout(() => {
       loadGoogleMapsScript(initializeMap);
     }, 100);
@@ -64,25 +100,6 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
     };
   }, [open]);
 
-  useEffect(() => {
-    const fetchAccountGroups = async () => {
-      const res = await UseMethod("get", "account-groups");
-      if (res?.data) {
-        setAccountGroups(res.data);
-      }
-    };
-    if (open) fetchAccountGroups();
-  }, [open]);
-  
-  useEffect(() => {
-    const fetchOnEdit = async () => {
-      if (formData.accountGroupId) {
-        const res = await UseMethod("get", `account-types/${formData.accountGroupId}`);
-        setAccountTypes(res?.data || []);
-      }
-    };
-    fetchOnEdit();
-  }, [formData.accountGroupId]);
   const initializeMap = () => {
     if (!mapRef.current || map) return;
 
@@ -94,16 +111,30 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
     const mapInstance = new window.google.maps.Map(mapRef.current, {
       center: initialPosition,
       zoom: 15,
+      mapTypeControl: false,
+      streetViewControl: false,
+      fullscreenControl: false,
+      styles: [
+        { elementType: "labels", stylers: [{ visibility: "on" }] },
+        { featureType: "water", stylers: [{ color: "#e0f7fa" }] },
+      ],
     });
 
     const mapMarker = new window.google.maps.Marker({
       position: initialPosition,
       map: mapInstance,
       draggable: true,
+      icon: {
+        path: window.google.maps.SymbolPath.CIRCLE,
+        scale: 8,
+        fillColor: "#1976d2",
+        fillOpacity: 1,
+        strokeWeight: 2,
+        strokeColor: "white",
+      },
     });
 
     const geocoder = new window.google.maps.Geocoder();
-
     mapInstance.addListener("click", (e) => {
       const clickedPos = e.latLng;
       mapMarker.setPosition(clickedPos);
@@ -209,234 +240,368 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
           ml: "auto",
           display: "flex",
           flexDirection: "column",
-          width: { xs: "100%", sm: "90%", md: "85%" },
-        },
+          width: { xs: "100%", sm: "90%", md: "80%" },
+          maxWidth: "100%",
+          borderRadius: { xs: 0, sm: 3 },
+        }
       }}
     >
-      <DialogTitle sx={{ backgroundColor: theme.palette.primary.main, color: '#fff', display: 'flex' }}>
-        <Button onClick={onClose} color="error" variant="contained">
-          <ArrowBackSharp fontSize="small" /> Back
+      {/* Header */}
+      <DialogTitle
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          backgroundColor: theme.palette.primary.main,
+          color: "white",
+          py: 1.5,
+          px: 3,
+          gap: 2,
+        }}
+      >
+        <Button
+          onClick={onClose}
+          startIcon={<ArrowBackSharp />}
+          variant="contained"
+          color="error"
+          size="small"
+          sx={{ borderRadius: 2 }}
+        >
+          Back
         </Button>
-        <Typography variant="h5" sx={{ ml: 2, mt: 1 }}>
-          {isEdit ? `Edit Event - ${formData?.title}` : "Create Event"}
+        <Typography variant="h6" fontWeight={600} sx={{ flexGrow: 1, textAlign: "center" }}>
+          {isEdit ? `✏️ Edit Event` : "📅 Create New Event"}
         </Typography>
       </DialogTitle>
 
-      <DialogContent sx={{ flex: 1, overflowY: 'auto', background: 'linear-gradient(to bottom right,#e3dede,#f0ecec,#c7c5c5)' }}>
-        <Grid container spacing={2} sx={{ mt: 1 }}>
-          <Grid item md={6}>
-            <Box sx={{ width: 500, height: 200, border: "2px dashed #ccc", borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", overflow: "hidden", backgroundColor: "#f9f9f9" }}
-              onClick={() => fileInputRef.current.click()}
-            >
-              {formData.image ? (
-                <img
-                  src={
-                    typeof formData.image === "string"
-                      ? `${apiUrl}/storage/${formData.image}`
-                      : URL.createObjectURL(formData.image)
-                  }
-                  alt="Preview"
-                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                />
-              ) : (
-                <Typography color="textSecondary">Click to upload event image</Typography>
-              )}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                style={{ display: "none" }}
-                onChange={(e) => {
-                  const file = e.target.files[0];
-                  if (file) {
-                    setFormData((prev) => ({ ...prev, image: file }));
-                  }
-                }}
-              />
-            </Box>
-
-            <Box display="flex" alignItems="center" gap={1} mt={1}>
-              <IconButton onClick={locateUser} color="primary" size="small">
-                <MyLocationIcon />
-              </IconButton>
-              {formData.latitude && (
-                <Typography fontSize="0.9rem" color="text.secondary">
-                  Coordinates: {formData.latitude}, {formData.longitude}
+      {/* Content */}
+      <DialogContent
+        sx={{
+          flex: 1,
+          overflowY: "auto",
+          bgcolor: "#f9f9fb",
+          p: { xs: 2, sm: 3 },
+        }}
+      >
+        <Grid container spacing={1} sx={{ p: 1 }}>
+          {/* Left Column */}
+          <Grid size={{ md: 6 }} item xs={12} md={6}>
+            {/* Image Upload */}
+            <Card sx={{ borderRadius: 3, boxShadow: 3 }}>
+              <CardContent>
+                <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+                  <ImageIcon fontSize="small" color="primary" sx={{ mr: 1 }} />
+                  Event Image
                 </Typography>
-              )}
-            </Box>
-            <Box ref={mapRef} sx={{ height: 120, width: "100%", borderRadius: 2, border: "1px solid #ccc", mt: 1 }} />
-            <TextField
-              label="Event Descriptions"
-              multiline
-              rows={4}
-              value={formData.description || ""}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              fullWidth
-              size="small"
-              sx={{ mt: 2 }}
-            />
+                <Box
+                  onClick={() => fileInputRef.current?.click()}
+                  sx={{
+                    width: "100%",
+                    height: 180,
+                    border: "2px dashed #ccc",
+                    borderRadius: 2,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                    overflow: "hidden",
+                    bgcolor: "#fafafa",
+                    "&:hover": { borderColor: "primary.main", bgcolor: "#f0f7ff" },
+                  }}
+                >
+                  {formData.image ? (
+                    <img
+                      src={
+                        typeof formData.image === "string"
+                          ? `${apiUrl}/storage/${formData.image}`
+                          : URL.createObjectURL(formData.image)
+                      }
+                      alt="Event"
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    />
+                  ) : (
+                    <Typography color="text.secondary" textAlign="center">
+                      🖼️ Click to upload image
+                    </Typography>
+                  )}
+                </Box>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: "none" }}
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) setFormData((prev) => ({ ...prev, image: file }));
+                  }}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Map */}
+            <Card sx={{ mt: 1, boxShadow: 3 }}>
+              <CardContent>
+
+
+                <Grid container sx={{ mb: 2 }}>
+                  <Grid size={{ md: 12 }}>
+                    <Autocomplete
+                      freeSolo
+                      options={placeOptions}
+                      getOptionLabel={(option) => option.description || ""}
+                      onInputChange={handleSearchChange}
+                      onChange={handlePlaceSelect}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Search Location"
+                          placeholder="e.g. McDonald's, Ayala Center"
+                          fullWidth
+                          size="small"
+
+                        />
+                      )}
+                    /></Grid>
+                  <Grid size={{ md: 12 }}>
+                    <TextField
+                      label="Venue Name"
+                      value={formData.venue || ""}
+                      onChange={(e) => setFormData({ ...formData, venue: e.target.value })}
+                      fullWidth
+                      size="small"
+                      sx={{ my: 1 }}
+                    />
+                  </Grid>
+                  <Grid size={{ md: 12 }}>
+                    <TextField
+                      label="Full Address"
+                      value={formData.address || ""}
+                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                      fullWidth
+                      size="small"
+
+                    />
+                  </Grid>
+                </Grid>
+
+
+                {formData.latitude && (
+                  <Typography variant="body2" color="text.secondary" mb={1} fontSize="0.85rem">
+                    📍 {formData.latitude}, {formData.longitude}
+                  </Typography>
+                )}
+                <Box
+                  ref={mapRef}
+                  sx={{
+                    height: 180,
+                    borderRadius: 2,
+                    border: "1px solid #ddd",
+                    bgcolor: "#e0e0e0",
+                  }}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Description */}
+
           </Grid>
 
-          <Grid item md={6}>
-            <TextField
-              label="Event Name"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              fullWidth
-            />
+          {/* Right Column */}
+          <Grid size={{ md: 6 }} item xs={12} md={6}>
+            <Card sx={{ borderRadius: 3, boxShadow: 3 }}>
+              <CardContent>
+                <Typography variant="h6" fontWeight={700} color="primary" gutterBottom>
+                  {isEdit ? "Edit Event Details" : "Fill Event Details"}
+                </Typography>
+                <Divider sx={{ mb: 2 }} />
 
-            <Grid container spacing={1} mt={1}>
-              <Grid item md={6}>
+                {/* Event Title */}
                 <TextField
-                  type="date"
-                  label="Start Date"
-                  InputLabelProps={{ shrink: true }}
-                  value={formData.startDate}
-                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                  label="Event Name"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  fullWidth
+                  required
+                  variant="outlined"
+                  size="small"
+                  sx={{ mb: 2 }}
+                  InputProps={{ startAdornment: <CalendarTodayIcon fontSize="small" color="action" sx={{ mr: 1 }} /> }}
+                />
+
+                {/* Date & Time */}
+                <Grid container spacing={2}>
+                  <Grid size={{ md: 6 }} item xs={6}>
+                    <TextField
+                      type="date"
+                      label="Start Date"
+                      InputLabelProps={{ shrink: true }}
+                      value={formData.startDate}
+                      onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                      fullWidth
+                      size="small"
+                      InputProps={{ startAdornment: <CalendarTodayIcon fontSize="small" color="action" sx={{ mr: 1 }} /> }}
+                    />
+                  </Grid>
+                  <Grid size={{ md: 6 }} item xs={6}>
+                    <TextField
+                      type="time"
+                      label="Start Time"
+                      InputLabelProps={{ shrink: true }}
+                      value={formData.startTime}
+                      onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                      fullWidth
+                      size="small"
+                      InputProps={{ startAdornment: <AccessTimeIcon fontSize="small" color="action" sx={{ mr: 1 }} /> }}
+                    />
+                  </Grid>
+                  <Grid size={{ md: 6 }} item xs={6}>
+                    <TextField
+                      type="date"
+                      label="End Date"
+                      InputLabelProps={{ shrink: true }}
+                      value={formData.endDate}
+                      onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                      fullWidth
+                      size="small"
+                      InputProps={{ startAdornment: <CalendarTodayIcon fontSize="small" color="action" sx={{ mr: 1 }} /> }}
+                    />
+                  </Grid>
+                  <Grid size={{ md: 6 }} item xs={6}>
+                    <TextField
+                      type="time"
+                      label="End Time"
+                      InputLabelProps={{ shrink: true }}
+                      value={formData.endTime}
+                      onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                      fullWidth
+                      size="small"
+                      InputProps={{ startAdornment: <AccessTimeIcon fontSize="small" color="action" sx={{ mr: 1 }} /> }}
+                    />
+                  </Grid>
+                </Grid>
+
+                {/* Organizer */}
+                <TextField
+                  label="Organizer"
+                  value={formData.organizer || ""}
+                  onChange={(e) => setFormData({ ...formData, organizer: e.target.value })}
                   fullWidth
                   size="small"
+                  sx={{ mt: 2 }}
+                  variant="outlined"
                 />
-              </Grid>
-              <Grid item md={6}>
-                <TextField
-                  type="time"
-                  label="Start Time"
-                  InputLabelProps={{ shrink: true }}
-                  value={formData.startTime}
-                  onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                  fullWidth
-                  size="small"
+
+                {/* Category */}
+                <Autocomplete
+                  options={accountGroups}
+                  getOptionLabel={(option) => option.description}
+                  value={accountGroups.find((g) => g.id === formData.accountGroupId) || null}
+                  onChange={handleCategoryChange}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Event Category"
+                      size="small"
+                      fullWidth
+                      sx={{ my: 2 }}
+                      InputProps={{
+                        ...params.InputProps,
+                        startAdornment: <CategorySharp fontSize="small" color="action" sx={{ mr: 1 }} />,
+                      }}
+                    />
+                  )}
                 />
-              </Grid>
-              <Grid item md={6}>
-                <TextField
-                  type="date"
-                  label="End Date"
-                  InputLabelProps={{ shrink: true }}
-                  value={formData.endDate}
-                  onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                  fullWidth
-                  size="small"
+
+
+                <Autocomplete
+                  multiple
+                  disableCloseOnSelect
+                  options={accountTypes}
+                  getOptionLabel={(option) => option.description}
+                  value={accountTypes.filter(type =>
+                    formData.participants?.includes(type.id)
+                  )}
+                  onChange={(e, values) =>
+                    setFormData({
+                      ...formData,
+                      participants: values.map((v) => v.id), // ✅ only store IDs
+                    })
+                  }
+                  renderOption={(props, option, { selected }) => (
+                    <li {...props}>
+                      <Box
+                        component="span"
+                        sx={{
+                          width: 20,
+
+                          height: 20,
+                          mr: 1,
+                          border: '1px solid gray',
+                          borderRadius: '4px',
+                          backgroundColor: selected ? '#1976d2' : '#fff',
+                        }}
+                      />
+                      {option.description}
+                    </li>
+                  )}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Participants (Account Types)"
+                      size="small"
+                      fullWidth
+                    />
+                  )}
                 />
-              </Grid>
-              <Grid item md={6}>
-                <TextField
-                  type="time"
-                  label="End Time"
-                  InputLabelProps={{ shrink: true }}
-                  value={formData.endTime}
-                  onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                  fullWidth
-                  size="small"
-                />
-              </Grid>
-            </Grid>
 
-            <TextField
-              label="Organizer"
-              value={formData.organizer || ""}
-              onChange={(e) => setFormData({ ...formData, organizer: e.target.value })}
-              fullWidth
-              size="small"
-              sx={{ mt: 2 }}
-            />
-
-            <Autocomplete
-              options={accountGroups}
-              getOptionLabel={(option) => option.description}
-              value={accountGroups.find(g => g.id === formData.accountGroupId) || null}
-              onChange={handleCategoryChange}
-              renderInput={(params) => (
-                <TextField {...params} label="Select Account Group" size="small" fullWidth />
-              )}
-              sx={{ my: 2 }}
-            />
-
-            <Autocomplete
-              multiple
-              disableCloseOnSelect
-              options={accountTypes}
-              getOptionLabel={(option) => option.description}
-              value={accountTypes.filter(type =>
-                formData.participants?.includes(type.id)
-              )}
-              onChange={(e, values) =>
-                setFormData({
-                  ...formData,
-                  participants: values.map((v) => v.id), // ✅ only store IDs
-                })
-              }
-              renderOption={(props, option, { selected }) => (
-                <li {...props}>
-                  <Box
-                    component="span"
-                    sx={{
-                      width: 20,
-                      height: 20,
-                      mr: 1,
-                      border: '1px solid gray',
-                      borderRadius: '4px',
-                      backgroundColor: selected ? '#1976d2' : '#fff',
-                    }}
-                  />
-                  {option.description}
-                </li>
-              )}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Participants (Account Types)"
-                  size="small"
-                  fullWidth
-                />
-              )}
-            />
+                <Card sx={{ mt: 3, borderRadius: 3, boxShadow: 3 }}>
+                  <CardContent>
+                    <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+                      <DescriptionIcon fontSize="small" color="primary" sx={{ mr: 1 }} />
+                      Description
+                    </Typography>
+                    <TextField
+                      label="Event Description"
+                      multiline
+                      rows={4}
+                      value={formData.description || ""}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      fullWidth
+                      size="small"
+                      variant="outlined"
+                    />
+                  </CardContent>
+                </Card>
 
 
-            <Autocomplete
-              freeSolo
-              options={placeOptions}
-              getOptionLabel={(option) => option.description || ""}
-              onInputChange={handleSearchChange}
-              onChange={handlePlaceSelect}
-              renderInput={(params) => (
-                <TextField {...params} label="Search Place" placeholder="e.g. McDonald's, Ayala Center" fullWidth size="small" />
-              )}
-              sx={{ mt: 2 }}
-            />
-
-            <TextField
-              label="Venue / Establishment Name"
-              value={formData.venue || ""}
-              onChange={(e) => setFormData({ ...formData, venue: e.target.value })}
-              fullWidth
-              size="small"
-              sx={{ mt: 2 }}
-            />
-
-            <TextField
-              label="Full Address"
-              value={formData.address || ""}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              fullWidth
-              size="small"
-              sx={{ mt: 2 }}
-            />
-
-            <Button
-              onClick={onSave}
-              variant="contained"
-              color="primary"
-              fullWidth
-              sx={{ mt: 3 }}
-            >
-              {isEdit ? "Update" : "Create Event"}
-            </Button>
+                {/* Action Buttons */}
+                <Box display="flex" gap={2} mt={1}>
+                  {/* <Button
+                    onClick={() => setOpenProgramForm(true)}
+                    variant="outlined"
+                    color="secondary"
+                    fullWidth
+                    sx={{ borderRadius: 8 }}
+                  >
+                    🎤 Add Programs & Sponsors
+                  </Button> */}
+                  <Button
+                    onClick={onSave}
+                    variant="contained"
+                    color="primary"
+                    fullWidth
+                    sx={{ borderRadius: 8, fontWeight: 600 }}
+                  >
+                    {isEdit ? "🔄 Update Event" : "✅ Create Event"}
+                  </Button>
+                </Box>
+              </CardContent>
+            </Card>
           </Grid>
         </Grid>
       </DialogContent>
 
+      {/* Nested Dialog */}
       <EventProgramFormDialog
         open={openProgramForm}
         onClose={() => setOpenProgramForm(false)}
@@ -445,11 +610,7 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
         onSaveAll={({ programs, sponsors }) => {
           setPrograms(programs);
           setSponsors(sponsors);
-          setFormData((prev) => ({
-            ...prev,
-            sponsors,
-            programs
-          }));
+          setFormData((prev) => ({ ...prev, programs, sponsors }));
         }}
       />
     </Dialog>

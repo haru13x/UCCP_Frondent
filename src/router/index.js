@@ -16,11 +16,13 @@ import QRScannerPage from "../pages/QRScannerPage";
 import ProfilePage from "../pages/ProfilePage";
 import EventList from "../pages/EventList";
 import RequestRegistration from "../pages/management/RequestRegistration";
+import ForgotPassword from "../pages/public/ForgotPassword";
 // Public route definitions (no need to wrap manually)
 const publicRoutes = [
   { path: "/", component: Login },
   { path: "/register", component: Register },
-  { path: "/about", component: About },
+  // { path: "/about", component: About },
+    { path: "/forget-password", component: ForgotPassword },
 ];
 
 // Private route definitions (will be wrapped in MainLayout)

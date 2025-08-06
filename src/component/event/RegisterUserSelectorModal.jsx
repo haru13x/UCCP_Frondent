@@ -8,7 +8,6 @@ import {
     Button,
     Checkbox,
     List,
-    Grid,
     ListItem,
     ListItemAvatar,
     ListItemText,
@@ -20,6 +19,8 @@ import {
     Paper,
     Chip,
     useMediaQuery,
+    Divider,
+    IconButton,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import PersonIcon from "@mui/icons-material/Person";
@@ -27,7 +28,6 @@ import CloseIcon from "@mui/icons-material/Close";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { UseMethod } from "../../composables/UseMethod";
 import { useSnackbar } from "./SnackbarProvider ";
-
 
 const RegisterUserSelectorModal = ({ open, onClose, eventId }) => {
     const [users, setUsers] = useState([]);
@@ -37,6 +37,7 @@ const RegisterUserSelectorModal = ({ open, onClose, eventId }) => {
     const { showSnackbar } = useSnackbar();
     const isMobile = useMediaQuery("(max-width:768px)");
 
+    // Fetch users based on search
     const fetchUsers = async (query = "") => {
         setLoading(true);
         try {
@@ -44,7 +45,7 @@ const RegisterUserSelectorModal = ({ open, onClose, eventId }) => {
             const res = await UseMethod("post", `search-users`, payload);
             setUsers(res?.data || []);
         } catch (err) {
-            console.error(err);
+            console.error("Error fetching users:", err);
             showSnackbar({ message: "Failed to load users.", type: "error" });
         } finally {
             setLoading(false);
@@ -53,7 +54,12 @@ const RegisterUserSelectorModal = ({ open, onClose, eventId }) => {
 
     const handleSearch = async (e) => {
         e.preventDefault();
-        await fetchUsers(search);
+        const trimmed = search.trim();
+        await fetchUsers(trimmed);
+
+        if (trimmed === "") {
+            showSnackbar({ message: "Showing all users.", type: "info" });
+        }
     };
 
     const toggleSelect = (user) => {
@@ -68,279 +74,366 @@ const RegisterUserSelectorModal = ({ open, onClose, eventId }) => {
     };
 
     const handleRegister = async () => {
+        if (selectedUsers.length === 0) return;
+
         const userIds = selectedUsers.map((u) => u.id);
         try {
             const res = await UseMethod("post", `event-registration-multiple`, {
                 users: userIds,
                 event_id: eventId,
             });
-
             if (res) {
                 showSnackbar({ message: "Users registered successfully!", type: "success" });
-                setSelectedUsers([]);
-                setSearch("");
-                setUsers([]);
                 handleClose();
-            } else {
-                throw new Error("Registration failed");
             }
         } catch (err) {
-            console.error(err);
+            console.error("Registration error:", err);
             showSnackbar({ message: "Error registering users.", type: "error" });
         }
     };
-    const handleAlreadyRegistered = () => {
-        showSnackbar({ message: "User already registered", type: "warning" });
-        return false;
-    };
+
     const handleClose = () => {
         setSelectedUsers([]);
         setSearch("");
-        setLoading(false);
         setUsers([]);
-
-        setSearch("");
         onClose();
+    };
 
+    const isRegistered = (user) => user?.is_registered;
 
-
-    }
     return (
         <Dialog
             open={open}
-            onClose={onClose}
-            fullWidth
-            maxWidth="xl"
+            onClose={handleClose}
+            width="xl"
+            fullScreen
 
+            sx={{
+                "& .MuiDialog-paper": {
+
+                    boxShadow: 6,
+
+                },
+            }}
         >
+            {/* Header */}
             <DialogTitle
                 sx={{
-                    fontWeight: "bold",
-                    fontSize: 22,
-                    px: 3,
-                    py: 2,
-                    borderBottom: "1px solid #ddd",
-                    backgroundColor: "#1976d2",
+                    fontWeight: 700,
+                    fontSize: "1.5rem",
                     color: "white",
+                    backgroundColor: "#005b9f",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    px: 4,
+                    py: 2,
                 }}
             >
-                Select Users for Event #{eventId}
+                <Box display="flex" alignItems="center" gap={1}>
+                    🧑‍🤝‍🧑 Register Users for Event #{eventId}
+                </Box>
+                <IconButton onClick={handleClose} sx={{ color: "white" }}>
+                    <CloseIcon />
+                </IconButton>
             </DialogTitle>
 
-            <DialogContent sx={{ p: 3, height: "70vh", m: 2 }}>
-                <Grid container spacing={3}>
-                    {/* Left Panel: Search + List */}
-                    <Grid size={{ md: 7 }} item xs={12} md={7}>
-                        <form onSubmit={handleSearch}>
-                            <Box display="flex" gap={2} mb={2} sx={{ mt: 1 }}>
-                                <TextField
-                                    label="Search by Name or User ID"
-                                    size="small"
-                                    variant="outlined"
-                                    fullWidth
-                                    value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
-                                    InputProps={{
-                                        startAdornment: (
-                                            <InputAdornment position="start">
-                                                <SearchIcon />
-                                            </InputAdornment>
-                                        ),
-                                    }}
-                                    onKeyDown={(e) => {
-                                        if (e.key === "Enter") handleSearch(e);
-                                    }}
-                                />
-                                <Button type="submit" variant="contained" color="primary">
-                                    Search
-                                </Button>
-                            </Box>
-                        </form>
+            <DialogContent
+                sx={{
+                    bgcolor: "#f0f4f8",
 
-                        {loading ? (
-                            <Box display="flex" justifyContent="center" mt={4}>
-                                <CircularProgress />
-                            </Box>
-                        ) : (
-                            <Paper
-                                elevation={2}
-                                sx={{
-                                    p: 2,
-                                    borderRadius: 2,
-                                    maxHeight: "55vh",
-                                    overflowY: "auto",
+                    p: 3,
+                    display: "flex",
+                    flexDirection: { xs: "column", md: "row" },
+                    gap: 3,
+                    height: { xs: "auto", md: "70vh" },
+                }}
+            >
+                {/* Left: Search & User List */}
+                <Box sx={{ flex: 1, display: "flex", marginTop: 2, flexDirection: "column" }}>
+                    {/* Search Form */}
+                    <form onSubmit={handleSearch}>
+                        <Box display="flex" gap={2} mb={3} flexWrap="wrap">
+                            <TextField
+                                label="Search by Name or ID"
+                                size="small"
+                                variant="outlined"
+                                fullWidth
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                placeholder="e.g. John Doe or 12345"
+                                InputProps={{
+                                    startAdornment: (
+                                        <InputAdornment position="start">
+                                            <SearchIcon color="action" />
+                                        </InputAdornment>
+                                    ),
                                 }}
+                                sx={{
+                                    flexGrow: 1,
+                                    maxWidth: { xs: "100%", sm: 400 },
+                                    "& .MuiOutlinedInput-root": {
+                                        borderRadius: 8,
+                                    },
+                                }}
+                            />
+                            <Button
+                                type="submit"
+                                variant="contained"
+                                color="primary"
+                                disabled={loading}
+                                sx={{ borderRadius: 8, minWidth: 100 }}
                             >
-                                <List dense>
-                                    {users.length === 0 ? (
-                                        <Typography variant="body2">No users found.</Typography>
-                                    ) : (
-                                        users.map((user) => {
-                                            const isRegistered = user?.is_registered;
-                                            return (
-                                                <ListItem
-                                                    key={user.id}
-                                                    divider
-                                                    sx={{ opacity: isRegistered ? 0.6 : 1 }}
-                                                    secondaryAction={
-                                                        isRegistered ? (
-                                                            <Chip
-                                                                icon={<CheckCircleIcon fontSize="small" />}
-                                                                label="Registered"
-                                                                color="success"
-                                                                size="small"
-                                                                onClick={handleAlreadyRegistered}
-                                                                sx={{ cursor: "pointer" }}
-                                                            />
-                                                        ) : (
-                                                            <Checkbox
-                                                                edge="end"
-                                                                checked={selectedUsers.some((u) => u.id === user.id)}
-                                                                onChange={() => toggleSelect(user)}
-                                                            />
+                                {loading ? "Searching..." : "Search"}
+                            </Button>
+                        </Box>
+                    </form>
 
-                                                        )
-                                                    }
-                                                >
-                                                    <ListItemAvatar>
-                                                        <Avatar sx={{ bgcolor: "#1976d2" }}>
-                                                            {user.details?.first_name?.[0] || <PersonIcon />}
-                                                        </Avatar>
-                                                    </ListItemAvatar>
+                    {/* User List */}
+                    <Paper
+                        sx={{
+                            borderRadius: 3,
+                            boxShadow: 2,
 
-                                                    {/* 👇 Updated Text Display */}
-                                                    <ListItemText
-                                                        primary={
-                                                            <Typography fontWeight={600}>
-                                                                {user.details?.first_name || "Unknown"}{" "}
-                                                                {user.details?.last_name || ""}
-                                                            </Typography>
-                                                        }
-                                                        secondary={
-                                                            <>
-
-                                                                <Typography variant="body2" color="textSecondary">
-                                                                    Sex: {user.details?.sex?.name || "N/A"} || Birthdate:{" "}
-                                                                    {user.details?.birthdate || "N/A"}
-                                                                </Typography>
-                                                                <Typography
-                                                                    variant="body2"
-                                                                    color={isRegistered ? "green" : "gray"}
-                                                                >
-                                                                    {isRegistered ? "Already Registered" : "Not Registered"}
-                                                                </Typography>
-                                                            </>
-                                                        }
-                                                    />
-                                                </ListItem>
-                                            );
-                                        })
-                                    )}
-                                </List>
-                            </Paper>
-                        )}
-                    </Grid>
-
-                    {/* Right Panel: Selected Users */}
-                    <Grid size={{ md: 5 }} sx={{ mt: 6 }} item xs={12} md={5}>
-                        {selectedUsers.length > 0 ? (
-                            <>
-                                <Typography fontWeight="bold" mb={1}>
-                                    ✅ Selected Users:
+                            maxHeight: "100vh", // Adjust based on screen height
+                            overflowY: "auto", // Enables vertical scrolling
+                            border: "1px solid #e0e0e0",
+                            bgcolor: "background.paper",
+                        }}
+                    >
+                        {loading ? (
+                            <Box display="flex" justifyContent="center" alignItems="center" height="200px">
+                                <CircularProgress color="primary" />
+                            </Box>
+                        ) : users.length === 0 ? (
+                            <Box textAlign="center" py={6}>
+                                <Typography variant="h6" color="text.secondary" gutterBottom>
+                                    🔍 No users found
                                 </Typography>
-                                <Paper
-                                    sx={{
-                                        p: 2,
-                                        maxHeight: "55vh",
-                                        overflowY: "auto",
-                                        borderRadius: 2,
-                                        backgroundColor: "#f9f9f9",
-                                    }}
-                                >
-                                    <List dense>
-                                        {selectedUsers.map((user) => (
-                                            <ListItem
-                                                key={user.id}
-                                                sx={{
-                                                    mb: 1,
-                                                    p: 1.5,
-                                                    borderRadius: 2,
-                                                    backgroundColor: "#fff",
-                                                    boxShadow: "0px 1px 4px rgba(0,0,0,0.1)",
-                                                }}
-                                                secondaryAction={
-                                                    <Button
-                                                        size="small"
-                                                        variant="outlined"
-                                                        color="error"
-                                                        onClick={() => toggleSelect(user)}
-                                                        sx={{ textTransform: "none", fontSize: 12 }}
-                                                    >
-                                                        Remove
-                                                    </Button>
-                                                }
-                                            >
-                                                <ListItemAvatar>
-                                                    <Avatar sx={{ bgcolor: "#1976d2" }}>
-                                                        {user.details?.first_name?.[0] || <PersonIcon />}
-                                                    </Avatar>
-                                                </ListItemAvatar>
-
-                                                <ListItemText
-                                                    primary={
-                                                        <Typography fontWeight="bold">
-                                                            {user.details?.first_name || "Unknown"}{" "}
-                                                            {user.details?.last_name || ""}
-                                                        </Typography>
-                                                    }
-                                                    secondary={
-                                                        <>
-                                                            <Typography variant="body2" color="textSecondary">
-                                                                Sex: {user.details?.sex?.name || "N/A"} || Birthdate: {user.details?.birthdate || "N/A"}
-                                                            </Typography>
-
-                                                        </>
-                                                    }
-                                                />
-                                            </ListItem>
-                                        ))}
-                                    </List>
-                                </Paper>
-
-                            </>
-                        ) : (
-                            <Box mt={4} textAlign="center">
-                                <img
-                                    src="no_data.svg" // change this to the actual path of your image
-                                    alt="No Data"
-                                    style={{ maxWidth: "290px", marginBottom: 8 }}
-                                />
-                                <Typography variant="body2" color="textSecondary">
-                                    No users selected.
+                                <Typography variant="body2" color="text.secondary">
+                                    Try searching with a name or ID.
                                 </Typography>
                             </Box>
+                        ) : (
+                            <List disablePadding>
+                                {users.map((user) => (
+                                    <React.Fragment key={user.id}>
+                                        <ListItem
+                                            sx={{
+                                                overflow: "auto",
+                                                px: 3,
+                                                py: 1.5,
+                                                display: "flex",
+                                                alignItems: "center",
+                                                gap: 2,
+                                                borderBottom: "1px solid #f0f0f0",
+                                                bgcolor: "background.paper",
+                                                opacity: isRegistered(user) ? 0.7 : 1,
+                                                pointerEvents: isRegistered(user) ? "none" : "auto",
+                                                "&:hover": {
+                                                    bgcolor: isRegistered(user) ? "background.paper" : "action.hover",
+                                                },
+                                            }}
+                                        >
+                                            {/* Avatar */}
+                                            <ListItemAvatar>
+                                                <Avatar
+                                                    sx={{
+                                                        bgcolor: isRegistered(user) ? "success.main" : "primary.main",
+                                                        width: 52,
+                                                        height: 52,
+                                                    }}
+                                                >
+                                                    {user.details?.first_name?.[0]?.toUpperCase() || <PersonIcon />}
+                                                </Avatar>
+                                            </ListItemAvatar>
+
+                                            {/* User Info */}
+                                            <ListItemText
+
+                                                primary={
+                                                    <Typography variant="subtitle1" fontWeight={600} color="text.primary">
+                                                        {user.details?.first_name || "Unknown"} {user.details?.last_name || ""}
+                                                    </Typography>
+                                                }
+                                                secondary={
+                                                    <Box component="div" sx={{ mt: 0.5 }}>
+                                                        <Typography variant="body2" color="text.secondary">
+                                                            📱 {user.details?.phone_number || "No Number"} • 🚻 {user.details?.sex?.name || "N/A"}
+                                                        </Typography>
+                                                        <Typography variant="body2" color={isRegistered(user) ? "success.main" : "error.main"}>
+                                                            {isRegistered(user) ? "✅ Already Registered" : " Not Registered"}
+                                                        </Typography>
+                                                    </Box>
+                                                }
+                                            />
+
+                                            {/* Checkbox or Chip */}
+                                            {isRegistered(user) ? (
+                                                <Chip
+                                                    icon={<CheckCircleIcon fontSize="small" />}
+                                                    label="Registered"
+                                                    color="success"
+                                                    size="small"
+                                                    sx={{ fontWeight: 600 }}
+                                                />
+                                            ) : (
+                                                <Checkbox
+                                                    edge="end"
+                                                    checked={selectedUsers.some((u) => u.id === user.id)}
+                                                    onChange={() => toggleSelect(user)}
+                                                    color="primary"
+                                                />
+                                            )}
+                                        </ListItem>
+                                    </React.Fragment>
+                                ))}
+                            </List>
                         )}
-                    </Grid>
-                </Grid>
+                    </Paper>
+                </Box>
+
+                {/* Right: Selected Users */}
+                <Box
+                    sx={{
+                        width: { xs: "100%", md: "45%" },
+                        display: "flex",
+                        flexDirection: "column",
+                        overflowY: "auto", // Enables vertical scrolling
+                        border: "1px solid #e0e0e0", 
+                        maxHeight: "100vh",
+                        padding: 1,
+
+                    }}
+                    
+                >
+                    <Typography
+                        variant="h6"
+                        fontWeight={600}
+                        color="primary"
+                        mb={2}
+                        display="flex"
+                        alignItems="center"
+                        gap={1}
+                    >
+                        ✅ Selected ({selectedUsers.length})
+                    </Typography>
+
+                    {selectedUsers.length === 0 ? (
+                        <Box
+                            textAlign="center"
+                            py={6}
+                            sx={{
+                                border: "2px dashed #e0e0e0",
+                                borderRadius: 3,
+                                bgcolor: "#f9f9f9",
+                                flexGrow: 1,
+                                
+                            }}
+                        >
+                            <Typography variant="body1" color="text.secondary" gutterBottom>
+                                🧩 No users selected
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                                Choose users from the list to register.
+                            </Typography>
+                        </Box>
+                    ) : (
+                        <Paper
+                            sx={{
+                                borderRadius: 3,
+                                boxShadow: 2,
+                                overflow: "auto",
+                                flexGrow: 1,
+                                padding:2,
+                                bgcolor: "#f8fdff",
+                                border: "1px solid #e3f2fd",
+                            }}
+                        >
+                            <List disablePadding>
+                                {selectedUsers.map((user) => (
+                                    <ListItem
+                                        key={user.id}
+                                        sx={{
+                                            px: 2,
+                                            py: 1.5,
+                                            mb: 1,
+                                            mx: 1,
+                                            borderRadius: 2,
+                                            bgcolor: "white",
+                                            boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: 2,
+                                        }}
+                                    >
+                                        <Avatar sx={{ bgcolor: "primary.main", width: 40, height: 40 }}>
+                                            {user.details?.first_name?.[0]?.toUpperCase() || "U"}
+                                        </Avatar>
+                                        <ListItemText
+                                            primary={
+                                                <Typography variant="subtitle1" fontWeight={600}>
+                                                    {user.details?.first_name} {user.details?.last_name}
+                                                </Typography>
+                                            }
+                                            secondary={
+                                                <Box >
+                                                      <Typography variant="body2" color="text.secondary">
+                                                    {user.details?.sex?.name || "N/A"} • {user.email || "N/A"}
+                                                </Typography>
+                                                <Typography variant="body2" color="text.secondary">
+                                                    {user.details?.phone_number}
+                                                </Typography>
+                                                </Box>
+                                            }
+                                        />
+                                        <IconButton
+                                            size="small"
+                                            color="error"
+                                            onClick={() => toggleSelect(user)}
+                                            sx={{ ml: "auto" }}
+                                        >
+                                            <CloseIcon fontSize="small" />
+                                        </IconButton>
+                                    </ListItem>
+                                ))}
+                            </List>
+                        </Paper>
+                    )}
+                </Box>
             </DialogContent>
 
-            <DialogActions sx={{ p: 2, borderTop: "1px solid #ddd" }}>
+            {/* Actions */}
+            <DialogActions
+                sx={{
+
+                    borderTop: "1px solid #e0e0e0",
+                    justifyContent: "flex-end",
+                    gap: 1,
+                }}
+            >
                 <Button
                     onClick={handleClose}
                     color="error"
                     startIcon={<CloseIcon />}
-                    sx={{ fontWeight: 600 }}
+                    variant="outlined"
+                    sx={{ borderRadius: 8, textTransform: "none" }}
                 >
                     Cancel
                 </Button>
                 <Button
+                    onClick={handleRegister}
                     variant="contained"
                     color="success"
                     disabled={selectedUsers.length === 0}
-                    onClick={handleRegister}
-                    sx={{ fontWeight: 600 }}
+                    sx={{
+                        borderRadius: 8,
+                        fontWeight: 600,
+                        textTransform: "none",
+                        px: 3,
+                    }}
                 >
-                    Register Selected ({selectedUsers.length})
+                    🚀 Register ({selectedUsers.length})
                 </Button>
             </DialogActions>
         </Dialog>

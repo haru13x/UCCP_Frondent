@@ -29,7 +29,8 @@ import { useSnackbar } from "../../component/event/SnackbarProvider ";
 import { CancelOutlined, Event, AccessTime, LocationOn } from '@mui/icons-material'
 // ... (imports unchanged)
 import EventReportDialog from "../../component/event/EventReportDialog";
-import { se } from "date-fns/locale";
+import { ca, se } from "date-fns/locale";
+import CancelEventDialog from "../../component/event/CancelEventDialog";
 
 const EventPage = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
@@ -95,6 +96,10 @@ const EventPage = () => {
         accountGroupId: event.event_types[0]?.group_id || "",
         participants: event.event_types.map((t) => t.id) || [],
         event_types: event.event_types || [],
+        cancel_by: event.cancel_by || "",
+        cancel_reason: event.cancel_reason || "",
+        cancel_date: event.cancel_date || "",
+        
       }));
       setEvents(mappedEvents);
     }
@@ -209,48 +214,64 @@ const EventPage = () => {
     { field: "venue", headerName: "Venue", flex: 1 },
     { field: "organizer", headerName: "Organizer", flex: 1 },
     { field: "status", headerName: "Status", flex: 1 },
-    {
-      field: "actions",
-      headerName: "Actions",
-      width: 290,
-      renderCell: (params) => (
-        <>
-          <Button
-            size="small"
-            variant="outlined"
-            color="info"
-            onClick={() => handleView(params.row)}
-            sx={{ mr: 1 }}
-            startIcon={<VisibilityIcon />}
-          >
-            View
-          </Button>
-          <Button
-            size="small"
-            variant="contained"
-            color="primary"
-            onClick={() => handleOpenForm(params.row)}
-            startIcon={<EditIcon />}
-          >
-            Edit
-          </Button>
-          <Button
-            sx={{ ml: 1 }}
-            size="small"
-            variant="contained"
-            color="error"
-            startIcon={<CancelPresentation />}
-            onClick={() => {
-              setEventToCancel(params.row);
-              setCancelDialogOpen(true);
-            }}
-          >
-            Cancel
-          </Button>
+  {
+    field: 'actions',
+    headerName: 'Actions',
+    width: 290,
+    sortable: false,
+    align: 'center',
+    headerAlign: 'center',
+    renderCell: (params) => (
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        height={50}
+        flexDirection="row"
+       
+        width="100%"
+        gap={1}
+        flexWrap="wrap"
+      >
+        <Button
+          size="small"
+          variant="outlined"
+          color="info"
+          onClick={() => handleView(params.row)}
+          startIcon={<VisibilityIcon />}
+        >
+          View
+        </Button>
 
-        </>
-      ),
-    },
+        {params.row.status === 'Active' && (
+          <>
+            <Button
+              size="small"
+              variant="contained"
+              color="primary"
+              onClick={() => handleOpenForm(params.row)}
+              startIcon={<EditIcon />}
+            >
+              Edit
+            </Button>
+            <Button
+              size="small"
+              variant="contained"
+              color="error"
+              onClick={() => {
+                setEventToCancel(params.row);
+                setCancelDialogOpen(true);
+              }}
+              startIcon={<CancelPresentation />}
+            >
+              Cancel
+            </Button>
+          </>
+        )}
+      </Box>
+    ),
+  },
+
   ];
   const handleGenerateReport = async (filters) => {
     try {
@@ -279,10 +300,15 @@ const EventPage = () => {
               fullWidth
               label="Search Events"
               size="small"
-              value={formData.name}
-              onChange={(e) =>
-                setFormData({ ...formData, name: e.target.value })
-              }
+              value={filter.search}
+              onChange={(e) => setFilter((prev) => ({ ...prev, search: e.target.value }))}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") fetchEvents({
+                  search: filter.search,
+                  date_filter: filter.dateFilter,
+                  status_id: filter.status_id,
+                });
+              }}
             />
           </Grid>
           <Grid item xs={12} md={4}>
@@ -400,148 +426,20 @@ const EventPage = () => {
         onClose={() => setOpenView(false)}
         event={selectedEvent}
       />
-      <Dialog
+    
+      <CancelEventDialog
         open={cancelDialogOpen}
         onClose={() => setCancelDialogOpen(false)}
-        PaperProps={{
-          sx: {
-            borderRadius: 4,
-            backgroundColor: '#fff',
-            boxShadow: 24,
-            p: 2,
-            width: 650,
-            display: 'flex',
-
-          },
+        eventToCancel={eventToCancel}
+        apiUrl={process.env.REACT_APP_API_URL}
+        handleCancelEvent={async (id, reason) => {
+          // Send to backend
+          await UseMethod("put", `cancel-event/${id}`, { reason });
+          showSnackbar("Event canceled successfully.", "success");
+          // Refresh list
+          fetchEvents();
         }}
-      >
-        {/* Title with icon */}
-        <DialogTitle sx={{ display: 'flex', alignItems: 'start', justifyContent: 'left', mb: 2 }}>
-
-          <Typography variant="h5" sx={{ fontWeight: 600 }}>
-            Cancel Event
-          </Typography>
-        </DialogTitle>
-
-        {/* Main Content */}
-        <DialogContent sx={{ pb: 1, display: 'flex', flexDirection: 'column', alignItems: '' }}>
-          <DialogContentText sx={{ color: 'text.secondary', mb: 2 }}>
-            Are you sure you want to cancel this event?
-          </DialogContentText>
-
-          {/* Event Detail Box */}
-          <Paper
-            elevation={3}
-            sx={{
-              p: 2,
-              borderRadius: 2,
-              backgroundColor: '#f9f9f9',
-              border: '1px solid #e0e0e0',
-
-
-              display: 'flex',
-              flexDirection: 'column',
-
-            }}
-          >
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mb: 1 }}>
-              {eventToCancel?.image && (
-                <img
-                  src={
-                    typeof eventToCancel?.image === "string"
-                      ? `${apiUrl}/storage/${eventToCancel?.image}`
-                      : URL.createObjectURL(eventToCancel?.image)
-                  }
-                  alt="Preview"
-                  style={{ width: "70%", height: "50%", objectFit: "" }}
-                />
-              )}
-
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-              <TitleTwoTone sx={{ mr: 1, color: 'primary.main' }} />
-              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                {eventToCancel?.title || 'Untitled Event'}
-              </Typography>
-            </Box>
-
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-              <CalendarMonth sx={{ mr: 1, color: 'primary.main' }} />
-              <Typography variant="body2" color="text.secondary">
-                {eventToCancel?.startDate || 'No date'} - {eventToCancel?.endDate}
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-              <AccessTime sx={{ mr: 1, color: 'primary.main' }} />
-              <Typography variant="body2" color="text.secondary">
-                {eventToCancel?.startTime || 'No time'} - {eventToCancel?.endTime}
-              </Typography>
-            </Box>
-
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <LocationOn sx={{ mr: 1, color: 'primary.main' }} />
-              <Typography variant="body2" color="text.secondary">
-                {eventToCancel?.venue || 'No location provided'}
-              </Typography>
-            </Box>
-
-
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Person sx={{ mr: 1, color: 'primary.main' }} />
-              <Typography variant="body2" color="text.secondary">
-                {eventToCancel?.organizer || 'No location provided'}
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Group sx={{ mr: 1, color: 'primary.main' }} />
-              <Typography variant="body2" color="text.secondary">
-                {eventToCancel?.category || 'No location provided'}
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Person2TwoTone sx={{ mr: 1, color: 'primary.main' }} />
-              <Typography variant="body2" color="text.secondary">
-
-
-                {eventToCancel?.event_types?.map((type) => type.description).join(", ") || "None"}
-              </Typography>
-            </Box>
-          </Paper>
-        </DialogContent>
-
-        {/* Action Buttons */}
-        <DialogActions sx={{ px: 3, pb: 2, pt: 1 }}>
-          <Button
-            onClick={() => setCancelDialogOpen(false)}
-            variant="outlined"
-            color="primary"
-            sx={{
-              textTransform: 'none',
-              borderRadius: 2,
-              fontWeight: 500,
-            }}
-          >
-            No, Keep It
-          </Button>
-
-          <Button
-            onClick={async () => {
-              await handleCancelEvent(eventToCancel?.id);
-              setCancelDialogOpen(false);
-            }}
-            variant="contained"
-            color="error"
-            sx={{
-              textTransform: 'none',
-              borderRadius: 2,
-              fontWeight: 500,
-              boxShadow: 'none',
-            }}
-          >
-            Yes, Cancel
-          </Button>
-        </DialogActions>
-      </Dialog>
+      />
 
 
     </Box>

@@ -39,6 +39,7 @@ export default function RequestTable() {
                     const accountTypes = user.account_type?.map(at => at.account_type?.description || 'N/A') || [];
                     const group = user.account_type?.[0]?.account_group?.description || 'N/A';
                     const date = new Date(user.created_at);
+                    const role = user?.role?.name;
                     const options = {
                         year: 'numeric',
                         month: 'long',
@@ -49,6 +50,7 @@ export default function RequestTable() {
                     };
                     return {
                         id: user.id,
+                        role,
                         user: fullName,
                         group,
                         registerDate: date.toLocaleString('en-US', options), // e.g., "July 2, 2025, 2:00 PM"
@@ -172,7 +174,9 @@ export default function RequestTable() {
                 </Box>
             </Card>
             {/* Confirm Dialog */}
-            <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
+            <Dialog
+                fullWidth
+                open={dialogOpen} onClose={() => setDialogOpen(false)}>
                 <DialogTitle>
                     <CheckCircleIcon color="success" sx={{ mr: 1, verticalAlign: 'middle' }} />
                     Confirm Approval
@@ -180,6 +184,9 @@ export default function RequestTable() {
                 <DialogContent dividers>
                     <Typography gutterBottom>
                         <strong>Name:</strong> {selectedUser?.user}
+                    </Typography>
+                    <Typography gutterBottom>
+                        <strong>Role:</strong> {selectedUser?.role}
                     </Typography>
                     <Typography gutterBottom>
                         <strong>Account Group:</strong> {selectedUser?.group}

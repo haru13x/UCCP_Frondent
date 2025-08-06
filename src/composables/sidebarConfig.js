@@ -66,7 +66,7 @@ export const sidebarConfig = [
     label: "User's Request",
     icon: PeopleOutlineSharp,
     path: "/request-registration",
-    rule: "",
+    rule: "view_user_request",
   },
   {
     label: "Users",

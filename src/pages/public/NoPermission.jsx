@@ -23,8 +23,8 @@ const NoPermission = () => {
       <Typography variant="body1" sx={{ mb: 2 }}>
         You do not have access to view this page.
       </Typography>
-      <Button variant="contained" onClick={() => navigate("/about")}>
-        Go Back to About
+      <Button variant="contained" onClick={() => navigate("/my-list")}>
+        Go Back
       </Button>
     </Box>
   );
