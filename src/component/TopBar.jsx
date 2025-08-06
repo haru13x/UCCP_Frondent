@@ -7,7 +7,7 @@ const TopBar = () => {
   const location = useLocation();
 
   const navItems = [
-    { label: "About", path: "/about" },
+    // { label: "About", path: "/about" },
     { label: "Login", path: "/" },
     { label: "Register", path: "/register" },
   ];
