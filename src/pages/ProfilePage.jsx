@@ -2,30 +2,26 @@ import {
   Box,
   Avatar,
   Typography,
-  Tabs,
-  Tab,
   Card,
-  CardContent,
-  Button,
-  Divider,
-  Dialog,
-  DialogTitle,
-  DialogContent,
+  Grid,
   TextField,
-  DialogActions,
-    Grid,
+  Button,
+  IconButton,
+  Paper,
 } from "@mui/material";
-
+import {
+  Edit as EditIcon,
+  Save as SaveIcon,
+  Close as CloseIcon,
+} from "@mui/icons-material";
 import { useState, useEffect } from "react";
-import axios from "axios";
 
 const ProfilePage = () => {
-  const [tabIndex, setTabIndex] = useState(0);
+  const [editMode, setEditMode] = useState(false);
   const [userDetails, setUserDetails] = useState({});
-  const [pastEvents, setPastEvents] = useState([]);
-  const [editOpen, setEditOpen] = useState(false);
   const [form, setForm] = useState({});
 
+  // Load user data from localStorage
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
     if (user?.details) {
@@ -33,19 +29,14 @@ const ProfilePage = () => {
       setUserDetails(fullData);
       setForm(fullData);
     }
-
-    axios
-      .get("/api/user-events/past", {
-        headers: {
-          Authorization: `Bearer ${user.api_token}`,
-        },
-      })
-      .then((res) => setPastEvents(res.data))
-      .catch((err) => console.error("Failed to fetch past events:", err));
   }, []);
 
-  const handleEditOpen = () => setEditOpen(true);
-  const handleEditClose = () => setEditOpen(false);
+  const handleEditToggle = () => {
+    if (editMode) {
+      setForm(userDetails); // Reset form when cancel
+    }
+    setEditMode((prev) => !prev);
+  };
 
   const handleInputChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -53,205 +44,255 @@ const ProfilePage = () => {
 
   const handleSave = () => {
     setUserDetails(form);
-    handleEditClose();
+    setEditMode(false);
+    // Optionally update localStorage or send API request here
+    const storedUser = JSON.parse(localStorage.getItem("user")) || {};
+    localStorage.setItem(
+      "user",
+      JSON.stringify({ ...storedUser, details: form })
+    );
   };
 
   return (
-    <Box sx={{ bgcolor: "#e9eef6", minHeight: "100vh", p: 3 }}>
-      {/* Header */}
-      {/* Cover */}
-      <Box
+    <Box
+      sx={{
+        bgcolor: "#f4f6f8",
+        minHeight: "100vh",
+        py: 2,
+        px: { xs: 2, sm: 3, md: 6 },
+        fontFamily: "'Poppins', 'Roboto', sans-serif",
+      }}
+    >
+      {/* Header / Cover Section */}
+      <Paper
+        elevation={0}
         sx={{
-            mt:4,
-          height: 200,
-            background: "linear-gradient(to right,rgb(72, 137, 241),rgb(108, 134, 250), #6FB1FC)",
-
           position: "relative",
+          height: { xs: 180, sm: 250 },
+          background: "linear-gradient(135deg, #5C6BC0, #7986CB)",
+          borderRadius: "16px",
+          mb: 1,
+          overflow: "hidden",
         }}
       >
+        {/* Decorative Circle */}
         <Box
           sx={{
             position: "absolute",
-            bottom: -40,
+            top: -60,
+            right: -60,
+            width: 200,
+            height: 20,
+            borderRadius: "50%",
+            bgcolor: "rgba(255, 255, 255, 0.1)",
+          }}
+        />
+
+        {/* Avatar & User Info */}
+        <Box
+          sx={{
+            position: "absolute",
+            bottom: 10,
             left: "50%",
             transform: "translateX(-50%)",
             textAlign: "center",
+            width: "100%",
           }}
         >
-          <Avatar
-            sx={{
-              width: 140,
-              height: 140,
-              border: "5px solid white",
-              margin: "0 auto",
-              background: "#ccc",
-            }}
-            src=""
-          />
-          <Typography variant="h5" mt={2} fontWeight="bold" color="white">
-            {userDetails?.first_name} {userDetails?.last_name}
-          </Typography>
-          <Typography variant="body2" color="white">
-            {userDetails?.email}
-          </Typography>
-
-          <Box mt={2} display="flex" justifyContent="center" gap={2}>
-            <Button variant="contained" color="secondary" onClick={handleEditOpen}>
-              Edit Info
-            </Button>
-            <Button variant="outlined" color="inherit">
-              Change Photo
-            </Button>
+          <Box sx={{ position: "relative", display: "inline-block" }}>
+            <Avatar
+              src=""
+              alt="User"
+              sx={{
+                width: 150,
+                height: 130,
+                border: "5px solid white",
+                boxShadow: "0 4px 15px rgba(0,0,0,0.2)",
+                bgcolor: "#fff",
+                color: "#5C6BC0",
+                fontSize: "48px",
+                fontWeight: "bold",
+              }}
+            >
+              {userDetails.first_name?.charAt(0)?.toUpperCase() ||
+                userDetails.last_name?.charAt(0)?.toUpperCase() ||
+                "U"}
+            </Avatar>
+            {/* Avatar Edit Icon */}
+            <IconButton
+              size="small"
+              sx={{
+                position: "absolute",
+                bottom: 4,
+                right: 4,
+                bgcolor: "secondary.main",
+                color: "white",
+                "&:hover": { bgcolor: "secondary.dark" },
+              }}
+            >
+              <EditIcon fontSize="small" />
+            </IconButton>
           </Box>
-        </Box>
-      </Box>
 
-      {/* Tabs + Content */}
-      <Box mt={12} maxWidth="960px" mx="auto" px={2}>
-        <Box
+          <Typography
+            variant="h5"
+            fontWeight="600"
+            color="white"
+            mt={2}
+            sx={{ textShadow: "1px 1px 6px rgba(0,0,0,0.3)" }}
+          >
+            {userDetails.first_name} {userDetails.last_name}
+          </Typography>
+          <Typography variant="body2" color="rgba(255,255,255,0.9)">
+            {userDetails.email}
+          </Typography>
+
+          
+        </Box>
+      </Paper>
+
+      {/* Profile Card */}
+      <Box maxWidth="1200px" mx="auto" mt={2 }>
+        <Card
           sx={{
-            bgcolor: "white",
-            borderRadius: 2,
-            boxShadow: 3,
+            borderRadius: "16px",
             overflow: "hidden",
+            bgcolor: "white",
+            boxShadow: "0 8px 25px rgba(0,0,0,0.1)",
           }}
         >
-          <Tabs
-            value={tabIndex}
-            onChange={(_, newValue) => setTabIndex(newValue)}
-            indicatorColor="primary"
-            textColor="primary"
-            variant="fullWidth"
+          <Box
+            sx={{
+              bgcolor: "primary.main",
+              color: "white",
+              py: 2,
+              px: 4,
+              display: "flex",
+              justifyContent:'space-between',
+              alignItems: "center",
+              gap: 1,
+            }}
           >
-            <Tab label="About" />
-            <Tab label="Past Attending Events" />
-          </Tabs>
-
-          <Divider />
-
-          {/* About Tab */}
-          {tabIndex === 0 && (
-            <Box p={3}>
-              <Typography variant="h6" fontWeight="bold" mb={2}>
-                Personal Information
-              </Typography>
-              <Card elevation={1} sx={{ p: 2, borderRadius: 2 }}>
-                <Grid container spacing={3}>
-                  <Grid item size={{ md: 6 }}>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      First Name
-                    </Typography>
-                    <Typography>{userDetails?.first_name || "-"}</Typography>
-                  </Grid>
-                  <Grid item size={{ md: 6 }}>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Last Name
-                    </Typography>
-                    <Typography>{userDetails?.last_name || "-"}</Typography>
-                  </Grid>
-                  <Grid item size={{ md: 6 }}>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Middle Name
-                    </Typography>
-                    <Typography>{userDetails?.middle_name || "-"}</Typography>
-                  </Grid>
-                  <Grid item size={{ md: 6 }}>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Email
-                    </Typography>
-                    <Typography>{userDetails?.email || "-"}</Typography>
-                  </Grid>
-                  <Grid item size={{ md: 6 }}>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Mobile
-                    </Typography>
-                    <Typography>{userDetails?.mobile || "-"}</Typography>
-                  </Grid>
-                  <Grid item size={{ md: 6 }}>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Birthdate
-                    </Typography>
-                    <Typography>{userDetails?.birthdate || "-"}</Typography>
-                  </Grid>
-                  <Grid item size={{ md: 6 }}>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Address
-                    </Typography>
-                    <Typography>{userDetails?.address || "-"}</Typography>
-                  </Grid>
-                </Grid>
-              </Card>
-            </Box>
-          )}
-
-          {/* Past Events */}
-          {tabIndex === 1 && (
-            <Box p={3}>
-              {pastEvents.length === 0 ? (
-                <Typography>No past events attended.</Typography>
-              ) : (
-                <Grid container spacing={2}>
-                  {pastEvents.map((event) => (
-                    <Grid item size={{ md: 6 }} key={event.id}>
-                      <Card
-                        sx={{
-                          borderRadius: 3,
-                          boxShadow: 2,
-                          bgcolor: "#f9f9f9",
-                        }}
-                      >
-                        <CardContent>
-                          <Typography variant="h6" fontWeight="bold">
-                            {event.title}
-                          </Typography>
-                          <Typography variant="body2" color="textSecondary">
-                            {new Date(event.start_date).toLocaleDateString()} -{" "}
-                            {new Date(event.end_date).toLocaleDateString()}
-                          </Typography>
-                          <Typography mt={1}>{event.description}</Typography>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                  ))}
-                </Grid>
-              )}
-            </Box>
-          )}
-        </Box>
-      </Box>
-
-      {/* Edit Dialog */}
-      <Dialog open={editOpen} onClose={handleEditClose} fullWidth maxWidth="sm">
-        <DialogTitle>Edit Personal Information</DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} mt={1}>
-            {[
-              { label: "First Name", key: "first_name" },
-              { label: "Last Name", key: "last_name" },
-              { label: "Middle Name", key: "middle_name" },
-              { label: "Mobile", key: "mobile" },
-              { label: "Email", key: "email" },
-              { label: "Birthdate", key: "birthdate" },
-              { label: "Address", key: "address" },
-            ].map(({ label, key }) => (
-              <Grid item size={{ md: 6 }} key={key}>
-                <TextField
-                  label={label}
-                  fullWidth
-                  value={form[key] || ""}
-                  onChange={(e) => handleInputChange(key, e.target.value)}
-                />
-              </Grid>
-            ))}
-          </Grid>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button onClick={handleEditClose}>Cancel</Button>
-          <Button variant="contained" onClick={handleSave}>
-            Save
+           
+            <Typography variant="h6" fontWeight="600">
+              <EditIcon fontSize="small" /> Personal Information
+            </Typography>
+            <Button
+            variant="contained"
+            color={editMode ? "error" : "secondary"}
+            startIcon={editMode ? <CloseIcon /> : <EditIcon />}
+            onClick={handleEditToggle}
+            size="small"
+            sx={{
+             
+              borderRadius: "20px",
+              textTransform: "none",
+              fontWeight: 500,
+              px: 3,
+            }}
+          >
+            {editMode ? "Cancel" : "Edit Profile"}
           </Button>
-        </DialogActions>
-      </Dialog>
+          </Box>
+
+          <Box p={4}>
+            <Grid container spacing={3}>
+              {[
+                { label: "First Name", key: "first_name", md: 6 },
+                { label: "Last Name", key: "last_name", md: 6 },
+                { label: "Middle Name", key: "middle_name", md: 6 },
+                { label: "Email Address", key: "email", md: 6 },
+                { label: "Phone Number", key: "mobile", md: 6 },
+                { label: "Date of Birth", key: "birthdate", md: 6 },
+                { label: "Address", key: "address", md: 12 },
+              ].map(({ label, key, md }) => (
+                <Grid  size={{md:4, xs:12}} item xs={12} md={md} key={key}>
+                  <Typography
+                    variant="body2"
+                    fontWeight="500"
+                    color="textSecondary"
+                    mb={1}
+                  >
+                    {label}
+                  </Typography>
+
+                  {editMode ? (
+                    <TextField
+                      fullWidth
+                      size="small"
+                      variant="outlined"
+                      value={form[key] || ""}
+                      onChange={(e) =>
+                        handleInputChange(key, e.target.value)
+                      }
+                      InputProps={{
+                        sx: {
+                          borderRadius: "8px",
+                          bgcolor: "#f8f9ff",
+                          "&:hover": { bgcolor: "#f0f3ff" },
+                        },
+                      }}
+                    />
+                  ) : (
+                    <Box
+                      sx={{
+                        minHeight: 40,
+                        display: "flex",
+                        alignItems: "center",
+                        px: 2,
+                        py: 1,
+                        borderRadius: "8px",
+                        border: "1px solid #e0e4eb",
+                        bgcolor: "#fbfcff",
+                        fontSize: "0.95rem",
+                        color: "#2d3748",
+                      }}
+                    >
+                      {userDetails[key] || (
+                        <Typography
+                          component="span"
+                          variant="body2"
+                          color="textSecondary"
+                        >
+                          Not provided
+                        </Typography>
+                      )}
+                    </Box>
+                  )}
+                </Grid>
+              ))}
+            </Grid>
+
+            {editMode && (
+              <Box mt={4} display="flex" justifyContent="flex-end" gap={2}>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  startIcon={<CloseIcon />}
+                  onClick={handleEditToggle}
+                  sx={{ borderRadius: "8px", px: 3 }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  startIcon={<SaveIcon />}
+                  onClick={handleSave}
+                  sx={{
+                    borderRadius: "8px",
+                    px: 4,
+                    fontWeight: 600,
+                    boxShadow: "0 4px 10px rgba(92, 107, 192, 0.3)",
+                  }}
+                >
+                  Save Changes
+                </Button>
+              </Box>
+            )}
+          </Box>
+        </Card>
+      </Box>
     </Box>
   );
 };

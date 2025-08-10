@@ -68,6 +68,11 @@ const EventSlideDialog = ({
   const [loadingReviews, setLoadingReviews] = useState(false);
   const [editingReviewId, setEditingReviewId] = useState(null);
   const [hasFetched, setHasFetched] = useState(false); // Prevent duplicate fetch
+  const now = new Date();
+  const eventStart = new Date(`${event?.start_date}T${event?.start_time}`);
+  const hasEventEnded = () => {
+    return now > eventStart;
+  };
 
   // Fetch reviews only when Reviews tab is selected
   useEffect(() => {
@@ -121,6 +126,7 @@ const EventSlideDialog = ({
     if (!userRating && !userComment.trim()) return;
 
     const payload = {
+      reviewId : editingReviewId,
       rating: userRating,
       comment: userComment.trim(),
     };
@@ -171,6 +177,7 @@ const EventSlideDialog = ({
     setUserComment(review.text);
     setUserRating(review.rating);
     setEditingReviewId(review.id);
+   
   };
 
   const handleCancelEdit = () => {
@@ -370,9 +377,9 @@ const EventSlideDialog = ({
                   </Box>
                   <Box display="flex" alignItems="center" gap={1} mb={1.5}>
                     <GroupIcon fontSize="small" color="primary" />
-                        <Typography variant="body2">
-                                         <strong>Expected Attendees:</strong> {event?.event_types?.map((type) => type.code).join(", ") || "None"}
-                                          </Typography>
+                    <Typography variant="body2">
+                      <strong>Expected Attendees:</strong> {event?.event_types?.map((type) => type.code).join(", ") || "None"}
+                    </Typography>
                   </Box>
                 </Grid>
               </Grid>
@@ -399,62 +406,68 @@ const EventSlideDialog = ({
             </Typography>
 
             {/* Submit Review */}
-            <Paper sx={{ p: 3, mb: 3, borderRadius: 3, backgroundColor: "#f0f7ff" }}>
-              <Typography variant="subtitle1" fontWeight="600" gutterBottom>
-                {editingReviewId ? "Edit Your Review" : "Share Your Experience"}
-              </Typography>
-              <Rating
-                value={userRating}
-                onChange={(e, newValue) => setUserRating(newValue)}
-                size="large"
-                sx={{ mb: 1 }}
-              />
-              <TextField
-                placeholder="Write your review here..."
-                multiline
-                rows={3}
-                fullWidth
-                variant="outlined"
-                value={userComment}
-                onChange={(e) => setUserComment(e.target.value)}
-                sx={{
-                  mt: 1,
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: 2,
-                    backgroundColor: "white",
-                  },
-                }}
-              />
-              <Box mt={2} display="flex" gap={2}>
-                {editingReviewId && (
-                  <Button
-                    variant="outlined"
-                    color="error"
-                    onClick={handleCancelEdit}
-                    sx={{ fontWeight: 600, borderRadius: 2 }}
-                  >
-                    Cancel
-                  </Button>
-                )}
-                <Button
-                  variant="contained"
-                  color="primary"
-                  startIcon={<SendIcon />}
-                  onClick={handleSubmitReview}
-                  disabled={!userRating && !userComment.trim()}
+            {hasEventEnded() && event.is_registered === 1 ? (
+              <Paper sx={{ p: 3, mb: 3, borderRadius: 3, backgroundColor: "#f0f7ff" }}>
+                <Typography variant="subtitle1" fontWeight="600" gutterBottom>
+                  {editingReviewId ? "Edit Your Review" : "Share Your Experience"}
+                </Typography>
+                <Rating
+                  value={userRating}
+                  onChange={(e, newValue) => setUserRating(newValue)}
+                  size="large"
+                  sx={{ mb: 1 }}
+                />
+                <TextField
+                  placeholder="Write your review here..."
+                  multiline
+                  rows={3}
+                  fullWidth
+                  variant="outlined"
+                  value={userComment}
+                  onChange={(e) => setUserComment(e.target.value)}
                   sx={{
-                    fontWeight: 600,
-                    borderRadius: 2,
-                    px: 3,
+                    mt: 1,
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: 2,
+                      backgroundColor: "white",
+                    },
                   }}
-                >
-                  {editingReviewId ? "Update Review" : "Submit Review"}
-                </Button>
-              </Box>
-            </Paper>
-
-            {/* Reviews List */}
-            {loadingReviews ? (
+                />
+                <Box mt={2} display="flex" gap={2}>
+                  {editingReviewId && (
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      onClick={handleCancelEdit}
+                      sx={{ fontWeight: 600, borderRadius: 2 }}
+                    >
+                      Cancel
+                    </Button>
+                  )}
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    startIcon={<SendIcon />}
+                    onClick={handleSubmitReview}
+                    disabled={!userRating && !userComment.trim()}
+                    sx={{
+                      fontWeight: 600,
+                      borderRadius: 2,
+                      px: 3,
+                    }}
+                  >
+                    {editingReviewId ? "Update Review" : "Submit Review"}
+                  </Button>
+                </Box>
+              </Paper>
+            ) :
+              <Typography variant="body2" color="text.secondary" textAlign="center" mt={4}>
+                You can't Review yet Event not End Yet
+              </Typography>
+            }
+           
+            
+            {  loadingReviews ? (
               <Box display="flex" justifyContent="center" py={4}>
                 <CircularProgress size={24} />
               </Box>

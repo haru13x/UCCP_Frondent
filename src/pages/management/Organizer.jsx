@@ -32,7 +32,7 @@ import EventReportDialog from "../../component/event/EventReportDialog";
 import { ca, se } from "date-fns/locale";
 import CancelEventDialog from "../../component/event/CancelEventDialog";
 
-const EventPage = () => {
+const Organizer = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
   const [loading, setLoading] = useState(false);
   const [events, setEvents] = useState([]);
@@ -82,7 +82,7 @@ const EventPage = () => {
         endTime: event.end_time,
         category: event.category,
         organizer: event.organizer,
-        contact: event.contact || '',
+        contact: event.contact,
         attendees: event.attendees,
         venue: event.venue,
         address: event.address,
@@ -227,8 +227,7 @@ const EventPage = () => {
         justifyContent="center"
         alignItems="center"
         height={50}
-        flexDirection="row"
-       
+        flexDirection="row"  
         width="100%"
         gap={1}
         flexWrap="wrap"
@@ -254,18 +253,7 @@ const EventPage = () => {
             >
               Edit
             </Button>
-            <Button
-              size="small"
-              variant="contained"
-              color="error"
-              onClick={() => {
-                setEventToCancel(params.row);
-                setCancelDialogOpen(true);
-              }}
-              startIcon={<CancelPresentation />}
-            >
-              Cancel
-            </Button>
+         
           </>
         )}
       </Box>
@@ -363,30 +351,8 @@ const EventPage = () => {
 
           </Grid>
 
-          <Grid item xs={12} md={3}>
-            <Button
-              fullWidth
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => handleOpenForm()}
-            >
-              Add Event
-            </Button>
-          </Grid>
-          <Grid item xs={12} md={3}>
-            <Button
-              fullWidth
-              variant="contained"
-              startIcon={<DocumentScanner />}
-              color="error"
-              onClick={() => setReportDialogOpen(true)}
-            >
-              Generate Reports
-            </Button>
-
-
-
-          </Grid>
+        
+         
         </Grid>
 
         <DataGrid
@@ -447,4 +413,4 @@ const EventPage = () => {
   );
 };
 
-export default EventPage;
+export default Organizer;

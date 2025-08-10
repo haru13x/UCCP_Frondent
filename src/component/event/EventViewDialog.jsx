@@ -30,6 +30,7 @@ import {
   Chip,
   Skeleton,
   InputAdornment,
+  LinearProgress,
 } from "@mui/material";
 import {
   ArrowBackSharp,
@@ -61,6 +62,7 @@ import {
   Cancel,
   WarningAmber,
   Person,
+  Details,
 
 } from "@mui/icons-material";
 import { UseMethod } from "../../composables/UseMethod";
@@ -81,6 +83,7 @@ import {
   Legend,
   LabelList,
 } from "recharts";
+import EventProgramFormDialog from "./EventProgramFormDialog";
 const Transition = React.forwardRef((props, ref) => (
   <Slide direction="left" ref={ref} {...props} />
 ));
@@ -109,6 +112,19 @@ const EventViewDialog = ({ open, onClose, event }) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [confirmModal, setConfirmModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [openProgramDialog, setOpenProgramDialog] = useState(false);
+  const [programForm, setProgramForm] = useState({
+    start_time: "",
+    end_time: "",
+    activity: "",
+    speaker: "",
+  });
+  const [programs, setPrograms] = useState(event?.programs || []);
+  const now = new Date();
+  const eventStart = new Date(`${event?.start_date}T${event?.start_time}`);
+  const hasEventEnded = () => {
+    return now > eventStart;
+  };
 
   // Format date-time
   const formatDateTime = (dateStr, timeStr) => {
@@ -206,7 +222,7 @@ const EventViewDialog = ({ open, onClose, event }) => {
             setUserComment(myReview.text);
           }
         }
-        showSnackbar("Reviews loaded successfully!", { variant: "success" });
+      
       } catch (error) {
         console.error("Failed to load reviews:", error);
         showSnackbar("Could not load reviews.", { variant: "error" });
@@ -252,7 +268,10 @@ const EventViewDialog = ({ open, onClose, event }) => {
       setLoadingQR(false);
     }
   };
-
+  const storedUser = useMemo(() => {
+    const userStr = localStorage.getItem("user");
+    return userStr ? JSON.parse(userStr) : null;
+  }, [open]); // Re-check when dialog opens
   const printImage = (src) => {
     const win = window.open("", "_blank");
     win.document.write(`<img src="${src}" onload="window.print();window.close();" style="max-width:100%"/>`);
@@ -333,6 +352,7 @@ const EventViewDialog = ({ open, onClose, event }) => {
             }}
           >
             <Tab icon={<EventIcon fontSize="small" />} label="Details" />
+            {/* <Tab icon={<Details fontSize="small" />} label="Program" /> */}
             <Tab icon={<QRCodeIcon fontSize="small" />} label="QR Code" />
             <Tab icon={<GroupIcon fontSize="small" />} label="Registered" />
             <Tab icon={<Comment fontSize="small" />} label="Reviews" />
@@ -340,7 +360,7 @@ const EventViewDialog = ({ open, onClose, event }) => {
           </Tabs>
         </DialogTitle>
 
-        <DialogContent sx={{ overflowY: "auto", padding: 5, paddingTop: 3, bgcolor: "#f5f7fa", }}>
+        <DialogContent sx={{ overflowY: "auto", padding: 5, paddingTop: 2, bgcolor: "#f5f7fa", }}>
           {/* Tab 0: Details */}
           {tabIndex === 0 && (
             <Box>
@@ -354,7 +374,7 @@ const EventViewDialog = ({ open, onClose, event }) => {
                   height: 250,
                   borderRadius: 2,
                   overflow: "hidden",
-                  mb: 3,
+                  mb: 1,
                   boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
                 }}
               >
@@ -452,6 +472,9 @@ const EventViewDialog = ({ open, onClose, event }) => {
                   </Typography>
                 </Box>
 
+
+
+
                 {event?.status === 'Cancelled' && (
                   <Box
                     mt={3}
@@ -488,7 +511,7 @@ const EventViewDialog = ({ open, onClose, event }) => {
                     {/* Cancel Details Grid */}
                     <Grid container spacing={2}>
                       {/* Reason */}
-                      <Grid size={{sm:6}} item xs={12}>
+                      <Grid size={{ sm: 6 }} item xs={12}>
                         <Box display="flex" alignItems="flex-start" gap={1}>
                           <DescriptionIcon fontSize="small" color="action" sx={{ mt: 0.5, flexShrink: 0 }} />
                           <Box>
@@ -515,7 +538,7 @@ const EventViewDialog = ({ open, onClose, event }) => {
                       </Grid>
 
                       {/* Cancelled By */}
-                      <Grid size={{sm:3}} item xs={12} sm={6}>
+                      <Grid size={{ sm: 3 }} item xs={12} sm={6}>
                         <Box display="flex" alignItems="center" gap={1}>
                           <Person fontSize="small" color="action" />
                           <Box>
@@ -530,7 +553,7 @@ const EventViewDialog = ({ open, onClose, event }) => {
                       </Grid>
 
                       {/* Date */}
-                      <Grid size={{sm:3}} item xs={12} sm={6}>
+                      <Grid size={{ sm: 3 }} item xs={12} sm={6}>
                         <Box display="flex" alignItems="center" gap={1}>
                           <EventAvailable fontSize="small" color="action" />
                           <Box>
@@ -574,8 +597,36 @@ const EventViewDialog = ({ open, onClose, event }) => {
                   </Box>
                 )}
               </Paper>
+             
             </Box>
           )}
+          {/* {tabIndex === 1 && (
+            <Box textAlign="center" p={3}>
+              {loadingQR ? (
+                <CircularProgress />
+              ) : <Paper
+                sx={{
+                  mt: 1,
+                  p: 3,
+                  borderRadius: 3,
+                  backgroundColor: "#ffffff",
+                  boxShadow: "0 2px 10px rgba(0,0,0,0.08)",
+                }}
+              >
+                {storedUser && storedUser.id !== event?.created_by && (
+                  <Button
+                    variant="contained"
+                    color="secondary"
+                    startIcon={<EventAvailable />}
+                    onClick={() => setOpenProgramDialog(true)}
+                    sx={{ mt: 2, ml: 2 }}
+                  >
+                    📅 Add Program
+                  </Button>
+                )}
+              </Paper>}
+            </Box>
+          )} */}
           {/* Tab 1: QR Code */}
           {tabIndex === 1 && (
             <Box textAlign="center" p={3}>
@@ -634,7 +685,7 @@ const EventViewDialog = ({ open, onClose, event }) => {
             </Box>
           )}
 
-          {tabIndex === 2 && event?.status !== 'Cancelled' &&(
+          {tabIndex === 2 && event?.status !== 'Cancelled' && (
             <Box
               sx={{
                 padding: { xs: 2, sm: 3 },
@@ -966,128 +1017,128 @@ const EventViewDialog = ({ open, onClose, event }) => {
                 </Box>
               )}
             </Box>
-          )}: { tabIndex === 2  &&  event?.status === 'Cancelled' && (
-           
-                  <Box
-                    mt={3}
-                    p={3}
-                    sx={{
-                      borderRadius: 3,
-                      backgroundColor: 'error.lighter',
-                      border: '1px solid',
-                      borderColor: 'error.light',
-                      boxShadow: '0 4px 12px rgba(244, 67, 54, 0.1)',
-                      borderLeft: '5px solid',
-                      borderLeftColor: 'error.main',
-                      transition: 'all 0.2s ease-in-out',
-                      '&:hover': {
-                        transform: 'translateY(-2px)',
-                        boxShadow: '0 8px 24px rgba(244, 67, 54, 0.15)',
-                      },
-                    }}
-                  >
-                    {/* Header */}
-                    <Box display="flex" alignItems="center" gap={1} mb={2}>
-                      <Cancel fontSize="small" color="error" />
-                      <Typography
-                        variant="subtitle1"
-                        fontWeight="700"
-                        color="error.main"
-                        sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-                      >
-                        <WarningAmber fontSize="small" color="warning" />
-                        Event Cancelled
+          )} {tabIndex === 2 && event?.status === 'Cancelled' && (
+
+            <Box
+              mt={3}
+              p={3}
+              sx={{
+                borderRadius: 3,
+                backgroundColor: 'error.lighter',
+                border: '1px solid',
+                borderColor: 'error.light',
+                boxShadow: '0 4px 12px rgba(244, 67, 54, 0.1)',
+                borderLeft: '5px solid',
+                borderLeftColor: 'error.main',
+                transition: 'all 0.2s ease-in-out',
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 8px 24px rgba(244, 67, 54, 0.15)',
+                },
+              }}
+            >
+              {/* Header */}
+              <Box display="flex" alignItems="center" gap={1} mb={2}>
+                <Cancel fontSize="small" color="error" />
+                <Typography
+                  variant="subtitle1"
+                  fontWeight="700"
+                  color="error.main"
+                  sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                >
+                  <WarningAmber fontSize="small" color="warning" />
+                  Event Cancelled
+                </Typography>
+              </Box>
+
+              {/* Cancel Details Grid */}
+              <Grid container spacing={2}>
+                {/* Reason */}
+                <Grid item xs={12}>
+                  <Box display="flex" alignItems="flex-start" gap={1}>
+                    <DescriptionIcon fontSize="small" color="action" sx={{ mt: 0.5, flexShrink: 0 }} />
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" fontWeight={600}>
+                        Reason for Cancellation
                       </Typography>
-                    </Box>
-
-                    {/* Cancel Details Grid */}
-                    <Grid container spacing={2}>
-                      {/* Reason */}
-                      <Grid item xs={12}>
-                        <Box display="flex" alignItems="flex-start" gap={1}>
-                          <DescriptionIcon fontSize="small" color="action" sx={{ mt: 0.5, flexShrink: 0 }} />
-                          <Box>
-                            <Typography variant="body2" color="text.secondary" fontWeight={600}>
-                              Reason for Cancellation
-                            </Typography>
-                            <Typography
-                              variant="body1"
-                              color="error.dark"
-                              sx={{
-                                mt: 0.5,
-                                ml: 2,
-                                fontStyle: 'italic',
-                                lineHeight: 1.5,
-                                borderLeft: '2px solid',
-                                borderColor: 'error.light',
-                                pl: 2,
-                              }}
-                            >
-                              "{event?.cancel_reason || 'No reason provided'}"
-                            </Typography>
-                          </Box>
-                        </Box>
-                      </Grid>
-
-                      {/* Cancelled By */}
-                      <Grid item xs={12} sm={6}>
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <Person fontSize="small" color="action" />
-                          <Box>
-                            <Typography variant="body2" color="text.secondary" fontWeight={500}>
-                              Cancelled By
-                            </Typography>
-                            <Typography variant="body1" color="text.primary" fontWeight={600}>
-                              {event?.cancel_by || 'Unknown User'}
-                            </Typography>
-                          </Box>
-                        </Box>
-                      </Grid>
-
-                      {/* Date */}
-                      <Grid item xs={12} sm={6}>
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <EventAvailable fontSize="small" color="action" />
-                          <Box>
-                            <Typography variant="body2" color="text.secondary" fontWeight={500}>
-                              Cancelled On
-                            </Typography>
-                            <Typography variant="body1" color="text.primary" fontWeight={600}>
-                              {event?.cancel_date
-                                ? new Date(event.cancel_date).toLocaleDateString('en-US', {
-                                  year: 'numeric',
-                                  month: 'long',
-                                  day: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })
-                                : 'Date unavailable'
-                              }
-                            </Typography>
-                          </Box>
-                        </Box>
-                      </Grid>
-                    </Grid>
-
-                    {/* Warning Banner */}
-                    <Box
-                      mt={2}
-                      p={1.5}
-                      borderRadius={2}
-                      bgcolor="warning.lighter"
-                      border="1px solid"
-                      borderColor="warning.light"
-                      display="flex"
-                      alignItems="center"
-                      gap={1}
-                    >
-                      <WarningAmber fontSize="small" color="warning" />
-                      <Typography variant="body2" color="warning.dark">
-                        This event cannot be resumed. All registrations are cancelled.
+                      <Typography
+                        variant="body1"
+                        color="error.dark"
+                        sx={{
+                          mt: 0.5,
+                          ml: 2,
+                          fontStyle: 'italic',
+                          lineHeight: 1.5,
+                          borderLeft: '2px solid',
+                          borderColor: 'error.light',
+                          pl: 2,
+                        }}
+                      >
+                        "{event?.cancel_reason || 'No reason provided'}"
                       </Typography>
                     </Box>
                   </Box>
-                
+                </Grid>
+
+                {/* Cancelled By */}
+                <Grid item xs={12} sm={6}>
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <Person fontSize="small" color="action" />
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" fontWeight={500}>
+                        Cancelled By
+                      </Typography>
+                      <Typography variant="body1" color="text.primary" fontWeight={600}>
+                        {event?.cancel_by || 'Unknown User'}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Grid>
+
+                {/* Date */}
+                <Grid item xs={12} sm={6}>
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <EventAvailable fontSize="small" color="action" />
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" fontWeight={500}>
+                        Cancelled On
+                      </Typography>
+                      <Typography variant="body1" color="text.primary" fontWeight={600}>
+                        {event?.cancel_date
+                          ? new Date(event.cancel_date).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })
+                          : 'Date unavailable'
+                        }
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Grid>
+              </Grid>
+
+              {/* Warning Banner */}
+              <Box
+                mt={2}
+                p={1.5}
+                borderRadius={2}
+                bgcolor="warning.lighter"
+                border="1px solid"
+                borderColor="warning.light"
+                display="flex"
+                alignItems="center"
+                gap={1}
+              >
+                <WarningAmber fontSize="small" color="warning" />
+                <Typography variant="body2" color="warning.dark">
+                  This event cannot be resumed. All registrations are cancelled.
+                </Typography>
+              </Box>
+            </Box>
+
           )}
 
           {/* Tab 3: Reviews */}
@@ -1254,7 +1305,7 @@ const EventViewDialog = ({ open, onClose, event }) => {
               <Grid container spacing={4}>
                 {/* Pie Chart: Attendance */}
                 <Grid size={{ md: 6 }} item xs={12} md={6}>
-                  <Card sx={{ borderRadius: 4, boxShadow: 3,height: 480, py: 5 }}>
+                  <Card sx={{ borderRadius: 4, boxShadow: 3, height: 480, py: 5 }}>
                     <Typography variant="h6" fontWeight={600} color="primary" gutterBottom>
                       🎯 Attendance Distribution
                     </Typography>
@@ -1415,6 +1466,15 @@ const EventViewDialog = ({ open, onClose, event }) => {
           </Button>
         </DialogActions>
       </Dialog>
+      <EventProgramFormDialog
+        open={openProgramDialog}
+        onClose={() => setOpenProgramDialog(false)}
+        eventId={event?.id}
+        initialPrograms={event?.programs || []}
+        initialSponsors={event?.sponsors || []}
+      />
+
+
     </>
   );
 };

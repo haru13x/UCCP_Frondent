@@ -17,12 +17,13 @@ import ProfilePage from "../pages/ProfilePage";
 import EventList from "../pages/EventList";
 import RequestRegistration from "../pages/management/RequestRegistration";
 import ForgotPassword from "../pages/public/ForgotPassword";
+import Organizer from "../pages/management/Organizer";
 // Public route definitions (no need to wrap manually)
 const publicRoutes = [
   { path: "/", component: Login },
   { path: "/register", component: Register },
   // { path: "/about", component: About },
-    { path: "/forget-password", component: ForgotPassword },
+  { path: "/forget-password", component: ForgotPassword },
 ];
 
 // Private route definitions (will be wrapped in MainLayout)
@@ -30,12 +31,13 @@ const privateRoutes = [
   { path: "/dashboard", component: Dashboard, rule: "view_dashboard" },
   { path: "/users", component: UserPage, rule: "view_users" },
   { path: "/events", component: EventPage, rule: "view_events" },
-    { path: "/request-registration", component: RequestRegistration },
+  { path: "/request-registration", component: RequestRegistration },
   { path: "/settings/role", component: Role, rule: "view_roles" },
   { path: "/list", component: EventList },
   { path: "/my-list", component: Mylist },
   { path: "/qrcode", component: QRScannerPage },
-   {path: "/profile", component: ProfilePage}
+  { path: "/profile", component: ProfilePage },
+  { path: "/organizer", component: Organizer }
 ];
 
 

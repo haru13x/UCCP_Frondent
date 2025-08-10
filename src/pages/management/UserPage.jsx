@@ -42,7 +42,7 @@ const UserPage = () => {
   const [excelDialogOpen, setExcelDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState('');
-
+  const [openEnabled, setOpenEnabled] = useState(false);
   // ✅ Fetch and flatten nested user data
   const fetchUsers = async (search = '') => {
     setLoading(true);
@@ -80,7 +80,7 @@ const UserPage = () => {
       username: user.username,
       email: user.email,
       password: "",
-      
+
       firstName: user.details?.first_name || "",
       middleName: user.details?.middle_name || "",
       lastName: user.details?.last_name || "",
@@ -106,6 +106,10 @@ const UserPage = () => {
     setSelectedUser(user);
     setOpenCancel(true);
   }
+  const handleEnabled = async (user) => {
+    setSelectedUser(user);
+    setOpenEnabled(true);
+  }
   const handleSave = async () => {
     try {
       const payload = { ...formData, role: formData.role };
@@ -130,10 +134,11 @@ const UserPage = () => {
       if (response) {
         fetchUsers();
         setOpenCancel(false);
+        selectedUser([]);
       }
     } catch (error) {
       console.error("Failed to disable user:", error);
-      alert("Error disabling user. Check the console for details.");
+  
     }
     finally {
       setOpenCancel(false);
@@ -142,17 +147,16 @@ const UserPage = () => {
   const handleSubmitEnabled = async () => {
     try {
       const response = await UseMethod("post", "update-user-status", {
-        user_id: selectedUser.id,
-        status: 1, // Assuming 1 is the status for enabled
+        user_id: selectedUser?.id,
+        status: 1,
       });
       if (response) {
         fetchUsers();
-        setOpenCancel(false);
-
+        setOpenEnabled(false);
+        selectedUser([]);
       }
     } catch (error) {
       console.error("Failed to enable user:", error);
-      alert("Error enabling user. Check the console for details.");
     }
     finally {
       setOpenCancel(false);
@@ -196,7 +200,7 @@ const UserPage = () => {
           <Button
             size="small"
             variant="contained"
-            color="primary" onClick={() => handleOpenView(params.row)}
+            color="primary" onClick={() => handleOpenEdit(params.row)}
             startIcon={<EditIcon />}>
             Edit
           </Button>
@@ -214,134 +218,163 @@ const UserPage = () => {
             <Button
               size="small"
               variant="contained"
-              color="success" onClick={() => handleSubmitEnabled(params.row)}
+              color="success" onClick={() => handleEnabled(params.row)}
               startIcon={<LockOpen />}>
               Enable
             </Button>
           )}
         </Box>
       ),
-      
+
     },
   ];
 
-return (
-  <Box sx={{ p: 1 }}>
-    <Card sx={{ px: 1 }}>
-      <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        px={2}
-        py={2}
-      >
-        <Typography variant="h6">User Management</Typography>
+  return (
+    <Box sx={{ p: 1 }}>
+      <Card sx={{ px: 1 }}>
+        <Box
+          display="flex"
+          justifyContent="space-between"
+          alignItems="center"
+          px={2}
+          py={2}
+        >
+          <Typography variant="h6">User Management</Typography>
 
-        <Grid
-          width={'40vw'}
-          sx={{
+          <Grid
+            width={'40vw'}
+            sx={{
+              display: 'flex',
+              gap: 2
+
+            }}>
+
+            <TextField
+              variant="outlined"
+              placeholder="Search by name, group, type…"
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              fullWidth
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSearchClick();
+              }}
+              size='small'
+            />
+            <Button variant="contained" onClick={handleSearchClick}>
+              Search
+            </Button>
+          </Grid>
+          <Grid sx={{
             display: 'flex',
             gap: 2
-
           }}>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleOpenAdd}
+            >
+              Add User
+            </Button>
+            <Button variant="outlined" onClick={() => setExcelDialogOpen(true)}>
+              Upload Excel
+            </Button>
+          </Grid>
 
-          <TextField
-            variant="outlined"
-            placeholder="Search by name, group, type…"
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            fullWidth
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleSearchClick();
-            }}
-            size='small'
+        </Box>
+
+        <Box sx={{ height: "75vh", width: "100%" }}>
+          <DataGrid
+            rows={Array.isArray(users) ? users : []}
+            getRowId={(row) => row.id}
+            loading={loading}
+            columns={columns}
+            pageSize={10}
+            rowsPerPageOptions={[10, 20, 50]}
+            disableRowSelectionOnClick
           />
-          <Button variant="contained" onClick={handleSearchClick}>
-            Search
+        </Box>
+      </Card>
+
+      <UserFormDialog
+        open={openForm}
+        onClose={() => setOpenForm(false)}
+        onSave={handleSave}
+        formData={formData}
+        setFormData={setFormData}
+        isEdit={isEdit}
+      />
+
+      <UserViewDialog
+        open={openView}
+        onClose={() => setOpenView(false)}
+        user={selectedUser}
+      />
+
+
+      <UploadExcelDialog
+        open={excelDialogOpen}
+        onClose={() => setExcelDialogOpen(false)}
+      />
+      <Dialog open={openCancel} onClose={() => setOpenCancel(false)}>
+        <DialogTitle>Disabled Account User </DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to disable this user account? This action cannot be undone.
+            <Divider />
+            <br />
+            Account will be disabled and user will not be able to login.
+          </DialogContentText>
+          <DialogContentText>
+            User: {selectedUser ? selectedUser.name : "N/A"}
+          </DialogContentText>
+          <DialogContentText>
+            Email: {selectedUser ? selectedUser.email : "N/A"}
+          </DialogContentText>
+          <DialogContentText>
+            Phone: {selectedUser ? selectedUser.phone : "N/A"}
+
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenView(false)} color="primary">
+            Cancel
           </Button>
-        </Grid>
-        <Grid sx={{
-          display: 'flex',
-          gap: 2
-        }}>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleOpenAdd}
-          >
-            Add User
+          <Button onClick={handleSubmitDisabled} color="secondary">
+            Disable
           </Button>
-          <Button variant="outlined" onClick={() => setExcelDialogOpen(true)}>
-            Upload Excel
+        </DialogActions>
+      </Dialog>
+      <Dialog open={openEnabled} onClose={() => setOpenEnabled(false)}>
+        <DialogTitle>Enabled Account User </DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to Enable this user account? This action cannot be undone.
+            <Divider />
+            <br />
+            Account will be Enabled and user will not be able to login.
+          </DialogContentText>
+          <DialogContentText>
+            User: {selectedUser ? selectedUser.name : "N/A"}
+          </DialogContentText>
+          <DialogContentText>
+            Email: {selectedUser ? selectedUser.email : "N/A"}
+          </DialogContentText>
+          <DialogContentText>
+            Phone: {selectedUser ? selectedUser.phone : "N/A"}
+
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenView(false)} color="primary">
+            Cancel
           </Button>
-        </Grid>
-
-      </Box>
-
-      <Box sx={{ height: "75vh", width: "100%" }}>
-        <DataGrid
-          rows={Array.isArray(users) ? users : []}
-          getRowId={(row) => row.id}
-          loading={loading}
-          columns={columns}
-          pageSize={10}
-          rowsPerPageOptions={[10, 20, 50]}
-          disableRowSelectionOnClick
-        />
-      </Box>
-    </Card>
-
-    <UserFormDialog
-      open={openForm}
-      onClose={() => setOpenForm(false)}
-      onSave={handleSave}
-      formData={formData}
-      setFormData={setFormData}
-      isEdit={isEdit}
-    />
-
-    <UserViewDialog
-      open={openView}
-      onClose={() => setOpenView(false)}
-      user={selectedUser}
-    />
-
-
-    <UploadExcelDialog
-      open={excelDialogOpen}
-      onClose={() => setExcelDialogOpen(false)}
-    />
-    <Dialog open={openCancel} onClose={() => setOpenCancel(false)}>
-      <DialogTitle>Disabled Account User </DialogTitle>
-      <DialogContent>
-        <DialogContentText>
-          Are you sure you want to disable this user account? This action cannot be undone.
-          <Divider />
-          <br />
-          Account will be disabled and user will not be able to login.
-        </DialogContentText>
-        <DialogContentText>
-          User: {selectedUser ? selectedUser.name : "N/A"}
-        </DialogContentText>
-        <DialogContentText>
-          Email: {selectedUser ? selectedUser.email : "N/A"}
-        </DialogContentText>
-        <DialogContentText>
-          Phone: {selectedUser ? selectedUser.phone : "N/A"}
-
-        </DialogContentText>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={() => setOpenView(false)} color="primary">
-          Cancel
-        </Button>
-        <Button onClick={handleSubmitDisabled} color="secondary">
-          Disable
-        </Button>
-      </DialogActions>
-    </Dialog>
-  </Box>
-);
+          <Button onClick={handleSubmitEnabled} color="secondary">
+            Enabled
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
 };
 
 export default UserPage;
