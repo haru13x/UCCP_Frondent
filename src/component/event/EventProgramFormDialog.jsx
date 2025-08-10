@@ -19,8 +19,8 @@ import {
 import { useEffect, useState } from "react";
 import SponsorFormDialog from "./SponsorFormDialog";
 import { Edit, Delete } from "@mui/icons-material";
-
-const EventProgramFormDialog = ({ open, onClose, onSaveAll, programs: initialPrograms = [], sponsors: initialSponsors = [] }) => {
+import { UseMethod } from "../../composables/UseMethod";
+const EventProgramFormDialog = ({ open, onClose, eventId, programs: initialPrograms = [], sponsors: initialSponsors = [] }) => {
   const [programs, setPrograms] = useState([]);
   const [eventSponsors, setEventSponsors] = useState([]);
   const [editIndex, setEditIndex] = useState(null);
@@ -121,15 +121,14 @@ const EventProgramFormDialog = ({ open, onClose, onSaveAll, programs: initialPro
     setEventSponsors(eventSponsors.filter((_, i) => i !== index));
   };
 
-  const handleSaveAll = () => {
+  const handleSaveAll = async () => {
     const payload = {
       programs,
-      sponsors: eventSponsors,
+      event_id : eventId
     };
-    onSaveAll(payload);
+    const res  = await UseMethod('post', 'test', payload);
     setPrograms([]);
-    setEventSponsors([]);
-    onClose();
+    alert(eventId);
   };
 
   return (
@@ -192,7 +191,7 @@ const EventProgramFormDialog = ({ open, onClose, onSaveAll, programs: initialPro
             {editIndex !== null ? "✏️ Update Program" : "➕ Add Program"}
           </Button>
 
-          <Button
+          {/* <Button
             variant="outlined"
             sx={{ ml: 2 }}
             onClick={() => {
@@ -201,7 +200,7 @@ const EventProgramFormDialog = ({ open, onClose, onSaveAll, programs: initialPro
             }}
           >
             🤝 Add Sponsor
-          </Button>
+          </Button> */}
             </Grid>
           </Grid>
 

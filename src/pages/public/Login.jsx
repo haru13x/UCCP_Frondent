@@ -9,7 +9,7 @@ import {
   Avatar,
   FormControlLabel,
   Checkbox,
-  Link,
+  
 } from "@mui/material";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -17,6 +17,8 @@ import ChurchIcon from "@mui/icons-material/Church";
 import TopBar from "../../component/TopBar";
 import { UseMethod } from "../../composables/UseMethod";
 import { useSnackbar } from "../../component/event/SnackbarProvider ";
+import { Link } from "react-router-dom";
+
 export default function Login() {
   const { showSnackbar } = useSnackbar();
   const [email, setEmail] = useState("");
@@ -27,8 +29,10 @@ export default function Login() {
   // Load saved email if "remember me" was used
   useEffect(() => {
     const savedEmail = localStorage.getItem("remember_email");
+    const savedPassword = localStorage.getItem("remember_password");
     if (savedEmail) {
       setEmail(savedEmail);
+      setPassword(savedPassword)
       setRemember(true);
     }
   }, []);
@@ -42,13 +46,16 @@ export default function Login() {
 
       if (res && res.status === 200) {
         const { api_token, user } = res.data;
+       
         localStorage.setItem("api_token", api_token);
         localStorage.setItem("user", JSON.stringify(user));
 
         if (remember) {
           localStorage.setItem("remember_email", email);
+          localStorage.setItem("remember_password", password);
         } else {
           localStorage.removeItem("remember_email");
+           localStorage.removeItem("remember_password");
         }
 
         showSnackbar({ message: "Login successful!", type: "success" });
@@ -184,8 +191,8 @@ export default function Login() {
                     </Typography>
                   }
                 />
-                <Link to="/forgot-password" style={linkStyle}>
-                  Forgot Password?
+                <Link to="/forget-password" style={linkStyle}>
+                  Forget Password?
                 </Link>
               </Box>
 

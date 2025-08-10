@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -9,12 +9,9 @@ import {
   MenuItem,
   Grid,
 } from "@mui/material";
+import { UseMethod } from "../../composables/UseMethod";
 
-const organizers = [
-  { id: 1, name: "Organizer A" },
-  { id: 2, name: "Organizer B" },
-  { id: 3, name: "Organizer C" },
-];
+
 
 export default function EventReportDialog({ open, onClose, onGenerate }) {
   const [filters, setFilters] = useState({
@@ -23,11 +20,17 @@ export default function EventReportDialog({ open, onClose, onGenerate }) {
     status: "1", // Default: Active
     organizerId: "",
   });
-
+  const [organizers, setOrganizer] = useState([]);
   const handleChange = (e) => {
     setFilters({ ...filters, [e.target.name]: e.target.value });
   };
-
+  useEffect(() => {
+    const fetchOrganizer = async () => {
+      const res = await UseMethod("get", `get-organizer`);
+      setOrganizer(res?.data || []);
+    }
+    fetchOrganizer();
+  }, [open])
   const handleGenerate = () => {
     onGenerate(filters);
     // onClose();
@@ -46,7 +49,7 @@ export default function EventReportDialog({ open, onClose, onGenerate }) {
       <DialogTitle>Generate Event Report</DialogTitle>
       <DialogContent dividers>
         <Grid container spacing={2} sx={{ mt: 1 }}>
-          <Grid size={{md:6}} item xs={12} sm={6}>
+          <Grid size={{ md: 6 }} item xs={12} sm={6}>
             <TextField
               name="fromDate"
               label="From Date"
@@ -58,23 +61,23 @@ export default function EventReportDialog({ open, onClose, onGenerate }) {
               InputLabelProps={{ shrink: true }}
             />
           </Grid>
-          <Grid  size={{md:6}}  item xs={12} sm={6}>
+          <Grid size={{ md: 6 }} item xs={12} sm={6}>
             <TextField
               name="toDate"
               label="To Date"
               type="date"
-               size="small"
+              size="small"
               fullWidth
               value={filters.toDate}
               onChange={handleChange}
               InputLabelProps={{ shrink: true }}
             />
           </Grid>
-          <Grid size={{md:12}}  item xs={12} sm={6}>
+          <Grid size={{ md: 12 }} item xs={12} sm={6}>
             <TextField
               name="status"
               label="Status"
-               size="small"
+              size="small"
               select
               fullWidth
               value={filters.status}
@@ -84,23 +87,34 @@ export default function EventReportDialog({ open, onClose, onGenerate }) {
               <MenuItem value="2">Cancelled</MenuItem>
             </TextField>
           </Grid>
-          <Grid size={{md:12}}  item xs={12} sm={6}>
-            <TextField
-              name="organizerId"
-              label="Organizer"
-               size="small"
-              select
-              fullWidth
-              value={filters.organizerId}
-              onChange={handleChange}
-            >
-              <MenuItem value="">All</MenuItem>
-              {organizers.map((org) => (
-                <MenuItem key={org.id} value={org.id}>
-                  {org.name}
-                </MenuItem>
-              ))}
-            </TextField>
+          <Grid size={{ md: 12 }} item xs={12} sm={6}>
+         <TextField
+  name="organizerId"
+  label="Organizer"
+  size="small"
+  select
+  fullWidth
+  value={filters.organizerId}
+  onChange={handleChange}
+  SelectProps={{
+    renderValue: (selected) => {
+      if (selected === '') {
+        return 'All'; // Show this when "All" is selected
+      }
+      const org = organizers.find((o) => String(o.id) === String(selected));
+      return org ? org.name : '';
+    },
+  }}
+>
+  <MenuItem value="">All</MenuItem>
+  {organizers.map((org) => (
+    <MenuItem key={org.id} value={String(org.id)}>
+      {org.name}
+    </MenuItem>
+  ))}
+</TextField>
+
+
           </Grid>
         </Grid>
       </DialogContent>

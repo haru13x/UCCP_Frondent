@@ -145,7 +145,7 @@ const Sidebar = () => {
                   },
                 }}
               >
-                <ListItemIcon sx={{ minWidth: 0, mr: collapsed ? 0 : 2 }}>
+                <ListItemIcon sx={{ minWidth: 0, mr: collapsed ? 0 : 1 }}>
                   <Icon color="primary" />
                 </ListItemIcon>
                 {!collapsed && <ListItemText primary={item.label} />}
@@ -164,8 +164,8 @@ const Sidebar = () => {
                       component={Link}
                       to={child.path}
                       sx={{
-                        pl: collapsed ? 3 : 5,
-                        mx: 1.5,
+                        pl: collapsed ? 3 : 2,
+                        mx: 1,
                         borderRadius: 2,
                         my: 0.5,
                         transition: "background 0.2s",

@@ -29,7 +29,7 @@ import DescriptionIcon from "@mui/icons-material/Description";
 import ArrowBackSharp from "@mui/icons-material/ArrowBackSharp";
 import { UseMethod } from "../../composables/UseMethod";
 import EventProgramFormDialog from "./EventProgramFormDialog";
-import { CategorySharp } from "@mui/icons-material";
+import { CategorySharp, ContactPhone } from "@mui/icons-material";
 
 // Load Google Maps Script
 const loadGoogleMapsScript = (callback) => {
@@ -64,7 +64,7 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
   const [openProgramForm, setOpenProgramForm] = useState(false);
   const [programs, setPrograms] = useState([]);
   const [sponsors, setSponsors] = useState([]);
-
+  const [organizer, setOrganizer] = useState([]);
   // Load account groups
   useEffect(() => {
     const fetchAccountGroups = async () => {
@@ -73,7 +73,13 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
     };
     if (open) fetchAccountGroups();
   }, [open]);
-
+  useEffect(() => {
+    const fetchOrganizer = async () => {
+      const res = await UseMethod("get", `get-organizer`);
+      setOrganizer(res?.data || []);
+    }
+    fetchOrganizer();
+  }, [open])
   // Load account types when group changes
   useEffect(() => {
     const fetchAccountTypes = async () => {
@@ -480,39 +486,74 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
                   </Grid>
                 </Grid>
 
-                {/* Organizer */}
-                <TextField
-                  label="Organizer"
-                  value={formData.organizer || ""}
-                  onChange={(e) => setFormData({ ...formData, organizer: e.target.value })}
-                  fullWidth
-                  size="small"
-                  sx={{ mt: 2 }}
-                  variant="outlined"
-                />
-
-                {/* Category */}
                 <Autocomplete
-                  options={accountGroups}
-                  getOptionLabel={(option) => option.description}
-                  value={accountGroups.find((g) => g.id === formData.accountGroupId) || null}
-                  onChange={handleCategoryChange}
+                  options={organizer}
+                  getOptionLabel={(option) => option?.name || ""}
+                  value={
+                    organizer.find((g) => g.id === parseInt(formData.organizer)) || null
+                  }
+                  onChange={(event, newValue) => {
+                    setFormData({
+                      ...formData,
+                      organizer: newValue ? newValue.id : null, // store only the ID
+                    });
+                  }}
                   renderInput={(params) => (
                     <TextField
                       {...params}
-                      label="Event Category"
+                      label="Organizer"
                       size="small"
                       fullWidth
                       sx={{ my: 2 }}
                       InputProps={{
                         ...params.InputProps,
-                        startAdornment: <CategorySharp fontSize="small" color="action" sx={{ mr: 1 }} />,
+                        startAdornment: (
+                          <>
+                            <CategorySharp fontSize="small" color="action" sx={{ mr: 1 }} />
+                            {params.InputProps.startAdornment}
+                          </>
+                        ),
                       }}
                     />
                   )}
                 />
-
-
+                  <Grid container spacing={2} >
+                <Grid size={{ md: 6 }} item xs={6}>
+                     <TextField
+                  label="Contact Number"
+                  value={formData.contact}
+                  onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
+                  fullWidth
+                  required
+                  variant="outlined"
+                  size="small"
+                  sx={{ mb: 2 }}
+                  InputProps={{ startAdornment: <ContactPhone fontSize="small" color="action" sx={{ mr: 1 }} /> }}
+                />
+                </Grid>
+                <Grid size={{ md: 6 }} item xs={6}>
+                  {/* Category */}
+                  <Autocomplete
+                    options={accountGroups}
+                    getOptionLabel={(option) => option.description}
+                    value={accountGroups.find((g) => g.id === formData.accountGroupId) || null}
+                    onChange={handleCategoryChange}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Event Category"
+                        size="small"
+                        fullWidth
+                        sx={{ mb: 1 }}
+                        InputProps={{
+                          ...params.InputProps,
+                          startAdornment: <CategorySharp fontSize="small" color="action" sx={{ mr: 1 }} />,
+                        }}
+                      />
+                    )}
+                  />
+                </Grid>
+</Grid>
                 <Autocomplete
                   multiple
                   disableCloseOnSelect

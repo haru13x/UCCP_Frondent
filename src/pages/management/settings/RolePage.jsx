@@ -5,13 +5,14 @@ import {
   Paper,
   IconButton,
   Grid,
+  Box,
   Dialog,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import { Visibility, Edit } from "@mui/icons-material";
 import RoleFormModal from "../../../component/users/RoleFormModal";
 import { UseMethod } from "../../../composables/UseMethod";
-
+import VisibilityIcon from "@mui/icons-material/Visibility";
 const RolePage = () => {
   const [open, setOpen] = useState(false);
   const [roles, setRoles] = useState([]);
@@ -37,24 +38,32 @@ const RolePage = () => {
       width: 150,
       renderCell: (params) => (
         <>
-          <IconButton
-            color="primary"
-            onClick={() => {
-              setSelectedRole(params.row);
-              setOpen(true);
-            }}
+
+          <Box
+            display="flex"
+            justifyContent="center"
+            alignItems="center"
+            height={50}
+            flexDirection="row"
+
+            width="100%"
+            gap={1}
+            flexWrap="wrap"
           >
-            <Visibility />
-          </IconButton>
-          <IconButton
-            color="secondary"
-            onClick={() => {
-              setSelectedRole(params.row);
-              setOpen(true);
-            }}
-          >
-            <Edit />
-          </IconButton>
+            <Button
+              size="small"
+              variant="outlined"
+              color="info"
+              onClick={() => {
+                setSelectedRole(params.row);
+                setOpen(true);
+              }}
+              startIcon={<Edit />}
+            >
+              Edit
+            </Button>
+
+          </Box>
         </>
       ),
     },

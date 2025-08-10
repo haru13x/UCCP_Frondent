@@ -14,6 +14,7 @@ import {
   Man,
   ManageAccounts,
   ManageHistory,
+  ManageAccountsOutlined,
 } from "@mui/icons-material";
 import { List } from "@mui/material";
 
@@ -43,19 +44,19 @@ export const sidebarConfig = [
     rule: null,
     children: [
 
-
+  //  {
+  //   label: "Organizer Event",
+  //   icon: ManageAccountsOutlined,
+  //   path: "/organizer",
+  //   // rule: "view_events",
+  // },
   {
     label: "Events",
     icon: Groups,
     path: "/events",
     rule: "view_events",
   },
-  //  {
-  //   label: "Scan QR Code",
-  //   icon: QrCode,
-  //   path: "/qrcode",
-  //   // rule: "view_events",
-  // },
+
   // {
   //   label: "Report",
   //   icon: DocumentScanner,
