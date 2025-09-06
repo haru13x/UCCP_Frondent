@@ -7,9 +7,12 @@ import {
   Grid,
   Box,
   Dialog,
+  Card,
+  TextField,
+  InputAdornment,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
-import { Visibility, Edit } from "@mui/icons-material";
+import { Visibility, Edit, Add, Search } from "@mui/icons-material";
 import RoleFormModal from "../../../component/users/RoleFormModal";
 import { UseMethod } from "../../../composables/UseMethod";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -17,10 +20,19 @@ const RolePage = () => {
   const [open, setOpen] = useState(false);
   const [roles, setRoles] = useState([]);
   const [selectedRole, setSelectedRole] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [searchText, setSearchText] = useState("");
 
   const fetchRoles = async () => {
-    const res = await UseMethod("get", "get-roles");
-    if (res?.data) setRoles(res.data);
+    try {
+      setLoading(true);
+      const res = await UseMethod("get", "get-roles");
+      if (res?.data) setRoles(res.data);
+    } catch (error) {
+      console.error("Failed to fetch roles:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -53,7 +65,20 @@ const RolePage = () => {
             <Button
               size="small"
               variant="outlined"
-              color="info"
+              sx={{
+                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                border: "none",
+                color: "white",
+                borderRadius: "8px",
+                textTransform: "none",
+                fontWeight: "600",
+                boxShadow: "0 4px 15px rgba(102, 126, 234, 0.3)",
+                "&:hover": {
+                  background: "linear-gradient(135deg, #764ba2 0%, #667eea 100%)",
+                  transform: "translateY(-2px)",
+                  boxShadow: "0 6px 20px rgba(102, 126, 234, 0.4)",
+                },
+              }}
               onClick={() => {
                 setSelectedRole(params.row);
                 setOpen(true);
@@ -74,6 +99,12 @@ const RolePage = () => {
     setSelectedRole(null);
     fetchRoles();
   };
+
+  const filteredRoles = roles.filter((role) =>
+    role.name?.toLowerCase().includes(searchText.toLowerCase()) ||
+    role.slug?.toLowerCase().includes(searchText.toLowerCase()) ||
+    role.description?.toLowerCase().includes(searchText.toLowerCase())
+  );
 
   return (
     <Paper sx={{ p: 3 }}>
