@@ -5,31 +5,30 @@ import Sidebar from "../component/SideBar";
 import { DRAWER_WIDTH_COLLAPSED, DRAWER_WIDTH_EXPANDED } from "./constants";
 
 const MainLayout = ({ children }) => {
-  const [drawerOpen, setDrawerOpen] = useState(true);
-  const drawerWidth = drawerOpen ? DRAWER_WIDTH_EXPANDED : DRAWER_WIDTH_COLLAPSED;
+  const [collapsed, setCollapsed] = useState(false);
+  const drawerWidth = collapsed ? DRAWER_WIDTH_COLLAPSED : DRAWER_WIDTH_EXPANDED;
 
   return (
     <Box sx={{ display: "flex" }}>
       <CssBaseline />
 
       {/* Top Bar */}
-      <Sidebar open={drawerOpen} />
-
-      <TopBars toggleDrawer={() => setDrawerOpen(!drawerOpen)} />
+      <TopBars toggleDrawer={() => setCollapsed(!collapsed)} />
 
       {/* Sidebar */}
+      <Sidebar collapsed={collapsed} />
 
       {/* Main content */}
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          width: "86%",
-          transition: "margin-left 0.3s",
-          // marginLeft: drawerOpen ? `${drawerWidth}px` : "0px",  // Add this line
-          p: 2,
-          minHeight: "80vh",
-
+          transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+          marginLeft: `${drawerWidth}px`,
+        
+          minHeight: "100vh",
+          backgroundColor: "#fafafa",
+          position: "relative",
         }}
       >
         <Toolbar />

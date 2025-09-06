@@ -7,8 +7,6 @@ import {
   Card,
   CardContent,
   Divider,
-  Tabs,
-  Tab,
   CircularProgress,
   TextField,
   Button,
@@ -27,6 +25,7 @@ import {
 import { UseMethod } from "../composables/UseMethod";
 import EventSlideDialog from "../component/event/EventSlideDialog";
 import { useSnackbar } from "../component/event/SnackbarProvider ";
+import Calendar from "../component/Calendar";
 
 const formatTimelineDate = (dateStr) => {
   const date = new Date(dateStr);
@@ -51,8 +50,7 @@ const groupByDate = (items) => {
 const MyList = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState("today");
-  const [events, setEvents] = useState({ today: [], upcoming: [], past: [] });
+  const [events, setEvents] = useState([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [tabIndex, setTabIndex] = useState(0);
@@ -62,16 +60,27 @@ const MyList = () => {
   const [searchInput, setSearchInput] = useState("");
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  // Removed categorizedEvents state since we show all events directly
 
-  const fetchTabData = async (tabName) => {
+  // Fetch events for a specific month and year
+  const fetchMonthlyEvents = async (month, year, specificDate = null) => {
     setLoading(true);
     try {
-      const res = await UseMethod("get", `my-events-list/${tabName}`);
+      let url = `my-events-list?month=${month}&year=${year}`;
+      if (specificDate) {
+        url = `my-events-list?date=${specificDate}`;
+      }
+      
+      const res = await UseMethod("get", url);
+      
       if (res?.data && Array.isArray(res.data)) {
-        setEvents((prev) => ({
-          ...prev,
-          [tabName]: res.data.map((e) => ({ ...e, type: "event" })),
-        }));
+        const eventsWithType = res.data.map((e) => ({ ...e, type: "event" }));
+        setEvents(eventsWithType);
+        
+        // No need to categorize events anymore since we show all events
       }
     } catch (error) {
       console.error("Failed to fetch events:", error);
@@ -84,12 +93,29 @@ const MyList = () => {
     }
   };
 
+  // Removed categorization logic since we now show all events directly
+
   useEffect(() => {
-    fetchTabData(tab);
-  }, [tab]);
+    if (selectedDate) {
+      // Fetch events for specific date
+      fetchMonthlyEvents(currentMonth, currentYear, selectedDate);
+    } else {
+      // Fetch events for current month
+      fetchMonthlyEvents(currentMonth, currentYear);
+    }
+  }, [currentMonth, currentYear, selectedDate]);
+
+  useEffect(() => {
+    // Initialize with current month
+    fetchMonthlyEvents(currentMonth, currentYear);
+  }, []);
 
   const handleSearch = () => {
-    fetchTabData(tab);
+    if (selectedDate) {
+      fetchMonthlyEvents(currentMonth, currentYear, selectedDate);
+    } else {
+      fetchMonthlyEvents(currentMonth, currentYear);
+    }
   };
 
   const handleGenerateQR = async () => {
@@ -193,11 +219,46 @@ const MyList = () => {
     );
   };
 
+  // Handle calendar date click
+  const handleDateClick = (dateStr) => {
+    setSelectedDate(dateStr);
+  };
+
+  // Handle calendar month change
+  const handleMonthChange = (monthDate) => {
+    const newMonth = monthDate.getMonth() + 1; // JavaScript months are 0-indexed
+    const newYear = monthDate.getFullYear();
+    
+    setCurrentMonth(newMonth);
+    setCurrentYear(newYear);
+    setSelectedDate(null); // Clear specific date selection when changing months
+  };
+  
+  // Clear date filter
+  const handleClearFilter = () => {
+    setSelectedDate(null);
+    const today = new Date();
+    setCurrentMonth(today.getMonth() + 1);
+    setCurrentYear(today.getFullYear());
+  };
+
   // Render Timeline View
   const renderTimeline = (items) => {
     const grouped = groupByDate(items);
     return Object.entries(grouped).map(([date, group]) => (
-      <Box key={date} display="flex" position="relative" mb={3}>
+      <Box 
+        key={date} 
+        id={`date-${date}`}
+        display="flex" 
+        position="relative" 
+        mb={3}
+        sx={{
+          transition: 'background-color 0.3s ease',
+          borderRadius: 1,
+          p: 1,
+          ml: -1,
+        }}
+      >
         {/* Timeline Dot & Line */}
         <Box sx={{ position: "relative", minWidth: 160 }}>
           <FiberManualRecord
@@ -243,8 +304,8 @@ const MyList = () => {
   };
 
   return (
-    <Box sx={{ px: { xs: 2, sm: 3, md: 4 }, py: 3 }}>
-      {/* Header: Tabs + Search */}
+    <Box sx={{ px: { xs: 2, sm: 3, md: 4 }, py: 3 ,height: '100vh'}}>
+      {/* Header: Month/Year Display + Search */}
       <Box
         display="flex"
         justifyContent="space-between"
@@ -252,99 +313,159 @@ const MyList = () => {
         flexWrap="wrap"
         gap={2}
         mb={3}
-        maxWidth="950px"
+        
+        maxWidth={{ xs: "950px", md: "1400px" }}
         mx="auto"
       >
-        <Tabs
-          value={tab}
-          onChange={(e, v) => setTab(v)}
-          variant="scrollable"
-          scrollButtons="auto"
-          sx={{
-            "& .MuiTab-root": {
-              textTransform: "none",
-              fontWeight: 500,
-              fontSize: "16px",
-            },
-            "& .Mui-selected": {
-              color: "#1976d2",
-            },
-          }}
-        >
-          <Tab value="today" label="Today" />
-          <Tab value="upcoming" label="Upcoming" />
-          <Tab value="past" label="Past" />
-        </Tabs>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <Typography variant="h5" fontWeight="bold" color="primary.main">
+            {new Date(currentYear, currentMonth - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+          </Typography>
+          {selectedDate && (
+            <Typography variant="body1" color="text.secondary">
+              - {new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+            </Typography>
+          )}
+        </Box>
 
-        {/* Search */}
-        <Box
-          component="form"
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSearch();
-          }}
-          sx={{ display: "flex", width: { xs: "100%", sm: "auto" } }}
-        >
-          <TextField
-            size="small"
-            placeholder="Search my events..."
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            sx={{
-              borderRadius: 2,
-              width: { xs: "100%", sm: 350 },
-              "& .MuiOutlinedInput-root": {
-                borderRadius: "28px",
-              },
+        {/* Search and Filter Controls */}
+        <Box sx={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap", width: { xs: "100%", sm: "auto" } }}>
+          {/* Date Filter Indicator */}
+          {selectedDate && (
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, bgcolor: "primary.50", px: 2, py: 1, borderRadius: 1 }}>
+              <Typography variant="body2" color="primary.main">
+                Viewing: {new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+              </Typography>
+              <Button
+                size="small"
+                variant="outlined"
+                color="primary"
+                onClick={handleClearFilter}
+                sx={{ minWidth: "auto", px: 1 }}
+              >
+                Clear
+              </Button>
+            </Box>
+          )}
+          
+          {/* Search */}
+          <Box
+            component="form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSearch();
             }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search fontSize="small" color="action" />
-                </InputAdornment>
-              ),
-            }}
-          />
-          <Button
-            type="submit"
-            variant="contained"
-            sx={{
-              ml: 1,
-              px: 2.5,
-              height: 40,
-              borderRadius: "28px",
-              fontWeight: "600",
-              display: { xs: "none", sm: "inline-flex" },
-              backgroundColor: "#1976d2",
-              "&:hover": { backgroundColor: "#1565c0" },
-            }}
+            sx={{ display: "flex" }}
           >
-            Search
-          </Button>
+            <TextField
+              size="small"
+              placeholder="Search my events..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              sx={{
+                borderRadius: 2,
+                width: { xs: "100%", sm: 350 },
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: "28px",
+                },
+              }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Search fontSize="small" color="action" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <Button
+              type="submit"
+              variant="contained"
+              sx={{
+                ml: 1,
+                px: 2.5,
+                height: 40,
+                borderRadius: "28px",
+                fontWeight: "600",
+                display: { xs: "none", sm: "inline-flex" },
+                backgroundColor: "#1976d2",
+                "&:hover": { backgroundColor: "#1565c0" },
+              }}
+            >
+              Search
+            </Button>
+          </Box>
         </Box>
       </Box>
 
       {/* Content */}
-      <Box maxWidth="950px" mx="auto">
+      <Box maxWidth={{ xs: "950px", md: "1400px" }} mx="auto">
         <Divider sx={{ mb: 3, borderColor: "divider" }} />
+        
+        {/* Main Content with Calendar Layout */}
+        <Box 
+          display="flex" 
+          gap={3} 
+          alignItems="flex-start"
+          sx={{
+            flexDirection: { xs: 'column', md: 'row' },
+          }}
+        >
+          {/* Main Events Content */}
+          <Box 
+            sx={{ 
+              flex: 1,
+              minWidth: 0, // Prevents flex item from overflowing
+              maxWidth: { xs: '100%', md: 'calc(100% - 340px)' }
+            }}
+          >
+            {loading ? (
+              <Box display="flex" justifyContent="center" alignItems="center" py={6}>
+                <CircularProgress color="primary" />
+              </Box>
+            ) : (() => {
+              // Show all events (either for specific date or for the month)
+              const eventsToShow = events || [];
+              
+              return eventsToShow.length > 0 ? (
+                renderTimeline(eventsToShow)
+              ) : (
+                <Box textAlign="center" py={6}>
+                  <Box component="img" src="/event.png" alt="No events" sx={{ width: 320, opacity: 0.6 }} />
+                  <Typography variant="h6" color="text.secondary">
+                    {selectedDate 
+                      ? `No Events Found for ${new Date(selectedDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}`
+                      : `No Events Found for ${new Date(currentYear, currentMonth - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`
+                    }
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" mt={1}>
+                    {selectedDate 
+                      ? 'No events are scheduled for this date.'
+                      : 'No events are scheduled for this month.'
+                    }
+                  </Typography>
+                </Box>
+              );
+            })()}
+          </Box>
+          
+          {/* Calendar Sidebar */}
+          <Box 
+            sx={{ 
+              display: { xs: 'none', md: 'block' },
+              flexShrink: 0,
+              position: 'sticky',
+              top: 20,
+            }}
+          >
 
-        {loading ? (
-          <Box display="flex" justifyContent="center" alignItems="center" py={6}>
-            <CircularProgress color="primary" />
+            <Calendar 
+              events={events} 
+              onDateClick={handleDateClick}
+              selectedDate={selectedDate}
+              onMonthChange={handleMonthChange}
+            />
           </Box>
-        ) : events[tab].length > 0 ? (
-          renderTimeline(events[tab])
-        ) : (
-          <Box textAlign="center" py={6}>
-            <Box component="img" src="/event.png" alt="No events" sx={{ width: 320, opacity: 0.6 }} />
-            <Typography variant="h6" color="text.secondary">
-              No {tab.charAt(0).toUpperCase() + tab.slice(1)} Events Found
-            </Typography>
-            <Typography variant="body2" color="text.secondary" mt={1}>
-              You have no events scheduled for this period.
-            </Typography>
-          </Box>
-        )}
+        </Box>
       </Box>
 
       {/* Slide Dialog */}

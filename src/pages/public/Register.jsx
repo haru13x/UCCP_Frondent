@@ -10,7 +10,17 @@ import {
   Grid,
   Autocomplete,
   Divider,
+  Container,
+  Avatar,
+  Chip,
 } from "@mui/material";
+import {
+  PersonAdd as PersonAddIcon,
+  School as SchoolIcon,
+  Group as GroupIcon,
+  Security as SecurityIcon,
+  EventAvailable,
+} from "@mui/icons-material";
 import { Link, useNavigate } from "react-router-dom";
 import TopBar from "../../component/TopBar";
 import { useState, useEffect } from "react";
@@ -29,16 +39,16 @@ export default function Register() {
     email: "",
     password: "",
     confirmPassword: "",
-    role: "",
+    location: "",
     accountGroupId: null,
     account_type_id: [],
   });
 
   const [formErrors, setFormErrors] = useState({});
-  const [roles, setRoles] = useState([]);
+  
   const [accountGroups, setAccountGroups] = useState([]);
   const [accountTypes, setAccountTypes] = useState([]);
-
+  const [locations, setLocations] = useState([]);
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -66,7 +76,7 @@ export default function Register() {
       "email",
       "password",
       "confirmPassword",
-      "role",
+      "location",
       "accountGroupId",
     ];
 
@@ -104,7 +114,7 @@ export default function Register() {
         last_name: formData.lastName,
         middle_name: formData.middleName,
         gender: formData.gender,
-        role: formData.role,
+        location: formData.location,
         account_group_id: formData.accountGroupId,
         account_type_id: formData.account_type_id,
       };
@@ -142,17 +152,17 @@ export default function Register() {
       }
     };
 
-    const fetchRoles = async () => {
+    const fetchLocation = async () => {
       try {
-        const res = await UseMethod("get", "get-roles");
-        if (res?.data) setRoles(res.data);
+        const res = await UseMethod("get", "get-church-locations");
+        if (res?.data) setLocations(res.data);
       } catch (error) {
-        console.error("Failed to fetch roles:", error);
+        console.error("Failed to fetch locations:", error);
       }
     };
 
     fetchAccountGroups();
-    fetchRoles();
+    fetchLocation();
   }, []);
 
   return (
@@ -161,343 +171,458 @@ export default function Register() {
       <Box
         sx={{
           minHeight: "100vh",
-          background: "linear-gradient(135deg, #f1f1f9ff, #e4f0f8ff, #666768ff)",
-          backgroundSize: "400% 400%",
-          animation: "gradientShift 12s ease infinite",
+          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
           display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-       
           position: "relative",
+          overflow: "hidden",
+
         }}
       >
-        {/* Animated Background */}
-        <style jsx>{`
-          @keyframes gradientShift {
-            0% {
-              background-position: 0% 50%;
-            }
-            50% {
-              background-position: 100% 50%;
-            }
-            100% {
-              background-position: 0% 50%;
-            }
-          }
-        `}</style>
+        <Container maxWidth="xl" sx={{ height: "90h", display: "flex", alignItems: "center", py: 4 }}>
+          <Grid container spacing={5} sx={{ height: "100%", alignItems: "" }}>
+            {/* Left Side - Welcome Content */}
+            <Grid size={{ md: 6 }} item xs={12} md={6} sx={{ pr: { md: 8 }, display: "flex", alignItems: "flex-start", justifyContent: "center" }}>
+              <Box sx={{ textAlign: "center", color: "white", pt: 4 }}>
+                <Avatar
+                  sx={{
+                    width: 80,
+                    height: 80,
+                    mb: 3,
+                    mx: "auto",
+                    background: "linear-gradient(45deg, rgba(255,255,255,0.2), rgba(255,255,255,0.1))",
+                    backdropFilter: "blur(10px)",
+                    border: "2px solid rgba(255,255,255,0.3)",
+                    animation: "gradientRotate 8s linear infinite",
+                  }}
+                >
+                  <PersonAddIcon sx={{ fontSize: 40, color: "white" }} />
+                </Avatar>
 
-        {/* Form Card */}
-        <Card
-          sx={{
-            width: "100%",
-            maxWidth: 650,
-            borderRadius: 4,
-            boxShadow: "0 20px 40px rgba(0,0,0,0.15)",
-            overflow: "hidden",
-            backdropFilter: "blur(10px)",
-            backgroundColor: "rgba(255, 255, 255, 0.95)",
-            transition: "transform 0.3s ease, box-shadow 0.3s ease",
-            "&:hover": {
-              transform: "translateY(-4px)",
-              boxShadow: "0 25px 50px rgba(0,0,0,0.2)",
-            },
-          }}
-        >
-          <CardContent sx={{ p: { xs: 3, sm: 5 } }}>
-            <Box textAlign="center" mb={3}>
-              <Typography
-                variant="h4"
-                fontWeight="bold"
-                color="primary"
-                sx={{ letterSpacing: 1 }}
+                <Typography
+                  variant="h2"
+                  sx={{
+                    fontWeight: 800,
+                    mb: 2,
+                    background: "linear-gradient(45deg, #ffffff, #f0f8ff, #e6f3ff)",
+                    backgroundSize: "200% 200%",
+                    backgroundClip: "text",
+                    WebkitBackgroundClip: "text",
+                    color: "transparent",
+                    animation: "textGradient 3s ease infinite",
+                    fontSize: { xs: "2.5rem", md: "3.5rem" },
+                  }}
+                >
+                  Join UCCP
+                </Typography>
+
+                <Typography
+                  variant="h6"
+                  sx={{
+                    mb: 4,
+                    opacity: 0.9,
+                    fontSize: { xs: "1.1rem", md: "1.25rem" },
+                    lineHeight: 1.6,
+                  }}
+                >
+                  Create your account and become part of our community
+                </Typography>
+
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mb: 5, justifyContent: "center" }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                    <EventAvailable sx={{ fontSize: 24, opacity: 0.8 }} />
+                    <Typography variant="body1" sx={{ opacity: 0.9 }}>Manage your Events</Typography>
+                  </Box>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                    <GroupIcon sx={{ fontSize: 24, opacity: 0.8 }} />
+                    <Typography variant="body1" sx={{ opacity: 0.9 }}>Connect with community members</Typography>
+                  </Box>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                    <SecurityIcon sx={{ fontSize: 24, opacity: 0.8 }} />
+                    <Typography variant="body1" sx={{ opacity: 0.9 }}>Secure and verified accounts</Typography>
+                  </Box>
+                </Box>
+
+                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, justifyContent: "center" }}>
+                  <Chip label="Event Portal" variant="outlined" sx={{ color: "white", borderColor: "rgba(255,255,255,0.3)" }} />
+                  <Chip label="Church Activities" variant="outlined" sx={{ color: "white", borderColor: "rgba(255,255,255,0.3)" }} />
+                  <Chip label="Building Faith" variant="outlined" sx={{ color: "white", borderColor: "rgba(255,255,255,0.3)" }} />
+                </Box>
+              </Box>
+            </Grid>
+
+            {/* Right Side - Registration Form */}
+            <Grid size={{ md: 6 }} item xs={12} md={6} sx={{ pl: { md: 8 } }}>
+              <Card
+                sx={{
+                  maxWidth: 850,
+
+                  background: "rgba(255, 255, 255, 0.95)",
+                  backdropFilter: "blur(20px)",
+                  border: "1px solid rgba(255, 255, 255, 0.2)",
+                  boxShadow: "0 25px 50px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.1)",
+                  position: "relative",
+                  overflow: "hidden",
+
+                }}
               >
-                Join UCCP
-              </Typography>
-              <Typography variant="subtitle1" color="text.secondary">
-                Request an account to get started
-              </Typography>
-            </Box>
+                <CardContent sx={{ p: { xs: 3, sm: 5 } }}>
+                  <Box textAlign="center" mb={1}>
 
-            <Divider sx={{ mb: 3 }} />
 
-            <Box component="form" onSubmit={handleSubmit}>
-              <Grid container spacing={2}>
-                {/* Name Fields */}
-                <Grid size={{md:6 , sm:12}} item xs={12} sm={6}>
-                  <TextField
-                    label="First Name"
-                    name="firstName"
-                    value={formData.firstName}
-                    onChange={handleChange}
-                    fullWidth
-                    size="small"
-                    required
-                    error={!!formErrors.firstName}
-                    helperText={formErrors.firstName}
-                    sx={inputStyle}
-                  />
-                </Grid>
-                <Grid size={{md:6 , sm:12}} item xs={12} sm={6}>
-                  <TextField
-                    label="Last Name"
-                    name="lastName"
-                    value={formData.lastName}
-                    onChange={handleChange}
-                    fullWidth
-                    size="small"
-                    required
-                    error={!!formErrors.lastName}
-                    helperText={formErrors.lastName}
-                    sx={inputStyle}
-                  />
-                </Grid>
-                <Grid size={{md:6 , sm:12}} item xs={12} sm={6}>
-                  <TextField
-                    label="Middle Name (Optional)"
-                    name="middleName"
-                    value={formData.middleName}
-                    onChange={handleChange}
-                    fullWidth
-                    size="small"
-                    sx={inputStyle}
-                  />
-                </Grid>
-                <Grid size={{md:6 , sm:12}} item xs={12} sm={6}>
-                  <TextField
-                    select
-                    label="Gender"
-                    name="gender"
-                    value={formData.gender}
-                    onChange={handleChange}
-                    fullWidth
-                    size="small"
-                    required
-                    error={!!formErrors.gender}
-                    helperText={formErrors.gender}
-                    sx={inputStyle}
-                  >
-                    <MenuItem value="1">Male</MenuItem>
-                    <MenuItem value="2">Female</MenuItem>
-                  </TextField>
-                </Grid>
-
-                {/* Login Info */}
-                <Grid size={{md:6 , sm:12}} item xs={12} sm={6}>
-                  <TextField
-                    label="Username"
-                    name="username"
-                    value={formData.username}
-                    onChange={handleChange}
-                    fullWidth
-                    size="small"
-                    required
-                    error={!!formErrors.username}
-                    helperText={formErrors.username}
-                    sx={inputStyle}
-                  />
-                </Grid>
-                <Grid size={{md:6 , sm:12}} item xs={12} sm={6}>
-                  <TextField
-                    label="Email"
-                    name="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    fullWidth
-                    size="small"
-                    required
-                    error={!!formErrors.email}
-                    helperText={formErrors.email}
-                    sx={inputStyle}
-                  />
-                </Grid>
-                <Grid size={{md:6 , sm:12}} item xs={12} sm={6}>
-                  <TextField
-                    label="Password"
-                    name="password"
-                    type="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    fullWidth
-                    size="small"
-                    required
-                    error={!!formErrors.password}
-                    helperText={formErrors.password}
-                    sx={inputStyle}
-                  />
-                </Grid>
-                <Grid size={{md:6 , sm:12}} item xs={12} sm={6}>
-                  <TextField
-                    label="Confirm Password"
-                    name="confirmPassword"
-                    type="password"
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    fullWidth
-                    size="small"
-                    required
-                    error={!!formErrors.confirmPassword}
-                    helperText={formErrors.confirmPassword}
-                    sx={inputStyle}
-                  />
-                </Grid>
-
-                {/* Role & Group */}
-                <Grid size={{md:6 , sm:12}} item xs={12} sm={6}>
-                  <TextField
-                    select
-                    label="Role"
-                    name="role"
-                    value={formData.role}
-                    onChange={handleChange}
-                    fullWidth
-                    size="small"
-                    required
-                    error={!!formErrors.role}
-                    helperText={formErrors.role}
-                    sx={inputStyle}
-                  >
-                    {roles.map((role) => (
-                      <MenuItem key={role.id} value={role.id}>
-                        {role.slug}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </Grid>
-                <Grid size={{md:6 , sm:12}} item xs={12} sm={6}>
-                  <Autocomplete
-                    options={accountGroups}
-                    getOptionLabel={(option) => option.description}
-                    value={
-                      accountGroups.find((g) => g.id === formData.accountGroupId) || null
-                    }
-                    onChange={handleCategoryChange}
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        label="Account Group"
-                        size="small"
-                        required
-                        error={!!formErrors.accountGroupId}
-                        helperText={formErrors.accountGroupId}
-                        sx={inputStyle}
-                      />
-                    )}
-                  />
-                </Grid>
-
-                {/* Account Types */}
-                <Grid size={{md:12 , sm:12}} item xs={12}>
-                  <Autocomplete
-                    multiple
-                    options={accountTypes}
-                    disableCloseOnSelect
-                    getOptionLabel={(option) => option.description}
-                    value={accountTypes.filter((type) =>
-                      formData.account_type_id.includes(type.id)
-                    )}
-                    onChange={(e, values) =>
-                      setFormData({
-                        ...formData,
-                        account_type_id: values.map((v) => v.id),
-                      })
-                    }
-                    renderOption={(props, option, { selected }) => (
-                      <li {...props}>
-                        <Box
-                          component="span"
-                          sx={{
-                            width: 18,
-                            height: 18,
-                            mr: 1,
-                            border: "1px solid #ccc",
-                            borderRadius: "4px",
-                            backgroundColor: selected ? "#1976d2" : "#fff",
-                          }}
-                        />
-                        {option.description}
-                      </li>
-                    )}
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        label="Account Types"
-                        size="small"
-
-                        error={!!formErrors.account_type_id}
-                        helperText={formErrors.account_type_id}
-                        sx={inputStyle}
-                      />
-                    )}
-                  />
-                </Grid>
-
-                {/* Submit Button */}
-                <Grid size={{md:12 , sm:12}} item xs={12} mt={2}>
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    fullWidth
-                    sx={{
-                      py: 1.5,
-                      fontWeight: "bold",
-                      fontSize: "16px",
-                      background: "linear-gradient(45deg, #1976d2, #2196f3)",
-                      boxShadow: "0 4px 15px rgba(33, 150, 243, 0.3)",
-                      "&:hover": {
-                        background: "linear-gradient(45deg, #1565c0, #1976d2)",
-                        transform: "scale(1.02)",
-                      },
-                      transition: "all 0.2s ease",
-                      borderRadius: 2,
-                    }}
-                  >
-                    Request Account
-                  </Button>
-                </Grid>
-
-                {/* Login Link */}
-                <Grid size={{md:12 , sm:12}} item xs={12} textAlign="center" mt={2}>
-                  <Typography variant="body2" color="text.secondary">
-                    Already have an account?{" "}
-                    <Link
-                      to="/"
-                      style={{
-                        color: "#1976d2",
-                        fontWeight: 500,
-                        textDecoration: "none",
+                    <Typography
+                      variant="h4"
+                      sx={{
+                        fontWeight: 800,
+                        mb: 1,
+                        background: "linear-gradient(45deg, #667eea, #764ba2, #f093fb)",
+                        backgroundSize: "200% 200%",
+                        backgroundClip: "text",
+                        WebkitBackgroundClip: "text",
+                        color: "transparent",
+                        animation: "textGradient 3s ease infinite",
                       }}
                     >
-                      Login here
-                    </Link>
-                  </Typography>
-                </Grid>
-              </Grid>
-            </Box>
-          </CardContent>
-        </Card>
+                      Create Account
+                    </Typography>
+
+                    <Typography variant="subtitle1" color="text.secondary" sx={{ opacity: 0.8 }}>
+                      Join our community and get started
+                    </Typography>
+                  </Box>
+
+                  <Box component="form" onSubmit={handleSubmit}>
+                    <Grid container spacing={1}>
+                      {/* Name Fields */}
+                      <Grid size={{ md: 6, sm: 12 }} item xs={12} sm={6}>
+                        <TextField
+                          label="First Name"
+                          name="firstName"
+                          value={formData.firstName}
+                          onChange={handleChange}
+                          fullWidth
+                          size="small"
+                          required
+                          error={!!formErrors.firstName}
+                          helperText={formErrors.firstName}
+                          sx={inputStyle}
+                        />
+                      </Grid>
+                      <Grid size={{ md: 6, sm: 12 }} item xs={12} sm={6}>
+                        <TextField
+                          label="Last Name"
+                          name="lastName"
+                          value={formData.lastName}
+                          onChange={handleChange}
+                          fullWidth
+                          size="small"
+                          required
+                          error={!!formErrors.lastName}
+                          helperText={formErrors.lastName}
+                          sx={inputStyle}
+                        />
+                      </Grid>
+                      <Grid size={{ md: 6, sm: 12 }} item xs={12} sm={6}>
+                        <TextField
+                          label="Middle Name (Optional)"
+                          name="middleName"
+                          value={formData.middleName}
+                          onChange={handleChange}
+                          fullWidth
+                          size="small"
+                          sx={inputStyle}
+                        />
+                      </Grid>
+                      <Grid size={{ md: 6, sm: 12 }} item xs={12} sm={6}>
+                        <TextField
+                          select
+                          label="Gender"
+                          name="gender"
+                          value={formData.gender}
+                          onChange={handleChange}
+                          fullWidth
+                          size="small"
+                          required
+                          error={!!formErrors.gender}
+                          helperText={formErrors.gender}
+                          sx={inputStyle}
+                        >
+                          <MenuItem value="1">Male</MenuItem>
+                          <MenuItem value="2">Female</MenuItem>
+                        </TextField>
+                      </Grid>
+
+                      {/* Login Info */}
+                      <Grid size={{ md: 6, sm: 12 }} item xs={12} sm={6}>
+                        <TextField
+                          label="Username"
+                          name="username"
+                          value={formData.username}
+                          onChange={handleChange}
+                          fullWidth
+                          size="small"
+                          required
+                          error={!!formErrors.username}
+                          helperText={formErrors.username}
+                          sx={inputStyle}
+                        />
+                      </Grid>
+                      <Grid size={{ md: 6, sm: 12 }} item xs={12} sm={6}>
+                        <TextField
+                          label="Email"
+                          name="email"
+                          type="email"
+                          value={formData.email}
+                          onChange={handleChange}
+                          fullWidth
+                          size="small"
+                          required
+                          error={!!formErrors.email}
+                          helperText={formErrors.email}
+                          sx={inputStyle}
+                        />
+                      </Grid>
+                      <Grid size={{ md: 6, sm: 12 }} item xs={12} sm={6}>
+                        <TextField
+                          label="Password"
+                          name="password"
+                          type="password"
+                          value={formData.password}
+                          onChange={handleChange}
+                          fullWidth
+                          size="small"
+                          required
+                          error={!!formErrors.password}
+                          helperText={formErrors.password}
+                          sx={inputStyle}
+                        />
+                      </Grid>
+                      <Grid size={{ md: 6, sm: 12 }} item xs={12} sm={6}>
+                        <TextField
+                          label="Confirm Password"
+                          name="confirmPassword"
+                          type="password"
+                          value={formData.confirmPassword}
+                          onChange={handleChange}
+                          fullWidth
+                          size="small"
+                          required
+                          error={!!formErrors.confirmPassword}
+                          helperText={formErrors.confirmPassword}
+                          sx={inputStyle}
+                        />
+                      </Grid>
+
+                      {/* Location & Group */}
+                      <Grid size={{ md: 6, sm: 12 }} item xs={12} sm={6}>
+                        <TextField
+                          select
+                          label="Location"
+                          name="location"
+                          value={formData.location}
+                          onChange={handleChange}
+                          fullWidth
+                          size="small"
+                          required
+                          error={!!formErrors.location}
+                          helperText={formErrors.location}
+                          sx={inputStyle}
+                        >
+                          {locations.map((location) => (
+                            <MenuItem key={location.id} value={location.id}>
+                              {location.slug}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                      </Grid>
+                      <Grid size={{ md: 6, sm: 12 }} item xs={12} sm={6}>
+                        <Autocomplete
+                          options={accountGroups}
+                          getOptionLabel={(option) => option.description}
+                          value={
+                            accountGroups.find((g) => g.id === formData.accountGroupId) || null
+                          }
+                          onChange={handleCategoryChange}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label="Account Group"
+                              size="small"
+                              required
+                              error={!!formErrors.accountGroupId}
+                              helperText={formErrors.accountGroupId}
+                              sx={inputStyle}
+                            />
+                          )}
+                        />
+                      </Grid>
+
+                      {/* Account Types */}
+                      <Grid size={{ md: 12, sm: 12 }} item xs={12}>
+                        <Autocomplete
+                          multiple
+                          options={accountTypes}
+                          disableCloseOnSelect
+                          getOptionLabel={(option) => option.description}
+                          value={accountTypes.filter((type) =>
+                            formData.account_type_id.includes(type.id)
+                          )}
+                          onChange={(e, values) =>
+                            setFormData({
+                              ...formData,
+                              account_type_id: values.map((v) => v.id),
+                            })
+                          }
+                          renderOption={(props, option, { selected }) => (
+                            <li {...props}>
+                              <Box
+                                component="span"
+                                sx={{
+                                  width: 18,
+                                  height: 18,
+                                  mr: 1,
+                                  border: "1px solid #ccc",
+                                  borderRadius: "4px",
+                                  backgroundColor: selected ? "#1976d2" : "#fff",
+                                }}
+                              />
+                              {option.description}
+                            </li>
+                          )}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label="Account Types"
+                              size="small"
+
+                              error={!!formErrors.account_type_id}
+                              helperText={formErrors.account_type_id}
+                              sx={inputStyle}
+                            />
+                          )}
+                        />
+                      </Grid>
+
+                      {/* Submit Button */}
+                      <Grid size={{ md: 12, sm: 12 }} item xs={12} mt={3}>
+                        <Button
+                          type="submit"
+                          variant="contained"
+                          fullWidth
+                          sx={{
+                            py: 1,
+                            borderRadius: "16px",
+                            fontWeight: 700,
+                            fontSize: "1.1rem",
+                            textTransform: "none",
+                            background: "linear-gradient(45deg, #667eea 0%, #764ba2 50%, #f093fb 100%)",
+                            backgroundSize: "200% 200%",
+                            boxShadow: "0 8px 25px rgba(102, 126, 234, 0.4)",
+                            position: "relative",
+                            overflow: "hidden",
+                            "&::before": {
+                              content: '""',
+                              position: "absolute",
+                              top: 0,
+                              left: "-100%",
+                              width: "100%",
+                              height: "100%",
+                              background: "linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent)",
+                              transition: "left 0.5s",
+                            },
+                            "&:hover": {
+                              backgroundPosition: "100% 0",
+                              transform: "translateY(-2px)",
+                              boxShadow: "0 12px 35px rgba(102, 126, 234, 0.5)",
+                              "&::before": {
+                                left: "100%",
+                              },
+                            },
+                            transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                          }}
+                        >
+                          Request New Account
+                        </Button>
+                      </Grid>
+
+                      {/* Login Link */}
+                      <Grid size={{ md: 12, sm: 12 }} item xs={12} mt={3}>
+                        <Box
+                          sx={{
+                            textAlign: "center",
+                            borderTop: "1px solid rgba(0, 0, 0, 0.1)",
+                            pt: 3,
+                          }}
+                        >
+                          <Button
+                            component={Link}
+                            to="/"
+                            variant="text"
+                            sx={{
+                              borderRadius: "12px",
+                              py: 1,
+                              px: 4,
+                              fontWeight: 600,
+                              fontSize: "0.95rem",
+                              textTransform: "none",
+                              color: "#667eea",
+                              position: "relative",
+                              overflow: "hidden",
+                              "&::before": {
+                                content: '""',
+                                position: "absolute",
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                background: "linear-gradient(45deg, #667eea, #764ba2)",
+                                opacity: 0,
+                                transition: "opacity 0.3s ease",
+                              },
+                              "&:hover": {
+                                color: "white",
+                                "&::before": {
+                                  opacity: 1,
+                                },
+                              },
+                              "& .MuiButton-label": {
+                                position: "relative",
+                                zIndex: 1,
+                              },
+                            }}
+                          >
+                            <span style={{ position: "relative", zIndex: 1 }}>
+                              Already have an account? Sign In
+                            </span>
+                          </Button>
+                        </Box>
+                      </Grid>
+                    </Grid>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+        </Container>
       </Box>
     </>
   );
 }
 
-// Reusable input styles
+// Enhanced modern input styles
 const inputStyle = {
   "& .MuiOutlinedInput-root": {
-    borderRadius: "12px",
+    borderRadius: "8px",
     backgroundColor: "#ffffff",
-    transition: "all 0.2s",
     "&:hover": {
-      borderColor: "primary.main",
-      boxShadow: "0 0 0 1px #1976d2",
+      borderColor: "#667eea",
     },
     "&.Mui-focused": {
-      borderColor: "primary.main",
-      boxShadow: "0 0 0 2px #1976d240",
+      borderColor: "#667eea",
     },
   },
   "& .MuiInputLabel-root": {
-    fontSize: "0.875rem",
-    color: "text.secondary",
+    "&.Mui-focused": {
+      color: "#667eea",
+    },
   },
 };

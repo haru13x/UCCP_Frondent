@@ -6,20 +6,19 @@ import {
   ListItemIcon,
   ListItemText,
   Collapse,
-  IconButton,
   Box,
   Typography,
   Divider,
   Tooltip,
+  useTheme,
+  alpha,
 } from "@mui/material";
 import {
-  ChevronLeft,
-  ChevronRight,
   ExpandLess,
   ExpandMore,
 } from "@mui/icons-material";
 import ChurchIcon from "@mui/icons-material/Church";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { sidebarConfig } from "../composables/sidebarConfig";
 import { DRAWER_WIDTH_EXPANDED, DRAWER_WIDTH_COLLAPSED } from "../layout/constants";
 
@@ -50,10 +49,11 @@ const filterSidebarByPermissions = (items, permissions) => {
     .filter(Boolean);
 };
 
-const Sidebar = () => {
-  const [collapsed, setCollapsed] = useState(false);
+const Sidebar = ({ collapsed = false }) => {
   const [openIndex, setOpenIndex] = useState(null);
   const [userPermissions, setUserPermissions] = useState([]);
+  const theme = useTheme();
+  const location = useLocation();
 
   const drawerWidth = collapsed ? DRAWER_WIDTH_COLLAPSED : DRAWER_WIDTH_EXPANDED;
 
@@ -69,148 +69,305 @@ const Sidebar = () => {
   };
 
   return (
-  <Drawer
-  variant="permanent"
-  sx={{
-    width: collapsed ? 70 : drawerWidth,
-    flexShrink: 0,
-    whiteSpace: "nowrap",
-    boxSizing: "border-box",
-    "& .MuiDrawer-paper": {
-      width: collapsed ? 70 : drawerWidth,
-      transition: "width 0.3s ease-in-out",
-      overflowX: "hidden",
-      background: "linear-gradient(to bottom, #e3f2fd, #ffffff)",
-      borderRight: "none",
-      boxShadow: "2px 0 6px rgba(0, 0, 0, 0.1)",
-      borderTopRightRadius: 12,
-      borderBottomRightRadius: 12,
-    },
-  }}
->
-  <Box sx={{ marginTop: "86px", textAlign: "center" }}>
-    <Box
+    <Drawer
+      variant="permanent"
       sx={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: collapsed ? "center" : "space-between",
-        px: collapsed ? 0 : 2,
-        py: 1,
-        transition: "all 0.3s ease-in-out",
+      
+
+        whiteSpace: "nowrap",
+        boxSizing: "border-box",
+        "& .MuiDrawer-paper": {
+        
+          transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+          overflowX: "hidden",
+          background: `linear-gradient(135deg, 
+            ${alpha(theme.palette.primary.main, 0.05)} 0%, 
+            ${alpha(theme.palette.background.paper, 0.95)} 50%, 
+            ${alpha(theme.palette.primary.main, 0.02)} 100%
+          )`,
+          backdropFilter: "blur(20px)",
+          borderRight: "none",
+          boxShadow: `0 8px 32px ${alpha(theme.palette.primary.main, 0.12)}, 
+                     0 2px 8px ${alpha(theme.palette.common.black, 0.08)}`,
+          borderTopRightRadius: 16,
+          borderBottomRightRadius: 16,
+         
+        },
       }}
     >
-      {!collapsed && (
-        <Box sx={{ display: "flex", alignItems: "center" }}>
-          <ChurchIcon sx={{ color: "#1565c0", fontSize: 28, mr: 1 }} />
-          <Typography variant="h6" sx={{ color: "#1565c0", fontWeight: "bold" }}>
-            UCCP
-          </Typography>
-        </Box>
-      )}
-      <IconButton
-        onClick={() => setCollapsed(!collapsed)}
-        sx={{
-          bgcolor: "#e3f2fd",
-          borderRadius: 2,
-          boxShadow: 2,
-          "&:hover": { bgcolor: "#bbdefb" },
-          transition: "0.2s",
-        }}
-      >
-        {collapsed ? <ChevronRight /> : <ChevronLeft />}
-      </IconButton>
-    </Box>
-    <Divider sx={{ my: 1, backgroundColor: "#cfd8dc" }} />
-  </Box>
-
-  <List sx={{ mt: 1 }}>
-    {filteredSidebar.map((item, index) => {
-      const Icon = item.icon;
-
-      if (item.children) {
-        return (
-          <React.Fragment key={index}>
-            <Tooltip title={item.label} placement="right" disableHoverListener={!collapsed}>
-              <ListItem
-                button
-                onClick={() => toggleOpen(index)}
-                sx={{
-                  px: collapsed ? 2 : 3,
-                  borderRadius: 2,
-                  mx: 1,
-                  my: 0.5,
-                  transition: "background 0.2s",
-                  "&:hover": {
-                    backgroundColor: "#e3f2fd",
-                  },
+      <Box sx={{ marginTop: "86px", textAlign: "center" }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            px: collapsed ? 2 : 8,
+            py: 2,
+            transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+            position: "relative",
+          }}
+        >
+          <Box 
+            sx={{ 
+              display: "flex", 
+              alignItems: "center",
+              opacity: collapsed ? 0 : 1,
+              transform: collapsed ? "scale(0.8)" : "scale(1)",
+              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+            }}
+          >
+            <ChurchIcon 
+              sx={{ 
+                color: theme.palette.primary.main, 
+                fontSize: collapsed ? 24 : 32, 
+                mr: collapsed ? 0 : 1.5,
+                filter: `drop-shadow(0 2px 4px ${alpha(theme.palette.primary.main, 0.3)})`,
+                transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+              }} 
+            />
+            {!collapsed && (
+              <Typography 
+                variant="h5" 
+                sx={{ 
+                  color: theme.palette.primary.main, 
+                  fontWeight: 700,
+                  letterSpacing: "0.5px",
+                  textShadow: `0 2px 4px ${alpha(theme.palette.primary.main, 0.2)}`,
                 }}
               >
-                <ListItemIcon sx={{ minWidth: 0, mr: collapsed ? 0 : 1 }}>
-                  <Icon color="primary" />
-                </ListItemIcon>
-                {!collapsed && <ListItemText primary={item.label} />}
-                {!collapsed && (openIndex === index ? <ExpandLess /> : <ExpandMore />)}
-              </ListItem>
-            </Tooltip>
+                UCCP
+              </Typography>
+            )}
+          </Box>
+        </Box>
+        <Divider 
+          sx={{ 
+            my: 2, 
+            backgroundColor: alpha(theme.palette.primary.main, 0.12),
+            height: 2,
+            borderRadius: 1,
+            mx: 2,
+          }} 
+        />
+      </Box>
 
-            <Collapse in={openIndex === index} timeout="auto" unmountOnExit>
-              <List component="div" disablePadding>
-                {item.children.map((child, j) => {
-                  const ChildIcon = child.icon;
-                  return (
-                    <ListItem
-                      key={j}
-                      button
-                      component={Link}
-                      to={child.path}
-                      sx={{
-                        pl: collapsed ? 3 : 2,
-                        mx: 1,
-                        borderRadius: 2,
-                        my: 0.5,
-                        transition: "background 0.2s",
-                        "&:hover": {
-                          backgroundColor: "#f0f7ff",
-                        },
+      <List sx={{ mt: 1, px: 1 }}>
+        {filteredSidebar.map((item, index) => {
+          const Icon = item.icon;
+          const isActive = location.pathname === item.path;
+
+          if (item.children) {
+            const hasActiveChild = item.children.some(child => location.pathname === child.path);
+            return (
+              <React.Fragment key={index}>
+                <Tooltip title={item.label} placement="right" disableHoverListener={!collapsed}>
+                  <ListItem
+                    button
+                    onClick={() => toggleOpen(index)}
+                    sx={{
+                      px: collapsed ? 1.5 : 2.5,
+                      py: 1.5,
+                      borderRadius: 3,
+                      mx: 0.5,
+                      my: 0.5,
+                      minHeight: 48,
+                      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                      background: hasActiveChild 
+                        ? `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.15)}, ${alpha(theme.palette.primary.main, 0.08)})`
+                        : "transparent",
+                      border: hasActiveChild 
+                        ? `1px solid ${alpha(theme.palette.primary.main, 0.2)}`
+                        : "1px solid transparent",
+                      "&:hover": {
+                        backgroundColor: alpha(theme.palette.primary.main, 0.08),
+                        transform: "translateX(4px)",
+                        boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.15)}`,
+                      },
+                      "&:active": {
+                        transform: "translateX(2px) scale(0.98)",
+                      },
+                    }}
+                  >
+                    <ListItemIcon 
+                      sx={{ 
+                        minWidth: 0, 
+                        mr: collapsed ? 0 : 2,
+                        transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                       }}
                     >
-                      <ListItemIcon sx={{ minWidth: 0, mr: collapsed ? 0 : 2 }}>
-                        <ChildIcon fontSize="small" color="action" />
-                      </ListItemIcon>
-                      {!collapsed && <ListItemText primary={child.label} />}
-                    </ListItem>
-                  );
-                })}
-              </List>
-            </Collapse>
+                      <Icon 
+                        sx={{
+                          color: hasActiveChild ? theme.palette.primary.main : theme.palette.text.secondary,
+                          fontSize: collapsed ? 20 : 24,
+                          filter: hasActiveChild 
+                            ? `drop-shadow(0 2px 4px ${alpha(theme.palette.primary.main, 0.3)})`
+                            : "none",
+                          transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                        }}
+                      />
+                    </ListItemIcon>
+                    {!collapsed && (
+                      <ListItemText 
+                        primary={item.label}
+                        primaryTypographyProps={{
+                          fontWeight: hasActiveChild ? 600 : 500,
+                          fontSize: "0.95rem",
+                          color: hasActiveChild ? theme.palette.primary.main : theme.palette.text.primary,
+                        }}
+                      />
+                    )}
+                    {!collapsed && (
+                      <Box
+                        sx={{
+                          transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                          transform: openIndex === index ? "rotate(180deg)" : "rotate(0deg)",
+                        }}
+                      >
+                        <ExpandMore 
+                          sx={{
+                            color: hasActiveChild ? theme.palette.primary.main : theme.palette.text.secondary,
+                            fontSize: 20,
+                          }}
+                        />
+                      </Box>
+                    )}
+                  </ListItem>
+                </Tooltip>
+
+                <Collapse in={openIndex === index} timeout="auto" unmountOnExit>
+                  <List component="div" disablePadding sx={{ pl: collapsed ? 0 : 1 }}>
+                    {item.children.map((child, j) => {
+                      const ChildIcon = child.icon;
+                      const isChildActive = location.pathname === child.path;
+                      return (
+                        <ListItem
+                          key={j}
+                          button
+                          component={Link}
+                          to={child.path}
+                          sx={{
+                            pl: collapsed ? 2 : 3,
+                            pr: collapsed ? 1.5 : 2.5,
+                            py: 1,
+                            mx: 0.5,
+                            borderRadius: 2.5,
+                            my: 0.3,
+                            minHeight: 40,
+                            transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                            background: isChildActive 
+                              ? `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.12)}, ${alpha(theme.palette.primary.main, 0.06)})`
+                              : "transparent",
+                            borderLeft: isChildActive 
+                              ? `3px solid ${theme.palette.primary.main}`
+                              : "3px solid transparent",
+                            "&:hover": {
+                              backgroundColor: alpha(theme.palette.primary.main, 0.06),
+                              transform: "translateX(6px)",
+                              boxShadow: `0 2px 8px ${alpha(theme.palette.primary.main, 0.12)}`,
+                            },
+                            "&:active": {
+                              transform: "translateX(3px) scale(0.98)",
+                            },
+                          }}
+                        >
+                          <ListItemIcon 
+                            sx={{ 
+                              minWidth: 0, 
+                              mr: collapsed ? 0 : 1.5,
+                              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                            }}
+                          >
+                            <ChildIcon 
+                              sx={{
+                                fontSize: collapsed ? 16 : 18,
+                                color: isChildActive ? theme.palette.primary.main : theme.palette.text.secondary,
+                                filter: isChildActive 
+                                  ? `drop-shadow(0 1px 2px ${alpha(theme.palette.primary.main, 0.3)})`
+                                  : "none",
+                                transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                              }}
+                            />
+                          </ListItemIcon>
+                          {!collapsed && (
+                            <ListItemText 
+                              primary={child.label}
+                              primaryTypographyProps={{
+                                fontWeight: isChildActive ? 600 : 400,
+                                fontSize: "0.875rem",
+                                color: isChildActive ? theme.palette.primary.main : theme.palette.text.secondary,
+                              }}
+                            />
+                          )}
+                        </ListItem>
+                      );
+                    })}
+                  </List>
+                </Collapse>
           </React.Fragment>
         );
       }
 
-      return (
-        <Tooltip title={item.label} placement="right" disableHoverListener={!collapsed} key={index}>
-          <ListItem
-            button
-            component={Link}
-            to={item.path}
-            sx={{
-              px: collapsed ? 2 : 3,
-              borderRadius: 2,
-              mx: 1,
-              my: 0.5,
-              transition: "background 0.2s",
-              "&:hover": {
-                backgroundColor: "#e3f2fd",
-              },
-            }}
-          >
-            <ListItemIcon sx={{ minWidth: 0, mr: collapsed ? 0 : 2 }}>
-              <Icon color="primary" />
-            </ListItemIcon>
-            {!collapsed && <ListItemText primary={item.label} />}
-          </ListItem>
-        </Tooltip>
-      );
+          return (
+            <Tooltip title={item.label} placement="right" disableHoverListener={!collapsed} key={index}>
+              <ListItem
+                button
+                component={Link}
+                to={item.path}
+                sx={{
+                  px: collapsed ? 1.5 : 2.5,
+                  py: 1.5,
+                  borderRadius: 3,
+                  mx: 0.5,
+                  my: 0.5,
+                  minHeight: 48,
+                  transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                  background: isActive 
+                    ? `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.15)}, ${alpha(theme.palette.primary.main, 0.08)})`
+                    : "transparent",
+                  border: isActive 
+                    ? `1px solid ${alpha(theme.palette.primary.main, 0.2)}`
+                    : "1px solid transparent",
+                  "&:hover": {
+                    backgroundColor: alpha(theme.palette.primary.main, 0.08),
+                    transform: "translateX(4px)",
+                    boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.15)}`,
+                  },
+                  "&:active": {
+                    transform: "translateX(2px) scale(0.98)",
+                  },
+                }}
+              >
+                <ListItemIcon 
+                  sx={{ 
+                    minWidth: 0, 
+                    mr: collapsed ? 0 : 2,
+                    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                  }}
+                >
+                  <Icon 
+                    sx={{
+                      color: isActive ? theme.palette.primary.main : theme.palette.text.secondary,
+                      fontSize: collapsed ? 20 : 24,
+                      filter: isActive 
+                        ? `drop-shadow(0 2px 4px ${alpha(theme.palette.primary.main, 0.3)})`
+                        : "none",
+                      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                    }}
+                  />
+                </ListItemIcon>
+                {!collapsed && (
+                  <ListItemText 
+                    primary={item.label}
+                    primaryTypographyProps={{
+                      fontWeight: isActive ? 600 : 500,
+                      fontSize: "0.95rem",
+                      color: isActive ? theme.palette.primary.main : theme.palette.text.primary,
+                    }}
+                  />
+                )}
+              </ListItem>
+            </Tooltip>
+          );
     })}
   </List>
 </Drawer>

@@ -59,12 +59,14 @@ const EventPage = () => {
     venue: "",
     address: "",
     latitude: "",
+    location_id: "",
     longitude: "",
     description: "",
     accountGroupId: "",
     sponsors: [],
     programs: [],
     participants: [],
+    
   });
   const [selectedEvent, setSelectedEvent] = useState(null);
   const fetchEvents = async (filters = {}) => {
@@ -99,6 +101,8 @@ const EventPage = () => {
         cancel_by: event.cancel_by || "",
         cancel_reason: event.cancel_reason || "",
         cancel_date: event.cancel_date || "",
+        location_id: event.location_id || "",
+        location: event.location || "",
         
       }));
       setEvents(mappedEvents);
@@ -141,6 +145,7 @@ const EventPage = () => {
         status: "",
         participants: [],
         accountGroupId: "",
+        location_id: "",
       }
     );
     setOpenForm(true);
@@ -163,7 +168,7 @@ const EventPage = () => {
     form.append("longitude", formData.longitude);
     form.append("description", formData.description);
     form.append("account_group_id", formData.accountGroupId);
-
+    form.append("location_id", formData.location_id)
     if (Array.isArray(formData.participants)) {
       form.append("participants", JSON.stringify(formData.participants));
     }

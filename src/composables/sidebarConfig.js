@@ -15,6 +15,14 @@ import {
   ManageAccounts,
   ManageHistory,
   ManageAccountsOutlined,
+  AccountBoxTwoTone,
+  ManageAccountsRounded,
+  LocationCity,
+  AccountCircleOutlined,
+  GroupAddTwoTone,
+  GroupOffTwoTone,
+  GroupRounded,
+  RuleFolderRounded,
 } from "@mui/icons-material";
 import { List } from "@mui/material";
 
@@ -31,50 +39,51 @@ export const sidebarConfig = [
     path: "/list",
     rule: "view_event_list",
   },
-    {
+  {
     label: "My Events",
     icon: EventNote,
     path: "/my-list",
     rule: "view_my_events",
   },
 
- {
+  {
     label: "Management",
     icon: ManageHistory,
     rule: null,
     children: [
 
-  //  {
-  //   label: "Organizer Event",
-  //   icon: ManageAccountsOutlined,
-  //   path: "/organizer",
-  //   // rule: "view_events",
-  // },
-  {
-    label: "Events",
-    icon: Groups,
-    path: "/events",
-    rule: "view_events",
-  },
+      //  {
+      //   label: "Organizer Event",
+      //   icon: ManageAccountsOutlined,
+      //   path: "/organizer",
+      //   // rule: "view_events",
+      // },
+      {
+        label: "Events",
+        icon: Groups,
+        path: "/events",
+        rule: "view_events",
+      },
 
-  // {
-  //   label: "Report",
-  //   icon: DocumentScanner,
-  //   path: "/",
-  //   rule: "view_report",
-  // },
-    {
-    label: "User's Request",
-    icon: PeopleOutlineSharp,
-    path: "/request-registration",
-    rule: "view_user_request",
+      // {
+      //   label: "Report",
+      //   icon: DocumentScanner,
+      //   path: "/",
+      //   rule: "view_report",
+      // },
+      {
+        label: "User's Request",
+        icon: PeopleOutlineSharp,
+        path: "/request-registration",
+        rule: "view_user_request",
+      },
+      {
+        label: "Users",
+        icon: People,
+        path: "/users",
+        rule: "view_users",
+      }]
   },
-  {
-    label: "Users",
-    icon: People,
-    path: "/users",
-    rule: "view_users",
-  }]},
   {
     label: "Settings",
     icon: Settings,
@@ -83,15 +92,27 @@ export const sidebarConfig = [
 
       {
         label: "Roles",
-        icon: Rule,
+        icon: RuleFolderRounded,
         path: "/settings/role",
         rule: "view_roles",
       },
       {
-        label: "Permissions",
-        icon: Rule,
+        label: "Account Group",
+        icon: GroupRounded,
+        path: "/settings/accountGroup",
+
+      },
+       {
+        label: "Account Type",
+        icon: ManageAccountsRounded,
+        path: "/settings/accountType",
+
+      },
+      {
+        label: "Church Location",
+        icon: LocationCity,
         path: "/settings/rules",
-        rule: "view_permissions",
+
       },
     ],
   },

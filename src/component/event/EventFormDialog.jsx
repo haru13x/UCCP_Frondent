@@ -18,6 +18,7 @@ import {
   Chip,
   useTheme,
   useMediaQuery,
+  MenuItem,
 } from "@mui/material";
 import MyLocationIcon from "@mui/icons-material/MyLocation";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
@@ -30,6 +31,7 @@ import ArrowBackSharp from "@mui/icons-material/ArrowBackSharp";
 import { UseMethod } from "../../composables/UseMethod";
 import EventProgramFormDialog from "./EventProgramFormDialog";
 import { CategorySharp, ContactPhone } from "@mui/icons-material";
+import { useSnackbar } from "./SnackbarProvider ";
 
 // Load Google Maps Script
 const loadGoogleMapsScript = (callback) => {
@@ -64,7 +66,8 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
   const [openProgramForm, setOpenProgramForm] = useState(false);
   const [programs, setPrograms] = useState([]);
   const [sponsors, setSponsors] = useState([]);
-  const [organizer, setOrganizer] = useState([]);
+  const [locations, setLocations] = useState([]);
+  const { showSnackbar } = useSnackbar();
   // Load account groups
   useEffect(() => {
     const fetchAccountGroups = async () => {
@@ -75,11 +78,12 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
   }, [open]);
   useEffect(() => {
     const fetchOrganizer = async () => {
-      const res = await UseMethod("get", `get-organizer`);
-      setOrganizer(res?.data || []);
+      const res = await UseMethod("get", `get-church-locations`);
+      if (res?.data) setLocations(res.data);
     }
     fetchOrganizer();
   }, [open])
+
   // Load account types when group changes
   useEffect(() => {
     const fetchAccountTypes = async () => {
@@ -246,9 +250,12 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
           ml: "auto",
           display: "flex",
           flexDirection: "column",
-          width: { xs: "100%", sm: "90%", md: "80%" },
+          width: { xs: "100%", sm: "80%", md: "68%" },
           maxWidth: "100%",
-          borderRadius: { xs: 0, sm: 3 },
+          borderRadius: { xs: 0, sm: 2 },
+          background: "#ffffff",
+          border: "1px solid rgba(0, 0, 0, 0.08)",
+          boxShadow: "0 4px 20px rgba(0, 0, 0, 0.08)",
         }
       }}
     >
@@ -258,45 +265,83 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          backgroundColor: theme.palette.primary.main,
-          color: "white",
+          background: "#ffffff",
+          borderBottom: "1px solid rgba(0, 0, 0, 0.08)",
+          color: "#1a1a1a",
           py: 1.5,
-          px: 3,
-          gap: 2,
+          px: 2,
+          gap: 2
         }}
       >
         <Button
           onClick={onClose}
           startIcon={<ArrowBackSharp />}
-          variant="contained"
-          color="error"
-          size="small"
-          sx={{ borderRadius: 2 }}
+          variant="outlined"
+          sx={{
+            borderColor: "rgba(0, 0, 0, 0.12)",
+            color: "#666",
+            borderRadius: 2,
+            px: 2,
+            py: 0.5,
+            "&:hover": {
+              borderColor: "rgba(0, 0, 0, 0.2)",
+              backgroundColor: "rgba(0, 0, 0, 0.04)"
+            }
+          }}
         >
           Back
         </Button>
-        <Typography variant="h6" fontWeight={600} sx={{ flexGrow: 1, textAlign: "center" }}>
-          {isEdit ? `✏️ Edit Event` : "📅 Create New Event"}
+        <Typography
+          variant="h6"
+          fontWeight={600}
+          sx={{
+            flexGrow: 1,
+            textAlign: "center",
+            color: "#1a1a1a"
+          }}
+        >
+          {isEdit ? "✨ Edit Event" : "🎉 Create New Event"}
         </Typography>
       </DialogTitle>
 
       {/* Content */}
       <DialogContent
         sx={{
+          my: 1,
           flex: 1,
           overflowY: "auto",
-          bgcolor: "#f9f9fb",
-          p: { xs: 2, sm: 3 },
+          background: "#ffffff",
+          p: { xs: 1.5, sm: 2 },
+          "&::-webkit-scrollbar": {
+            width: "6px",
+          },
+          "&::-webkit-scrollbar-track": {
+            background: "rgba(0, 0, 0, 0.05)",
+            borderRadius: "3px",
+          },
+          "&::-webkit-scrollbar-thumb": {
+            background: "rgba(0, 0, 0, 0.2)",
+            borderRadius: "3px",
+            "&:hover": {
+              background: "rgba(0, 0, 0, 0.3)",
+            },
+          },
         }}
       >
-        <Grid container spacing={1} sx={{ p: 1 }}>
+        <Grid container spacing={1.5} sx={{ p: 0 }}>
           {/* Left Column */}
           <Grid size={{ md: 6 }} item xs={12} md={6}>
             {/* Image Upload */}
-            <Card sx={{ borderRadius: 3, boxShadow: 3 }}>
-              <CardContent>
-                <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-                  <ImageIcon fontSize="small" color="primary" sx={{ mr: 1 }} />
+            <Card sx={{
+              borderRadius: 2,
+              background: "#ffffff",
+              border: "1px solid rgba(0, 0, 0, 0.08)",
+              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)",
+              mb: 1.5
+            }}>
+              <CardContent sx={{ p: 1.5 }}>
+                <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ color: "#1a1a1a", display: "flex", alignItems: "center" }}>
+                  <ImageIcon fontSize="small" sx={{ mr: 1, color: "#666" }} />
                   Event Image
                 </Typography>
                 <Box
@@ -304,15 +349,19 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
                   sx={{
                     width: "100%",
                     height: 180,
-                    border: "2px dashed #ccc",
+                    border: "2px dashed rgba(0, 0, 0, 0.2)",
                     borderRadius: 2,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     cursor: "pointer",
                     overflow: "hidden",
-                    bgcolor: "#fafafa",
-                    "&:hover": { borderColor: "primary.main", bgcolor: "#f0f7ff" },
+                    background: "rgba(0, 0, 0, 0.02)",
+                    transition: "all 0.2s ease",
+                    "&:hover": {
+                      borderColor: "rgba(0, 0, 0, 0.3)",
+                      background: "rgba(0, 0, 0, 0.04)"
+                    },
                   }}
                 >
                   {formData.image ? (
@@ -326,9 +375,15 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
                       style={{ width: "100%", height: "100%", objectFit: "cover" }}
                     />
                   ) : (
-                    <Typography color="text.secondary" textAlign="center">
-                      🖼️ Click to upload image
-                    </Typography>
+                    <Box textAlign="center">
+                      <ImageIcon sx={{ fontSize: 40, color: "rgba(0, 0, 0, 0.4)", mb: 1 }} />
+                      <Typography variant="subtitle1" sx={{ color: "rgba(0, 0, 0, 0.6)", fontWeight: 500 }}>
+                        Click to upload image
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: "rgba(0, 0, 0, 0.4)", mt: 0.5 }}>
+                        Drag & drop or click to browse
+                      </Typography>
+                    </Box>
                   )}
                 </Box>
                 <input
@@ -345,8 +400,13 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
             </Card>
 
             {/* Map */}
-            <Card sx={{ mt: 1, boxShadow: 3 }}>
-              <CardContent>
+            <Card sx={{
+              borderRadius: 2,
+              background: "#ffffff",
+              border: "1px solid rgba(0, 0, 0, 0.08)",
+              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)"
+            }}>
+              <CardContent sx={{ p: 1.5 }}>
 
 
                 <Grid container sx={{ mb: 2 }}>
@@ -357,6 +417,19 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
                       getOptionLabel={(option) => option.description || ""}
                       onInputChange={handleSearchChange}
                       onChange={handlePlaceSelect}
+                      renderOption={(props, option) => (
+                        <li {...props}>
+                          <LocationOnIcon fontSize="small" sx={{ mr: 1, color: "#666" }} />
+                          <div>
+                            <div style={{ fontWeight: 500 }}>{option.description}</div>
+                            {option.formatted_address && (
+                              <div style={{ fontSize: '0.8em', color: '#666' }}>
+                                {option.formatted_address}
+                              </div>
+                            )}
+                          </div>
+                        </li>
+                      )}
                       renderInput={(params) => (
                         <TextField
                           {...params}
@@ -364,7 +437,15 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
                           placeholder="e.g. McDonald's, Ayala Center"
                           fullWidth
                           size="small"
-
+                          InputProps={{
+                            ...params.InputProps,
+                            startAdornment: (
+                              <>
+                                <LocationOnIcon fontSize="small" color="action" sx={{ mr: 1 }} />
+                                {params.InputProps.startAdornment}
+                              </>
+                            ),
+                          }}
                         />
                       )}
                     /></Grid>
@@ -372,7 +453,16 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
                     <TextField
                       label="Venue Name"
                       value={formData.venue || ""}
-                      onChange={(e) => setFormData({ ...formData, venue: e.target.value })}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setFormData({ ...formData, venue: value });
+                      }}
+                      onBlur={(e) => {
+                        const value = e.target.value;
+                        if (value.trim() === "") {
+                          showSnackbar({ message: "Venue name is required", type: "error" });
+                        }
+                      }}
                       fullWidth
                       size="small"
                       sx={{ my: 1 }}
@@ -391,18 +481,21 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
                 </Grid>
 
 
-                {formData.latitude && (
-                  <Typography variant="body2" color="text.secondary" mb={1} fontSize="0.85rem">
-                    📍 {formData.latitude}, {formData.longitude}
-                  </Typography>
-                )}
+
                 <Box
                   ref={mapRef}
                   sx={{
-                    height: 180,
-                    borderRadius: 2,
-                    border: "1px solid #ddd",
-                    bgcolor: "#e0e0e0",
+                    height: 200,
+                    borderRadius: 3,
+                    border: "2px solid rgba(255, 255, 255, 0.2)",
+                    background: "rgba(255, 255, 255, 0.05)",
+                    backdropFilter: "blur(10px)",
+                    overflow: 'hidden',
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      border: "2px solid rgba(100, 181, 246, 0.5)",
+                      boxShadow: "0 4px 20px rgba(100, 181, 246, 0.2)",
+                    }
                   }}
                 />
               </CardContent>
@@ -414,35 +507,65 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
 
           {/* Right Column */}
           <Grid size={{ md: 6 }} item xs={12} md={6}>
-            <Card sx={{ borderRadius: 3, boxShadow: 3 }}>
-              <CardContent>
-                <Typography variant="h6" fontWeight={700} color="primary" gutterBottom>
+            <Card sx={{
+              borderRadius: 2,
+              background: "#ffffff",
+              border: "1px solid rgba(0, 0, 0, 0.08)",
+              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)"
+            }}>
+              <CardContent sx={{ p: 1.5 }}>
+                <Typography variant="h6" fontWeight={600} sx={{ color: "#1a1a1a", mb: 1, display: "flex", alignItems: "center" }}>
+                  <CalendarTodayIcon sx={{ mr: 1, color: "#666" }} />
                   {isEdit ? "Edit Event Details" : "Fill Event Details"}
                 </Typography>
-                <Divider sx={{ mb: 2 }} />
+                <Divider sx={{ mb: 1.5, borderColor: "rgba(0, 0, 0, 0.08)" }} />
 
                 {/* Event Title */}
                 <TextField
                   label="Event Name"
                   value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData({ ...formData, title: value });
+                  }}
+                  onBlur={(e) => {
+                    const value = e.target.value;
+                    if (value.trim() === "") {
+                      showSnackbar({ message: "Event name is required", type: "error" });
+                    } else if (value.trim().length < 3) {
+                      showSnackbar({ message: "Event name must be at least 3 characters long", type: "error" });
+                    }
+                  }}
                   fullWidth
                   required
                   variant="outlined"
                   size="small"
-                  sx={{ mb: 2 }}
-                  InputProps={{ startAdornment: <CalendarTodayIcon fontSize="small" color="action" sx={{ mr: 1 }} /> }}
+                  sx={{ mb: 1.5 }}
+                  InputProps={{
+                    startAdornment: <CalendarTodayIcon fontSize="small" sx={{ mr: 1, color: "#666" }} />
+                  }}
                 />
 
                 {/* Date & Time */}
-                <Grid container spacing={2}>
+                <Grid container spacing={1}>
                   <Grid size={{ md: 6 }} item xs={6}>
                     <TextField
                       type="date"
                       label="Start Date"
                       InputLabelProps={{ shrink: true }}
                       value={formData.startDate}
-                      onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                      onChange={(e) => {
+                        const selectedDate = e.target.value;
+                        const today = new Date().toISOString().split('T')[0];
+                        if (selectedDate >= today) {
+                          setFormData({ ...formData, startDate: selectedDate });
+                          // Reset end date if it's before the new start date
+                          if (formData.endDate && formData.endDate < selectedDate) {
+                            setFormData({ ...formData, startDate: selectedDate, endDate: '' });
+                          }
+                        }
+                      }}
+                      inputProps={{ min: new Date().toISOString().split('T')[0] }}
                       fullWidth
                       size="small"
                       InputProps={{ startAdornment: <CalendarTodayIcon fontSize="small" color="action" sx={{ mr: 1 }} /> }}
@@ -466,9 +589,15 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
                       label="End Date"
                       InputLabelProps={{ shrink: true }}
                       value={formData.endDate}
-                      onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                      onChange={(e) => {
+                        const selectedEndDate = e.target.value;
+                        if (!formData.startDate || selectedEndDate >= formData.startDate) {
+                          setFormData({ ...formData, endDate: selectedEndDate });
+                        }
+                      }}
                       fullWidth
                       size="small"
+                      inputProps={{ min: formData.startDate }}
                       InputProps={{ startAdornment: <CalendarTodayIcon fontSize="small" color="action" sx={{ mr: 1 }} /> }}
                     />
                   </Grid>
@@ -484,76 +613,106 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
                       InputProps={{ startAdornment: <AccessTimeIcon fontSize="small" color="action" sx={{ mr: 1 }} /> }}
                     />
                   </Grid>
+                  <Grid size={{ md: 6, sm: 12 }} item xs={12} sm={6}>
+                    <TextField
+                      label="Organizer"
+                      value={formData.organizer || ""}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value.trim() === "") {
+                          showSnackbar({ message: "Organizer field cannot be empty", type: "error" });
+                        }
+                        setFormData({ ...formData, organizer: value });
+                      }}
+                      onBlur={(e) => {
+                        const value = e.target.value;
+                        if (value.trim() === "") {
+                          showSnackbar({ message: "Please enter an organizer name", type: "error" });
+                        }
+                      }}
+                      fullWidth
+                      required
+                      variant="outlined"
+                      size="small"
+                      
+                    
+                    />
+                  </Grid>
+                  <Grid size={{ md: 6, sm: 12 }} item xs={12} sm={6}>
+                    <TextField
+                      select
+                      label="Location"
+                      name="location"
+                      value={formData.location_id}
+                      onChange={(e) => setFormData({ ...formData, location_id: e.target.value })}
+                      fullWidth
+                      size="small"
+                      required
+
+                    >
+                      {locations.map((location) => (
+                        <MenuItem key={location.id} value={location.id}>
+                          {location.slug}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  </Grid>
                 </Grid>
 
-                <Autocomplete
-                  options={organizer}
-                  getOptionLabel={(option) => option?.name || ""}
-                  value={
-                    organizer.find((g) => g.id === parseInt(formData.organizer)) || null
-                  }
-                  onChange={(event, newValue) => {
-                    setFormData({
-                      ...formData,
-                      organizer: newValue ? newValue.id : null, // store only the ID
-                    });
-                  }}
-                  renderInput={(params) => (
+                <Grid container spacing={2} sx={{mt:1}}>
+                  <Grid size={{ md: 6 }} item xs={6}>
                     <TextField
-                      {...params}
-                      label="Organizer"
-                      size="small"
-                      fullWidth
-                      sx={{ my: 2 }}
-                      InputProps={{
-                        ...params.InputProps,
-                        startAdornment: (
-                          <>
-                            <CategorySharp fontSize="small" color="action" sx={{ mr: 1 }} />
-                            {params.InputProps.startAdornment}
-                          </>
-                        ),
+                      label="Contact Number"
+                      value={formData.contact}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        // Allow only numbers and basic phone formatting characters
+                        const phoneRegex = /^[0-9+\-\s()]*$/;
+                        if (value === "" || phoneRegex.test(value)) {
+                          setFormData({ ...formData, contact: value });
+                        } else {
+                          showSnackbar({ message: "Please enter a valid phone number", type: "error" });
+                        }
                       }}
+                      onBlur={(e) => {
+                        const value = e.target.value;
+                        if (value.trim() === "") {
+                          showSnackbar({ message: "Contact number is required", type: "error" });
+                        } else if (value.replace(/[^0-9]/g, "").length < 10) {
+                          showSnackbar({ message: "Contact number must be at least 10 digits", type: "error" });
+                        }
+                      }}
+                      fullWidth
+                      required
+                      variant="outlined"
+                      size="small"
+                      sx={{ mb: 1 }}
+                      InputProps={{ startAdornment: <ContactPhone fontSize="small" color="action" sx={{ mr: 1 }} /> }}
                     />
-                  )}
-                />
-                  <Grid container spacing={2} >
-                <Grid size={{ md: 6 }} item xs={6}>
-                     <TextField
-                  label="Contact Number"
-                  value={formData.contact}
-                  onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
-                  fullWidth
-                  required
-                  variant="outlined"
-                  size="small"
-                  sx={{ mb: 2 }}
-                  InputProps={{ startAdornment: <ContactPhone fontSize="small" color="action" sx={{ mr: 1 }} /> }}
-                />
+                  </Grid>
+                  <Grid size={{ md: 6 }} item xs={6}>
+                    {/* Category */}
+                    <Autocomplete
+                      options={accountGroups}
+                      getOptionLabel={(option) => option.description}
+                      value={accountGroups.find((g) => g.id === formData.accountGroupId) || null}
+                      onChange={handleCategoryChange}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Event Category"
+                          size="small"
+                          fullWidth
+                        
+                          InputProps={{
+                            ...params.InputProps,
+                            startAdornment: <CategorySharp fontSize="small" color="action" sx={{ mr: 1 }} />,
+                          }}
+                        />
+                      )}
+                    />
+                  </Grid>
                 </Grid>
-                <Grid size={{ md: 6 }} item xs={6}>
-                  {/* Category */}
-                  <Autocomplete
-                    options={accountGroups}
-                    getOptionLabel={(option) => option.description}
-                    value={accountGroups.find((g) => g.id === formData.accountGroupId) || null}
-                    onChange={handleCategoryChange}
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        label="Event Category"
-                        size="small"
-                        fullWidth
-                        sx={{ mb: 1 }}
-                        InputProps={{
-                          ...params.InputProps,
-                          startAdornment: <CategorySharp fontSize="small" color="action" sx={{ mr: 1 }} />,
-                        }}
-                      />
-                    )}
-                  />
-                </Grid>
-</Grid>
                 <Autocomplete
                   multiple
                   disableCloseOnSelect
@@ -595,7 +754,7 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
                   )}
                 />
 
-                <Card sx={{ mt: 3, borderRadius: 3, boxShadow: 3 }}>
+                <Card sx={{ mt: 1, borderRadius: 3, boxShadow: 3 }}>
                   <CardContent>
                     <Typography variant="subtitle1" fontWeight={600} gutterBottom>
                       <DescriptionIcon fontSize="small" color="primary" sx={{ mr: 1 }} />

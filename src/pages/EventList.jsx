@@ -157,6 +157,11 @@ const EventList = () => {
                   📍 {item.venue}
                 </Typography>
               )}
+              {item.location && (
+                <Typography variant="body2" color="text.secondary" mt={0.5}>
+                  ⛪ {item.location.name}
+                </Typography>
+              )}
               {item.address && (
                 <Typography variant="body2" color="text.secondary" mt={0.5}>
                   🗺️ {item.address}

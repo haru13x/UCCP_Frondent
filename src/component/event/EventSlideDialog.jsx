@@ -16,14 +16,14 @@ import {
   Rating,
   TextField,
   Button,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemText,
   Avatar,
   Divider,
   IconButton,
   CircularProgress,
+  Card,
+  CardContent,
+  Chip,
+  Stack,
 } from "@mui/material";
 import {
   ArrowBack as ArrowBackIcon,
@@ -32,10 +32,14 @@ import {
   LocationOn as LocationIcon,
   Phone as PhoneIcon,
   Group as GroupIcon,
-  Description as DescriptionIcon,
   Star as StarIcon,
   Send as SendIcon,
   Edit as EditIcon,
+  Place as VenueIcon,
+  RecordVoiceOver as SpeakerIcon,
+  Event as EventIcon,
+  Restaurant as FoodIcon,
+  Hotel as AccommodationIcon,
 } from "@mui/icons-material";
 import Slide from "@mui/material/Slide";
 import { useSnackbar } from "./SnackbarProvider ";
@@ -62,16 +66,26 @@ const EventSlideDialog = ({
   const { showSnackbar } = useSnackbar();
 
   // Review State
-  const [userRating, setUserRating] = useState(0);
+  const [userRatings, setUserRatings] = useState({
+    venue: 0,
+    speaker: 0,
+    events: 0,
+    foods: 0,
+    accommodation: 0
+  });
   const [userComment, setUserComment] = useState("");
   const [reviews, setReviews] = useState([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
   const [editingReviewId, setEditingReviewId] = useState(null);
   const [hasFetched, setHasFetched] = useState(false); // Prevent duplicate fetch
+  const [hasUserReviewed, setHasUserReviewed] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
   const now = new Date();
   const eventStart = new Date(`${event?.start_date}T${event?.start_time}`);
   const hasEventEnded = () => {
-    return now > eventStart;
+    if (!event?.end_date || !event?.end_time) return false;
+    const eventEnd = new Date(`${event.end_date}T${event.end_time}`);
+    return now > eventEnd;
   };
 
   // Fetch reviews only when Reviews tab is selected
@@ -82,21 +96,40 @@ const EventSlideDialog = ({
       setLoadingReviews(true);
       try {
         const res = await UseMethod("get", `events/${event.id}/reviews`);
-        if (res?.status === 200 && Array.isArray(res.data.reviews)) {
-          const formatted = res.data.reviews.map((r) => ({
+        if (res?.status === 200) {
+          let reviewsData = [];
+          
+          // Handle both response formats: {reviews: []} or {review: {}}
+          if (Array.isArray(res.data.reviews)) {
+            reviewsData = res.data.reviews;
+          } else if (res.data.review) {
+            // Single review object - convert to array
+            reviewsData = [res.data.review];
+          }
+          
+          const currentUserId = localStorage.getItem("userId");
+          
+          // Filter to only show current user's reviews
+          const userReviews = reviewsData.filter(r => 
+            r.user_id === parseInt(currentUserId) || r.is_mine === true
+          );
+          
+          const formatted = userReviews.map((r) => ({
             id: r.id,
-            name: r.is_mine ? "You" : r.name || "User",
+            user_id: r.user_id,
+            user_name: "You",
             rating: r.rating,
-            text: r.text,
+            comment: r.comment || r.text,
+            category_ratings: r.category_ratings || null,
             created_at: r.created_at,
           }));
           setReviews(formatted);
 
-          // If user has a review, pre-fill it for editing
-          const myReview = formatted.find((r) => r.name === "You");
+          // If user has a review, mark as reviewed but don't auto-edit
+          const myReview = formatted.find((r) => r.user_name === "You");
           if (myReview) {
-            setUserRating(myReview.rating);
-            setUserComment(myReview.text);
+            setHasUserReviewed(true);
+            // Don't auto-set editing mode - user needs to click edit button
           }
         }
       } catch (error) {
@@ -118,16 +151,39 @@ const EventSlideDialog = ({
       setReviews([]);
       setEditingReviewId(null);
       setUserComment("");
-      setUserRating(0);
+      setUserRatings({
+        venue: 0,
+        speaker: 0,
+        events: 0,
+        foods: 0,
+        accommodation: 0
+      });
+      setHasUserReviewed(false);
+      setShowEditForm(false);
     }
   }, [open]);
 
   const handleSubmitReview = async () => {
-    if (!userRating && !userComment.trim()) return;
+    const hasAnyRating = Object.values(userRatings).some(rating => rating > 0);
+    if (!hasAnyRating && !userComment.trim()) return;
+
+    // Check if user already has a review and prevent new submission
+    const existingReview = reviews.find(r => r.user_name === "You");
+    if (existingReview && !editingReviewId) {
+      showSnackbar("You have already submitted a review for this event. You can only edit your existing review.", "warning");
+      return;
+    }
+
+    // Calculate overall rating as average of category ratings
+    const ratingValues = Object.values(userRatings).filter(rating => rating > 0);
+    const overallRating = ratingValues.length > 0 
+      ? Math.round(ratingValues.reduce((sum, rating) => sum + rating, 0) / ratingValues.length)
+      : 0;
 
     const payload = {
-      reviewId : editingReviewId,
-      rating: userRating,
+      reviewId: editingReviewId,
+      rating: overallRating,
+      category_ratings: userRatings,
       comment: userComment.trim(),
     };
 
@@ -138,12 +194,15 @@ const EventSlideDialog = ({
       const res = await UseMethod(method, endpoint, payload);
 
       if (res.status === 200 || res.status === 201) {
+        const reviewData = res.data.review || res.data.reviewData || res.data;
         const newReview = {
-          id: res.data.review.id,
-          name: "You",
-          rating: userRating,
-          text: userComment.trim(),
-          created_at: new Date().toISOString(),
+          id: reviewData.id,
+          user_id: reviewData.user_id,
+          user_name: "You",
+          rating: reviewData.rating || overallRating,
+          category_ratings: reviewData.category_ratings || userRatings,
+          comment: reviewData.comment || userComment.trim(),
+          created_at: reviewData.created_at || new Date().toISOString(),
         };
 
         // Update or add review
@@ -153,12 +212,20 @@ const EventSlideDialog = ({
           );
         } else {
           setReviews((prev) => [newReview, ...prev]);
+          setHasUserReviewed(true);
         }
 
         // Reset form
         setUserComment("");
-        setUserRating(0);
+        setUserRatings({
+          venue: 0,
+          speaker: 0,
+          events: 0,
+          foods: 0,
+          accommodation: 0
+        });
         setEditingReviewId(null);
+        setShowEditForm(false);
         showSnackbar({
           message: editingReviewId
             ? "Review updated!"
@@ -174,16 +241,34 @@ const EventSlideDialog = ({
   };
 
   const handleEdit = (review) => {
-    setUserComment(review.text);
-    setUserRating(review.rating);
+    setUserComment(review.comment);
+    if (review.category_ratings) {
+      setUserRatings(review.category_ratings);
+    } else {
+      // Fallback for old single rating system
+      setUserRatings({
+        venue: review.rating || 0,
+        speaker: review.rating || 0,
+        events: review.rating || 0,
+        foods: review.rating || 0,
+        accommodation: review.rating || 0
+      });
+    }
     setEditingReviewId(review.id);
-   
+    setShowEditForm(true);
   };
 
   const handleCancelEdit = () => {
-    setUserComment("");
-    setUserRating(0);
     setEditingReviewId(null);
+    setShowEditForm(false);
+    setUserComment("");
+    setUserRatings({
+      venue: 0,
+      speaker: 0,
+      events: 0,
+      foods: 0,
+      accommodation: 0
+    });
   };
 
   const handleTabChange = (e, newValue) => setTabIndex(newValue);
@@ -220,7 +305,7 @@ const EventSlideDialog = ({
           flexDirection: "column",
           width: { xs: "100%", sm: "90%", md: "60%" },
           maxWidth: "100%",
-          borderRadius: { xs: 0, sm: 3 },
+
         },
       }}
     >
@@ -233,8 +318,8 @@ const EventSlideDialog = ({
           backgroundColor: "#007bb6",
           color: "white",
           px: 3,
-          py: 2,
-          gap: 2,
+          py: 1,
+         
         }}
       >
         <Button
@@ -257,12 +342,16 @@ const EventSlideDialog = ({
           onChange={handleTabChange}
           textColor="inherit"
           indicatorColor="secondary"
+          size="small"
           sx={{
+            minHeight: 36,
             "& .MuiTab-root": {
-              minWidth: 120,
+              minWidth: 80,
+              minHeight: 36,
+              padding: "6px 12px",
               fontWeight: 500,
               textTransform: "none",
-              fontSize: "15px",
+              fontSize: "13px",
             },
             "& .Mui-selected": { fontWeight: 700 },
             "& .MuiTabs-indicator": { backgroundColor: "#ffc107" },
@@ -270,7 +359,7 @@ const EventSlideDialog = ({
         >
           <Tab label="Event Details" />
           {event?.is_registered === 1 && (
-            <Tab label="Reviews" icon={<StarIcon fontSize="small" />} iconPosition="end" />
+            <Tab label="My Review" icon={<StarIcon fontSize="small" />} iconPosition="end" />
           )}
         </Tabs>
       </DialogTitle>
@@ -361,6 +450,14 @@ const EventSlideDialog = ({
                       <strong>Venue:</strong> {event?.venue}
                     </Typography>
                   </Box>
+                  {event?.location && (
+                    <Box display="flex" alignItems="center" gap={1} mb={1.5}>
+                      <LocationIcon fontSize="small" color="primary" />
+                      <Typography variant="body2">
+                        <strong>Church Location:</strong> {event.location.name}
+                      </Typography>
+                    </Box>
+                  )}
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <Box display="flex" alignItems="center" gap={1} mb={1.5}>
@@ -400,163 +497,511 @@ const EventSlideDialog = ({
 
         {/* Tab 1: Reviews */}
         {tabIndex === 1 && (
-          <Box>
-            <Typography variant="h6" fontWeight="700" gutterBottom>
-              ⭐ Reviews & Feedback
-            </Typography>
+          <Box sx={{mt:2}}>
+            
 
-            {/* Submit Review */}
+
+
+            {/* Display existing reviews first */}
+            {hasEventEnded() && event.is_registered === 1 && hasUserReviewed && !showEditForm ? (
+              <Box >
+                {reviews.map((review) => (
+                  <Card key={review.id} sx={{ mb: 2, borderRadius: 2, boxShadow: 2 }}>
+                    <CardContent sx={{ p: 2 }}>
+                      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1.5 }}>
+                        <Typography variant="subtitle2" fontWeight="600" sx={{ color: "#1976d2", fontSize: '0.9rem' }}>
+                          Your Review
+                        </Typography>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          startIcon={<EditIcon sx={{ fontSize: 14 }} />}
+                          onClick={() => handleEdit(review)}
+                          sx={{ 
+                            fontWeight: 600, 
+                            borderRadius: 1.5, 
+                            px: 1.5, 
+                            fontSize: '0.75rem',
+                            minWidth: 'auto'
+                          }}
+                        >
+                          Edit
+                        </Button>
+                      </Box>
+                      
+                      {/* Display ratings */}
+                      {review.category_ratings && (
+                        <Box sx={{ 
+                          mb: 2, 
+                          p: 2, 
+                          borderRadius: 2, 
+                          backgroundColor: 'rgba(0, 0, 0, 0.02)',
+                          border: '1px solid rgba(0, 0, 0, 0.08)'
+                        }}>
+                          <Typography 
+                            variant="subtitle2" 
+                            fontWeight="600" 
+                            sx={{ 
+                              fontSize: '0.9rem', 
+                              mb: 1.5, 
+                              color: 'text.primary',
+                              letterSpacing: '0.5px'
+                            }}
+                          >
+                            📊 Your Ratings
+                          </Typography>
+                          <Box sx={{ 
+                            display: 'grid', 
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', 
+                            gap: 1.5 
+                          }}>
+                            {Object.entries(review.category_ratings).map(([category, rating]) => (
+                              rating > 0 && (
+                                <Box 
+                                  key={category} 
+                                  sx={{ 
+                                    display: 'flex', 
+                                    flexDirection: 'column', 
+                                    alignItems: 'flex-start', 
+                                    gap: 0.5,
+                                    p: 1,
+                                    borderRadius: 1,
+                                    backgroundColor: 'rgba(25, 118, 210, 0.04)',
+                                    transition: 'all 0.2s ease-in-out',
+                                    '&:hover': {
+                                      backgroundColor: 'rgba(25, 118, 210, 0.08)',
+                                      transform: 'translateY(-1px)'
+                                    }
+                                  }}
+                                >
+                                  <Typography 
+                                    variant="caption" 
+                                    sx={{ 
+                                      fontSize: '0.75rem', 
+                                      textTransform: 'capitalize',
+                                      fontWeight: 500,
+                                      color: 'text.secondary'
+                                    }}
+                                  >
+                                    {category}
+                                  </Typography>
+                                  <Rating 
+                                    value={rating} 
+                                    readOnly 
+                                    size="small" 
+                                    sx={{ 
+                                      fontSize: '1rem',
+                                      '& .MuiRating-iconFilled': {
+                                        color: '#ffa726'
+                                      },
+                                      '& .MuiRating-iconEmpty': {
+                                        color: 'rgba(0, 0, 0, 0.12)'
+                                      }
+                                    }} 
+                                  />
+                                </Box>
+                              )
+                            ))}
+                          </Box>
+                        </Box>
+                      )}
+                      
+                      {/* Display comment */}
+                      {review.comment && (
+                        <Box sx={{
+                          mt: 2,
+                          p: 2,
+                          borderRadius: 2,
+                          backgroundColor: 'rgba(0, 0, 0, 0.02)',
+                          border: '1px solid rgba(0, 0, 0, 0.08)',
+                          position: 'relative',
+                          '&::before': {
+                            content: '"💬"',
+                            position: 'absolute',
+                            top: -8,
+                            left: 12,
+                            backgroundColor: 'white',
+                            padding: '0 4px',
+                            fontSize: '0.8rem'
+                          }
+                        }}>
+                          <Typography 
+                            variant="body2" 
+                            sx={{ 
+                              fontSize: '0.9rem', 
+                              color: 'text.primary',
+                              lineHeight: 1.6,
+                              fontStyle: 'italic',
+                              position: 'relative',
+                              '&::before': {
+                                content: '""',
+                                position: 'absolute',
+                                left: -8,
+                                top: 0,
+                                bottom: 0,
+                                width: 3,
+                                backgroundColor: 'primary.main',
+                                borderRadius: 1
+                              },
+                              pl: 2
+                            }}
+                          >
+                            {review.comment}
+                          </Typography>
+                        </Box>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </Box>
+            ) : null}
+
+            {/* Submit Review Form */}
             {hasEventEnded() && event.is_registered === 1 ? (
-              <Paper sx={{ p: 3, mb: 3, borderRadius: 3, backgroundColor: "#f0f7ff" }}>
-                <Typography variant="subtitle1" fontWeight="600" gutterBottom>
-                  {editingReviewId ? "Edit Your Review" : "Share Your Experience"}
-                </Typography>
-                <Rating
-                  value={userRating}
-                  onChange={(e, newValue) => setUserRating(newValue)}
-                  size="large"
-                  sx={{ mb: 1 }}
-                />
-                <TextField
-                  placeholder="Write your review here..."
-                  multiline
-                  rows={3}
-                  fullWidth
-                  variant="outlined"
-                  value={userComment}
-                  onChange={(e) => setUserComment(e.target.value)}
-                  sx={{
-                    mt: 1,
-                    "& .MuiOutlinedInput-root": {
-                      borderRadius: 2,
-                      backgroundColor: "white",
-                    },
-                  }}
-                />
-                <Box mt={2} display="flex" gap={2}>
-                  {editingReviewId && (
-                    <Button
-                      variant="outlined"
-                      color="error"
-                      onClick={handleCancelEdit}
-                      sx={{ fontWeight: 600, borderRadius: 2 }}
-                    >
-                      Cancel
-                    </Button>
-                  )}
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    startIcon={<SendIcon />}
-                    onClick={handleSubmitReview}
-                    disabled={!userRating && !userComment.trim()}
-                    sx={{
-                      fontWeight: 600,
-                      borderRadius: 2,
-                      px: 3,
-                    }}
-                  >
-                    {editingReviewId ? "Update Review" : "Submit Review"}
-                  </Button>
-                </Box>
-              </Paper>
+              (!hasUserReviewed && !showEditForm) ? (
+                <Card sx={{ mb: 2, borderRadius: 2, boxShadow: 2, }}>
+                  <CardContent sx={{ p: 2 }}>
+                   
+                    
+                    {/* Category Ratings */}
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="body2" fontWeight="600" gutterBottom sx={{ mb: 1.5, fontSize: '0.9rem' }}>
+                        Rate Different Aspects:
+                      </Typography>
+                      
+                      <Stack spacing={1.5}>
+                        {/* Venue Rating */}
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, p: 1.5, backgroundColor: "#f8f9fa", borderRadius: 1.5 }}>
+                          <VenueIcon sx={{ color: "#1976d2", fontSize: 20 }} />
+                          <Box sx={{ flex: 1 }}>
+                            <Typography variant="caption" fontWeight="600" sx={{ fontSize: '0.8rem' }}>Venue</Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>Location, facilities, ambiance</Typography>
+                          </Box>
+                          <Rating
+                            value={userRatings.venue}
+                            onChange={(e, newValue) => setUserRatings(prev => ({ ...prev, venue: newValue || 0 }))}
+                            size="medium"
+                            sx={{ "& .MuiRating-iconFilled": { color: "#ff6d00" } }}
+                          />
+                        </Box>
+                        
+                        {/* Speaker Rating */}
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, p: 1.5, backgroundColor: "#f8f9fa", borderRadius: 1.5 }}>
+                          <SpeakerIcon sx={{ color: "#1976d2", fontSize: 20 }} />
+                          <Box sx={{ flex: 1 }}>
+                            <Typography variant="caption" fontWeight="600" sx={{ fontSize: '0.8rem' }}>Speaker</Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>Presentation quality, knowledge</Typography>
+                          </Box>
+                          <Rating
+                            value={userRatings.speaker}
+                            onChange={(e, newValue) => setUserRatings(prev => ({ ...prev, speaker: newValue || 0 }))}
+                            size="medium"
+                            sx={{ "& .MuiRating-iconFilled": { color: "#ff6d00" } }}
+                          />
+                        </Box>
+                        
+                        {/* Events Rating */}
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, p: 1.5, backgroundColor: "#f8f9fa", borderRadius: 1.5 }}>
+                          <EventIcon sx={{ color: "#1976d2", fontSize: 20 }} />
+                          <Box sx={{ flex: 1 }}>
+                            <Typography variant="caption" fontWeight="600" sx={{ fontSize: '0.8rem' }}>Events</Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>Organization, content, timing</Typography>
+                          </Box>
+                          <Rating
+                            value={userRatings.events}
+                            onChange={(e, newValue) => setUserRatings(prev => ({ ...prev, events: newValue || 0 }))}
+                            size="medium"
+                            sx={{ "& .MuiRating-iconFilled": { color: "#ff6d00" } }}
+                          />
+                        </Box>
+                        
+                        {/* Food Rating */}
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, p: 1.5, backgroundColor: "#f8f9fa", borderRadius: 1.5 }}>
+                          <FoodIcon sx={{ color: "#1976d2", fontSize: 20 }} />
+                          <Box sx={{ flex: 1 }}>
+                            <Typography variant="caption" fontWeight="600" sx={{ fontSize: '0.8rem' }}>Food</Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>Quality, variety, service</Typography>
+                          </Box>
+                          <Rating
+                            value={userRatings.foods}
+                            onChange={(e, newValue) => setUserRatings(prev => ({ ...prev, foods: newValue || 0 }))}
+                            size="medium"
+                            sx={{ "& .MuiRating-iconFilled": { color: "#ff6d00" } }}
+                          />
+                        </Box>
+                        
+                        {/* Accommodation Rating */}
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, p: 1.5, backgroundColor: "#f8f9fa", borderRadius: 1.5 }}>
+                          <AccommodationIcon sx={{ color: "#1976d2", fontSize: 20 }} />
+                          <Box sx={{ flex: 1 }}>
+                            <Typography variant="caption" fontWeight="600" sx={{ fontSize: '0.8rem' }}>Accommodation</Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>Comfort, cleanliness, service</Typography>
+                          </Box>
+                          <Rating
+                            value={userRatings.accommodation}
+                            onChange={(e, newValue) => setUserRatings(prev => ({ ...prev, accommodation: newValue || 0 }))}
+                            size="medium"
+                            sx={{ "& .MuiRating-iconFilled": { color: "#ff6d00" } }}
+                          />
+                        </Box>
+                      </Stack>
+                    </Box>
+                    
+                    {/* Comment Section */}
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="body2" fontWeight="600" gutterBottom sx={{ fontSize: '0.9rem' }}>
+                        Additional Comments:
+                      </Typography>
+                      <TextField
+                        placeholder="Share your detailed thoughts and feedback..."
+                        multiline
+                        rows={3}
+                        fullWidth
+                        variant="outlined"
+                        value={userComment}
+                        onChange={(e) => setUserComment(e.target.value)}
+                        size="small"
+                        sx={{
+                          "& .MuiOutlinedInput-root": {
+                            borderRadius: 1.5,
+                            backgroundColor: "white",
+                            fontSize: '0.85rem',
+                            "&:hover fieldset": {
+                              borderColor: "#1976d2",
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                    
+                    {/* Action Buttons */}
+                    <Box display="flex" gap={1.5} justifyContent="flex-end">
+                      {editingReviewId && (
+                        <Button
+                          variant="outlined"
+                          color="error"
+                          onClick={handleCancelEdit}
+                          size="small"
+                          sx={{ fontWeight: 600, borderRadius: 1.5, px: 2, fontSize: '0.8rem' }}
+                        >
+                          Cancel
+                        </Button>
+                      )}
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        startIcon={<SendIcon sx={{ fontSize: 16 }} />}
+                        onClick={handleSubmitReview}
+                        disabled={!Object.values(userRatings).some(rating => rating > 0) && !userComment.trim()}
+                        size="small"
+                        sx={{
+                          fontWeight: 600,
+                          borderRadius: 1.5,
+                          px: 2,
+                          fontSize: '0.8rem',
+                          background: "linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)",
+                          boxShadow: "0 2px 4px 1px rgba(25, 118, 210, .2)",
+                        }}
+                      >
+                        {editingReviewId ? "Update Review" : "Submit Review"}
+                      </Button>
+                    </Box>
+                  </CardContent>
+                </Card>
+              ) : showEditForm ? (
+                <Card sx={{ mb: 2, borderRadius: 2, boxShadow: 2 }}>
+                  <CardContent sx={{ p: 2 }}>
+                    <Typography variant="subtitle1" fontWeight="700" gutterBottom sx={{ color: "#1976d2", mb: 2, fontSize: '1rem' }}>
+                      ✏️ Edit Your Review
+                    </Typography>
+                    
+                    {/* Category Ratings */}
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="body2" fontWeight="600" gutterBottom sx={{ mb: 1.5, fontSize: '0.9rem' }}>
+                        Rate Different Aspects:
+                      </Typography>
+                      
+                      <Stack spacing={1.5}>
+                        {/* Venue Rating */}
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, p: 1.5, backgroundColor: "#f8f9fa", borderRadius: 1.5 }}>
+                          <VenueIcon sx={{ color: "#1976d2", fontSize: 20 }} />
+                          <Box sx={{ flex: 1 }}>
+                            <Typography variant="caption" fontWeight="600" sx={{ fontSize: '0.8rem' }}>Venue</Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>Location, facilities, ambiance</Typography>
+                          </Box>
+                          <Rating
+                            value={userRatings.venue}
+                            onChange={(e, newValue) => setUserRatings(prev => ({ ...prev, venue: newValue || 0 }))}
+                            size="medium"
+                            sx={{ "& .MuiRating-iconFilled": { color: "#ff6d00" } }}
+                          />
+                        </Box>
+                        
+                        {/* Speaker Rating */}
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, p: 1.5, backgroundColor: "#f8f9fa", borderRadius: 1.5 }}>
+                          <SpeakerIcon sx={{ color: "#1976d2", fontSize: 20 }} />
+                          <Box sx={{ flex: 1 }}>
+                            <Typography variant="caption" fontWeight="600" sx={{ fontSize: '0.8rem' }}>Speaker</Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>Presentation quality, knowledge</Typography>
+                          </Box>
+                          <Rating
+                            value={userRatings.speaker}
+                            onChange={(e, newValue) => setUserRatings(prev => ({ ...prev, speaker: newValue || 0 }))}
+                            size="medium"
+                            sx={{ "& .MuiRating-iconFilled": { color: "#ff6d00" } }}
+                          />
+                        </Box>
+                        
+                        {/* Events Rating */}
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, p: 1.5, backgroundColor: "#f8f9fa", borderRadius: 1.5 }}>
+                          <EventIcon sx={{ color: "#1976d2", fontSize: 20 }} />
+                          <Box sx={{ flex: 1 }}>
+                            <Typography variant="caption" fontWeight="600" sx={{ fontSize: '0.8rem' }}>Events</Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>Organization, content, timing</Typography>
+                          </Box>
+                          <Rating
+                            value={userRatings.events}
+                            onChange={(e, newValue) => setUserRatings(prev => ({ ...prev, events: newValue || 0 }))}
+                            size="medium"
+                            sx={{ "& .MuiRating-iconFilled": { color: "#ff6d00" } }}
+                          />
+                        </Box>
+                        
+                        {/* Food Rating */}
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, p: 1.5, backgroundColor: "#f8f9fa", borderRadius: 1.5 }}>
+                          <FoodIcon sx={{ color: "#1976d2", fontSize: 20 }} />
+                          <Box sx={{ flex: 1 }}>
+                            <Typography variant="caption" fontWeight="600" sx={{ fontSize: '0.8rem' }}>Food</Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>Quality, variety, service</Typography>
+                          </Box>
+                          <Rating
+                            value={userRatings.foods}
+                            onChange={(e, newValue) => setUserRatings(prev => ({ ...prev, foods: newValue || 0 }))}
+                            size="medium"
+                            sx={{ "& .MuiRating-iconFilled": { color: "#ff6d00" } }}
+                          />
+                        </Box>
+                        
+                        {/* Accommodation Rating */}
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, p: 1.5, backgroundColor: "#f8f9fa", borderRadius: 1.5 }}>
+                          <AccommodationIcon sx={{ color: "#1976d2", fontSize: 20 }} />
+                          <Box sx={{ flex: 1 }}>
+                            <Typography variant="caption" fontWeight="600" sx={{ fontSize: '0.8rem' }}>Accommodation</Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>Comfort, cleanliness, service</Typography>
+                          </Box>
+                          <Rating
+                            value={userRatings.accommodation}
+                            onChange={(e, newValue) => setUserRatings(prev => ({ ...prev, accommodation: newValue || 0 }))}
+                            size="medium"
+                            sx={{ "& .MuiRating-iconFilled": { color: "#ff6d00" } }}
+                          />
+                        </Box>
+                      </Stack>
+                    </Box>
+                    
+                    {/* Comment Section */}
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="body2" fontWeight="600" gutterBottom sx={{ fontSize: '0.9rem' }}>
+                        Additional Comments:
+                      </Typography>
+                      <TextField
+                        placeholder="Share your detailed thoughts and feedback..."
+                        multiline
+                        rows={3}
+                        fullWidth
+                        variant="outlined"
+                        value={userComment}
+                        onChange={(e) => setUserComment(e.target.value)}
+                        size="small"
+                        sx={{
+                          "& .MuiOutlinedInput-root": {
+                            borderRadius: 1.5,
+                            backgroundColor: "white",
+                            fontSize: '0.85rem',
+                            "&:hover fieldset": {
+                              borderColor: "#1976d2",
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                    
+                    {/* Action Buttons */}
+                    <Box display="flex" gap={1.5} justifyContent="flex-end">
+                      <Button
+                        variant="outlined"
+                        color="error"
+                        onClick={handleCancelEdit}
+                        size="small"
+                        sx={{ fontWeight: 600, borderRadius: 1.5, px: 2, fontSize: '0.8rem' }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        startIcon={<SendIcon sx={{ fontSize: 16 }} />}
+                        onClick={handleSubmitReview}
+                        disabled={!Object.values(userRatings).some(rating => rating > 0) && !userComment.trim()}
+                        size="small"
+                        sx={{
+                          fontWeight: 600,
+                          borderRadius: 1.5,
+                          px: 2,
+                          fontSize: '0.8rem',
+                          background: "linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)",
+                          boxShadow: "0 2px 4px 1px rgba(25, 118, 210, .2)",
+                        }}
+                      >
+                        Update Review
+                      </Button>
+                    </Box>
+                  </CardContent>
+                </Card>
+              ) : null
             ) :
-              <Typography variant="body2" color="text.secondary" textAlign="center" mt={4}>
+              <Typography variant="caption" color="text.secondary" textAlign="center" mt={3} sx={{ fontSize: '0.8rem' }}>
                 You can't Review yet Event not End Yet
               </Typography>
             }
            
             
-            {  loadingReviews ? (
-              <Box display="flex" justifyContent="center" py={4}>
-                <CircularProgress size={24} />
-              </Box>
-            ) : reviews.length > 0 ? (
-              <List disablePadding>
-                {reviews.map((review) => (
-                  <Paper
-                    key={review.id}
-                    variant="outlined"
-                    sx={{
-                      mb: 2,
-                      p: 2,
-                      borderRadius: 2,
-                      borderColor: "divider",
-                      backgroundColor: "background.paper",
-                    }}
-                  >
-                    <Box display="flex" gap={2}>
-                      <Avatar sx={{ bgcolor: "primary.main", width: 40, height: 40 }}>
-                        {review.name[0]}
-                      </Avatar>
-                      <Box flex={1}>
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <Typography fontWeight="600">{review.name}</Typography>
-                          <Rating value={review.rating} readOnly size="small" />
-                        </Box>
-                        <Typography variant="caption" color="text.secondary">
-                          {new Date(review.created_at).toLocaleDateString("en-US", {
-                            month: "long",
-                            day: "numeric",
-                            year: "numeric",
-                          })}
-                        </Typography>
-                        <Typography variant="body2" sx={{ mt: 0.5 }}>
-                          {review.text}
-                        </Typography>
-                      </Box>
-                      {/* Edit Button - Only for user's own review */}
-                      {review.name === "You" && (
-                        <IconButton
-                          size="small"
-                          onClick={() => handleEdit(review)}
-                          sx={{ alignSelf: "flex-start" }}
-                        >
-                          <EditIcon fontSize="small" color="primary" />
-                        </IconButton>
-                      )}
-                    </Box>
-                  </Paper>
-                ))}
-              </List>
-            ) : (
-              <Typography variant="body2" color="text.secondary" textAlign="center" mt={4}>
-                No reviews yet. Be the first to leave one!
-              </Typography>
-            )}
+      
           </Box>
         )}
       </DialogContent>
 
       {/* Footer Action */}
-      <DialogActions
-        sx={{
-          p: 2,
-          borderTop: "1px solid #dee2e6",
-          backgroundColor: "#ffffff",
-        }}
-      >
-        <Button
-          variant="contained"
-          color="primary"
-          fullWidth={isMobile}
-          size="large"
-          onClick={handleRegister}
-          disabled={event?.is_registered === 1}
+      {!hasEventEnded() && (
+        <DialogActions
           sx={{
-            fontWeight: "bold",
-            fontSize: "16px",
-            py: 1.5,
-            borderRadius: 2,
-            backgroundColor: event?.is_registered === 1 ? "#6c757d" : "#007bb6",
-            "&:hover": {
-              backgroundColor: event?.is_registered === 1 ? "#5a6268" : "#005a87",
-            },
+            p: 2,
+            borderTop: "1px solid #dee2e6",
+            backgroundColor: "#ffffff",
           }}
         >
-          {event?.is_registered === 1 ? "Already Registered" : "Register for This Event"}
-        </Button>
-      </DialogActions>
+          <Button
+            variant="contained"
+            color="primary"
+            fullWidth={isMobile}
+            size="large"
+            onClick={handleRegister}
+            disabled={event?.is_registered === 1}
+            sx={{
+              fontWeight: "bold",
+              fontSize: "16px",
+              py: 1.5,
+              borderRadius: 2,
+              backgroundColor: event?.is_registered === 1 ? "#6c757d" : "#007bb6",
+              "&:hover": {
+                backgroundColor: event?.is_registered === 1 ? "#5a6268" : "#005a87",
+              },
+            }}
+          >
+            {event?.is_registered === 1 ? "Already Registered" : "Register for This Event"}
+          </Button>
+        </DialogActions>
+      )}
     </Dialog>
   );
 };

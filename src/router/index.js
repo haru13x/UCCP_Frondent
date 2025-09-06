@@ -10,6 +10,9 @@ import EventPage from "../pages/management/EventPage";
 import Middleware from "./middleware";
 
 import Role from "../pages/management/settings/RolePage";
+import AccountType from "../pages/management/settings/AccountTypePage";
+import AccountGroup from "../pages/management/settings/AccountGroupPage";
+import ChurchLocation from "../pages/management/settings/ChurchLocationPage";
 import NoPermission from "../pages/public/NoPermission";
 import Mylist from "../pages/MyList";
 import QRScannerPage from "../pages/QRScannerPage";
@@ -33,6 +36,9 @@ const privateRoutes = [
   { path: "/events", component: EventPage, rule: "view_events" },
   { path: "/request-registration", component: RequestRegistration },
   { path: "/settings/role", component: Role, rule: "view_roles" },
+  { path: "/settings/accountType", component: AccountType },
+  { path: "/settings/accountGroup", component: AccountGroup },
+  { path: "/settings/rules", component: ChurchLocation },
   { path: "/list", component: EventList },
   { path: "/my-list", component: Mylist },
   { path: "/qrcode", component: QRScannerPage },
