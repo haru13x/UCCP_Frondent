@@ -25,13 +25,14 @@ import { UseMethod } from "../../composables/UseMethod";
 const genders = [
   { label: "Male", value: 1 },
   { label: "Female", value: 2 },
-  { label: "Other", value: 3 },
+ 
 ];
 
 const UserFormDialog = ({ open, onClose, onSave, formData, setFormData, isEdit }) => {
   const [roles, setRoles] = useState([]);
   const [accountGroups, setAccountGroups] = useState([]);
   const [accountTypes, setAccountTypes] = useState([]);
+  const [locations, setLocations] = useState([]);
   const handleChange = (field) => (e) => {
     setFormData({ ...formData, [field]: e.target.value });
   };
@@ -76,7 +77,18 @@ const UserFormDialog = ({ open, onClose, onSave, formData, setFormData, isEdit }
 
     fetchRoles();
   }, []);
+ useEffect(() => {
+    const fetchLocation = async () => {
+      try {
+        const res = await UseMethod("get", "get-church-locations");
+        if (res?.data) setLocations(res.data);
+      } catch (error) {
+        console.error("Failed to fetch locations:", error);
+      }
+    };
 
+    fetchLocation();
+  }, []);
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" maxHeight="full" fullWidth >
       <DialogTitle sx={{ backgroundColor: 'green', display: "flex", alignItems: "center", justifyContent: "space-between", px: 2, py: 1.5 }}>
@@ -122,6 +134,19 @@ const UserFormDialog = ({ open, onClose, onSave, formData, setFormData, isEdit }
 
               <Grid size={{ md: 12 }}>
                 <TextField label="Address" size="small" value={formData.address || ""} onChange={handleChange("address")} fullWidth />
+              </Grid>
+              <Grid size={{ md: 12 }}>
+                <Autocomplete
+                  options={locations}
+                  getOptionLabel={(option) => option.name}
+                  value={locations.find((loc) => loc.id === formData.churchLocationId) || null}
+                  onChange={(event, value) => {
+                    setFormData({ ...formData, churchLocationId: value?.id || null });
+                  }}
+                  renderInput={(params) => (
+                    <TextField {...params} label="Church Location" size="small" fullWidth />
+                  )}
+                />
               </Grid>
               <Grid size={{ md: 6 }}>
                 <TextField

@@ -100,19 +100,21 @@ export const sidebarConfig = [
         label: "Account Group",
         icon: GroupRounded,
         path: "/settings/accountGroup",
+         rule: "view_account_group",
 
       },
        {
         label: "Account Type",
         icon: ManageAccountsRounded,
         path: "/settings/accountType",
+        rule: "view_accoount_type"
 
       },
       {
         label: "Church Location",
         icon: LocationCity,
         path: "/settings/rules",
-
+        rule: "view_church_location"
       },
     ],
   },

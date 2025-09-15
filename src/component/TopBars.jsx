@@ -14,19 +14,76 @@ import {
 import MenuIcon from "@mui/icons-material/Menu";
 import PersonIcon from "@mui/icons-material/Person";
 import LogoutIcon from "@mui/icons-material/Logout";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { UseMethod } from "../composables/UseMethod";
 
 const TopBars = ({ toggleDrawer }) => {
   const [anchorEl, setAnchorEl] = useState(null);
+  const [userDetails, setUserDetails] = useState(null);
   const open = Boolean(anchorEl);
   const theme = useTheme();
   const navigate = useNavigate();
+  const apiUrl = process.env.REACT_APP_API_URL;
+
+  // Fetch user profile data
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        // First try to get user data from localStorage
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        if (user && Object.keys(user).length > 0) {
+          // Handle both old and new data structures
+          const userData = user.details ? { ...user.details, email: user.email, username: user.username, image: user.image } : user;
+          setUserDetails(userData);
+        } else {
+          // Fallback to API if localStorage is empty
+          const response = await UseMethod("get", "profile");
+          if (response?.data) {
+            setUserDetails(response.data);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching user profile:", error);
+        // Try localStorage as fallback even if API fails
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        if (user && Object.keys(user).length > 0) {
+          const userData = user.details ? { ...user.details, email: user.email, username: user.username } : user;
+          setUserDetails(userData);
+        }
+      }
+    };
+
+    fetchUserProfile();
+
+    // Listen for localStorage changes (when user logs in/out)
+    const handleStorageChange = (e) => {
+      if (e.key === 'user' || e.key === 'api_token') {
+        fetchUserProfile();
+      }
+    };
+
+    // Listen for custom events (for same-tab updates)
+    const handleUserUpdate = () => {
+      fetchUserProfile();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('userDataUpdated', handleUserUpdate);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('userDataUpdated', handleUserUpdate);
+    };
+  }, []);
 
   const handleLogOut = () => {
   // Clear token and user data
   localStorage.removeItem("api_token");
   localStorage.removeItem("user");
+
+  // Dispatch custom event to notify other components of user data update
+  window.dispatchEvent(new CustomEvent('userDataUpdated'));
 
   // Optionally clear all localStorage
   // localStorage.clear();
@@ -133,11 +190,13 @@ const handleProfile = () => {
                   },
                 }}
               >
+             
                 <Avatar 
+                  src={userDetails?.image ? `${apiUrl}/storage/${userDetails.image}` : undefined}
                   sx={{
                     width: 44,
                     height: 44,
-                    background: `linear-gradient(135deg, 
+                    background: userDetails?.image ? 'transparent' : `linear-gradient(135deg, 
                       ${alpha(theme.palette.common.white, 0.9)} 0%, 
                       ${alpha(theme.palette.common.white, 0.7)} 100%
                     )`,
@@ -147,7 +206,9 @@ const handleProfile = () => {
                     boxShadow: `0 4px 12px ${alpha(theme.palette.common.black, 0.15)}`,
                     transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                   }}
-                />
+                >
+                  {!userDetails?.image && (userDetails?.first_name?.[0] || userDetails?.name?.[0] || 'U')}
+                </Avatar>
               </IconButton>
             </Tooltip>
             <Menu

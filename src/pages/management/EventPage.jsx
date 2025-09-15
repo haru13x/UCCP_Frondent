@@ -23,6 +23,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import SearchOffSharp from "@mui/icons-material/SearchOffSharp";
 import { UseMethod } from "../../composables/UseMethod";
 import EventFormDialog from "../../component/event/EventFormDialog";
+import FormDebugComponent from "../../component/debug/FormDebugComponent";
 import EventViewDialog from "../../component/event/EventViewDialog";
 import { CalendarMonth, Cancel, CancelPresentation, DocumentScanner, EditDocument, GeneratingTokensRounded, Group, Person, Person2TwoTone, Report, ReportSharp, Title, TitleTwoTone } from "@mui/icons-material";
 import { useSnackbar } from "../../component/event/SnackbarProvider ";
@@ -38,6 +39,7 @@ const EventPage = () => {
   const [events, setEvents] = useState([]);
   const [openForm, setOpenForm] = useState(false);
   const [openView, setOpenView] = useState(false);
+  const [openDebug, setOpenDebug] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
   const { showSnackbar } = useSnackbar();
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
@@ -97,13 +99,19 @@ const EventPage = () => {
         sponsors: event.events_sponser ?? [],
         accountGroupId: event.event_types[0]?.group_id || "",
         participants: event.event_types.map((t) => t.id) || [],
+        
         event_types: event.event_types || [],
         cancel_by: event.cancel_by || "",
         cancel_reason: event.cancel_reason || "",
         cancel_date: event.cancel_date || "",
         location_id: event.location_id || "",
         location: event.location || "",
-        
+         conference_locations: event.isconference ? (event.conference_locations || []) : [],
+        isconference: event.isconference || false,
+        participantData: event.event_types.map((t) => ({
+          account_type_id: t.id,
+          account_group_id: t.group_id
+        })) || []
       }));
       setEvents(mappedEvents);
     }
@@ -120,9 +128,53 @@ const EventPage = () => {
   }, []);
 
   const handleOpenForm = (event = null) => {
+    console.log('handleOpenForm called with event:', event);
     setIsEdit(!!event);
-    setFormData(
-      event || {
+    if (event) {
+      console.log('Event data received:', {
+        start_date: event.start_date,
+        start_time: event.start_time,
+        end_date: event.end_date,
+        end_time: event.end_time,
+        title: event.title,
+        fullEvent: event
+      });
+      // Map backend event data to frontend formData structure
+      const mappedFormData = {
+        id: event.id || "",
+        image: event.image || "",
+        title: event.title || "",
+        startDate: event.startDate,
+        startTime: event.startTime || "",
+        endDate: event.endDate,
+        endTime: event.endTime || "",
+        category: event.category ? (Array.isArray(event.category) ? event.category : event.category.split(',').map(id => id.trim())) : [],
+        organizer: event.organizer || "",
+        contact: event.contact || "",
+        attendees: event.attendees || "",
+        venue: event.venue || "",
+        address: event.address || "",
+        latitude: event.latitude || "",
+        longitude: event.longitude || "",
+        description: event.description || "",
+        sponsors: event.sponsors || [],
+        programs: event.programs || [],
+        status: event.status || "",
+        participants: event.participants || [],
+        accountGroupIds: event.accountGroupIds || [],
+        location_id: "", // Not used anymore - only venue field
+        conference_locations: event.isconference ? (event.conference_locations || []) : [],
+        isconference: event.isconference || false,
+        participantData: event.event_types ? event.event_types.map((t) => ({
+          account_type_id: t.id,
+          account_group_id: t.group_id
+        })) : []
+      };
+      console.log('Mapped formData:', mappedFormData);
+       setFormData(mappedFormData);
+    } else {
+      // Default values for new event
+      setFormData({
         id: "",
         image: "",
         title: "",
@@ -130,7 +182,7 @@ const EventPage = () => {
         startTime: "",
         endDate: "",
         endTime: "",
-        category: "",
+        category: [],
         organizer: "",
         contact: "",
         attendees: "",
@@ -139,16 +191,19 @@ const EventPage = () => {
         latitude: "",
         longitude: "",
         description: "",
-        image: "",
         sponsors: [],
         programs: [],
         status: "",
         participants: [],
-        accountGroupId: "",
+        accountGroupIds: [],
         location_id: "",
-      }
-    );
+        conference_locations: [],
+        isconference: false,
+        participantData: []
+      });
+    }
     setOpenForm(true);
+   console.log('dddd',formData)
   };
   const handleSubmit = async () => {
     const form = new FormData();
@@ -167,10 +222,27 @@ const EventPage = () => {
     form.append("latitude", formData.latitude);
     form.append("longitude", formData.longitude);
     form.append("description", formData.description);
-    form.append("account_group_id", formData.accountGroupId);
-    form.append("location_id", formData.location_id)
+    // account_group_id removed - using category field for multiple account groups
+    form.append("isconference", formData.isconference ? 1 : 0);
+    
+    // Handle location data based on event type
+    if (formData.isconference) {
+      // For conference events, send multiple location IDs
+      if (Array.isArray(formData.conference_locations)) {
+        form.append("conference_locations", JSON.stringify(formData.conference_locations));
+      }
+    } else {
+      // For regular events, send single location ID
+      form.append("location_id", formData.location_id);
+    }
+    
     if (Array.isArray(formData.participants)) {
       form.append("participants", JSON.stringify(formData.participants));
+    }
+    
+    // Send participantData with account_group_id information
+    if (Array.isArray(formData.participantData)) {
+      form.append("participantData", JSON.stringify(formData.participantData));
     }
 
     // Attach image file
@@ -291,13 +363,20 @@ const EventPage = () => {
       // Try to force new window
       const windowFeatures = "toolbar=no,menubar=no,scrollbars=yes,resizable=yes,width=800,height=600,top=100,left=100";
       window.open(fileURL, "_blank", windowFeatures);
-      setReportDialogOpen(false);
+      
+      // Close dialog after successful generation
+      setTimeout(() => {
+        setReportDialogOpen(false);
+      }, 1000);
     } catch (err) {
       console.error("Report error:", err);
+      // Re-throw to let EventReportDialog handle the error state
+      throw err;
     }
   };
   return (
     <Box>
+      
       <Paper elevation={3} sx={{ p: 2 }}>
         <Grid container spacing={2} alignItems="center" mb={2}>
           <Grid item xs={12} md={6} size={{ md: 4 }}>

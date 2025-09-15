@@ -117,8 +117,41 @@ const Organizer = () => {
 
   const handleOpenForm = (event = null) => {
     setIsEdit(!!event);
-    setFormData(
-      event || {
+    if (event) {
+      // Map backend event data to frontend formData structure
+      setFormData({
+        id: event.id || "",
+        image: event.image || "",
+        title: event.title || "",
+        startDate: event.start_date || "",
+        startTime: event.start_time || "",
+        endDate: event.end_date || "",
+        endTime: event.end_time || "",
+        category: event.category || "",
+        organizer: event.organizer || "",
+        contact: event.contact || "",
+        attendees: event.attendees || "",
+        venue: event.venue || "",
+        address: event.address || "",
+        latitude: event.latitude || "",
+        longitude: event.longitude || "",
+        description: event.description || "",
+        sponsors: event.sponsors || [],
+        programs: event.programs || [],
+        status: event.status || "",
+        participants: event.participants || [],
+        accountGroupIds: event.accountGroupIds || [],
+        location_id: event.location_id || "",
+        conference_locations: event.conference_locations || [],
+        isconference: event.isconference || false,
+        participantData: event.event_types ? event.event_types.map((t) => ({
+          account_type_id: t.id,
+          account_group_id: t.group_id
+        })) : []
+      });
+    } else {
+      // Default values for new event
+      setFormData({
         id: "",
         image: "",
         title: "",
@@ -135,14 +168,17 @@ const Organizer = () => {
         latitude: "",
         longitude: "",
         description: "",
-        image: "",
         sponsors: [],
         programs: [],
         status: "",
         participants: [],
-        accountGroupId: "",
-      }
-    );
+        accountGroupIds: [],
+        location_id: "",
+        conference_locations: [],
+        isconference: false,
+        participantData: ""
+      });
+    }
     setOpenForm(true);
   };
   const handleSubmit = async () => {
@@ -166,6 +202,11 @@ const Organizer = () => {
 
     if (Array.isArray(formData.participants)) {
       form.append("participants", JSON.stringify(formData.participants));
+    }
+    
+    // Send participantData with account_group_id information
+    if (Array.isArray(formData.participantData)) {
+      form.append("participantData", JSON.stringify(formData.participantData));
     }
 
     // Attach image file

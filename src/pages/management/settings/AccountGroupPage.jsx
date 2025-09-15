@@ -8,6 +8,10 @@ import {
   Box,
   Dialog,
   Chip,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import { Visibility, Edit } from "@mui/icons-material";
@@ -17,16 +21,38 @@ import { UseMethod } from "../../../composables/UseMethod";
 const AccountGroupPage = () => {
   const [open, setOpen] = useState(false);
   const [accountGroups, setAccountGroups] = useState([]);
+  const [filteredAccountGroups, setFilteredAccountGroups] = useState([]);
   const [selectedAccountGroup, setSelectedAccountGroup] = useState(null);
+  const [statusFilter, setStatusFilter] = useState('all');
 
   const fetchAccountGroups = async () => {
     const res = await UseMethod("get", "account-groups");
-    if (res?.data) setAccountGroups(res.data);
+    if (res?.data) {
+      setAccountGroups(res.data);
+      setFilteredAccountGroups(res.data);
+    }
+  };
+
+  const handleStatusFilterChange = (event) => {
+    const value = event.target.value;
+    setStatusFilter(value);
+    
+    if (value === 'all') {
+      setFilteredAccountGroups(accountGroups);
+    } else if (value === 'active') {
+      setFilteredAccountGroups(accountGroups.filter(group => group.is_active === 1));
+    } else if (value === 'inactive') {
+      setFilteredAccountGroups(accountGroups.filter(group => group.is_active === 0));
+    }
   };
 
   useEffect(() => {
     fetchAccountGroups();
   }, []);
+
+  useEffect(() => {
+    handleStatusFilterChange({ target: { value: statusFilter } });
+  }, [accountGroups]);
 
   const columns = [
     { field: "id", headerName: "ID", width: 90 },
@@ -86,7 +112,7 @@ const AccountGroupPage = () => {
 
   return (
     <Paper sx={{ p: 3 }}>
-      <Grid container justifyContent="space-between" alignItems="center">
+      <Grid container justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
         <Typography variant="h6">Account Group Management</Typography>
         <Button
           variant="contained"
@@ -99,8 +125,25 @@ const AccountGroupPage = () => {
         </Button>
       </Grid>
 
-      <div style={{ height: 500, marginTop: 20 }}>
-        <DataGrid rows={accountGroups} columns={columns} pageSize={10} />
+      <Grid container spacing={2} sx={{ mb: 2 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <FormControl fullWidth size="small">
+            <InputLabel>Status Filter</InputLabel>
+            <Select
+              value={statusFilter}
+              label="Status Filter"
+              onChange={handleStatusFilterChange}
+            >
+              <MenuItem value="all">All</MenuItem>
+              <MenuItem value="active">Active</MenuItem>
+              <MenuItem value="inactive">Inactive</MenuItem>
+            </Select>
+          </FormControl>
+        </Grid>
+      </Grid>
+
+      <div style={{ height: 500 }}>
+        <DataGrid rows={filteredAccountGroups} columns={columns} pageSize={10} />
       </div>
 
       {open && (
