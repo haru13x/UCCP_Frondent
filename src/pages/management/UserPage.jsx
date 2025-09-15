@@ -54,6 +54,8 @@ const UserPage = () => {
         gender: user.details?.sex?.name || "N/A",
         roleName: user.role?.name || "N/A",
         status: user.status_id,
+        churchLocation: user.location_id || 0,
+        location : user.location?.name || 'No Specific Location Assign',  
       }));
       setUsers(flatUsers);
     } catch (error) {
@@ -80,7 +82,6 @@ const UserPage = () => {
       username: user.username,
       email: user.email,
       password: "",
-
       firstName: user.details?.first_name || "",
       middleName: user.details?.middle_name || "",
       lastName: user.details?.last_name || "",
@@ -90,8 +91,8 @@ const UserPage = () => {
       gender: user.details?.sex_id || "",
       role: user.role?.id || "",
       accountGroupId: user.account_type[0]?.group_id || "",
-      account_type_id: user.account_type.map((t) => t.account_type_id)
-
+      account_type_id: user.account_type.map((t) => t.account_type_id),
+      churchLocationId: user.location_id || "",
 
     });
 
@@ -172,6 +173,7 @@ const UserPage = () => {
     // { field: "phone", headerName: "Phone", flex: 1 },
     { field: "gender", headerName: "Gender", flex: 1 },
     { field: "roleName", headerName: "Role", flex: 1 },
+    { field: "location", headerName: "Church Location", flex: 1 },
     {
       field: 'actions',
       headerName: 'Actions',
@@ -315,6 +317,9 @@ const UserPage = () => {
         open={excelDialogOpen}
         onClose={() => setExcelDialogOpen(false)}
       />
+
+
+
       <Dialog open={openCancel} onClose={() => setOpenCancel(false)}>
         <DialogTitle>Disabled Account User </DialogTitle>
         <DialogContent>
@@ -344,6 +349,9 @@ const UserPage = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+
+
       <Dialog open={openEnabled} onClose={() => setOpenEnabled(false)}>
         <DialogTitle>Enabled Account User </DialogTitle>
         <DialogContent>

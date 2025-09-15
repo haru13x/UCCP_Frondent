@@ -188,7 +188,8 @@ const EventSlideDialog = ({
     };
 
     try {
-      const method = editingReviewId ? "put" : "post";
+      // Always use POST method, backend will handle create/update based on reviewId
+      const method = "post";
       const endpoint = `events/${event.id}/review`;
 
       const res = await UseMethod(method, endpoint, payload);

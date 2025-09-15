@@ -19,6 +19,9 @@ import {
   useTheme,
   useMediaQuery,
   MenuItem,
+  FormControlLabel,
+  Checkbox,
+  FormGroup,
 } from "@mui/material";
 import MyLocationIcon from "@mui/icons-material/MyLocation";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
@@ -63,19 +66,75 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
   const [placeOptions, setPlaceOptions] = useState([]);
   const [accountGroups, setAccountGroups] = useState([]);
   const [accountTypes, setAccountTypes] = useState([]);
+  const [selectedAccountGroups, setSelectedAccountGroups] = useState([]);
   const [openProgramForm, setOpenProgramForm] = useState(false);
   const [programs, setPrograms] = useState([]);
   const [sponsors, setSponsors] = useState([]);
   const [locations, setLocations] = useState([]);
   const { showSnackbar } = useSnackbar();
+  const [currentUser, setCurrentUser] = useState(null);
+
+  // Get current user from localStorage
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      setCurrentUser(JSON.parse(userData));
+    }
+  }, []);
+  
+  // Debug logging when dialog opens
+  console.log('EventFormDialog rendered with:', {
+    open: open,
+    isEdit: isEdit,
+    formData: formData,
+    startDate: formData?.startDate,
+    startTime: formData?.startTime,
+    endDate: formData?.endDate,
+    endTime: formData?.endTime
+  });
   // Load account groups
   useEffect(() => {
     const fetchAccountGroups = async () => {
+      console.log('Fetching account groups...');
       const res = await UseMethod("get", "account-groups");
-      if (res?.data) setAccountGroups(res.data);
+      console.log('Account groups response:', res);
+      if (res?.data) {
+        console.log('Account groups data:', res.data);
+        setAccountGroups(res.data);
+      } else {
+        console.error('No account groups data received');
+      }
     };
     if (open) fetchAccountGroups();
   }, [open]);
+
+  // Initialize selectedAccountGroups and formData.accountGroupIds when editing
+  useEffect(() => {
+    console.log('Initializing selectedAccountGroups:', { open, isEdit, category: formData.category, accountGroupsLength: accountGroups.length, selectedAccountGroupsLength: selectedAccountGroups.length });
+    // Only initialize if in edit mode, formData.category exists, accountGroups are loaded, and selectedAccountGroups is empty (meaning it hasn't been set by user interaction yet)
+    if (open && isEdit && formData.category && accountGroups.length > 0 && selectedAccountGroups.length === 0) {
+      // formData.category is already an array of IDs
+      const categoryIds = formData.category;
+      console.log('Category IDs from formData (raw) for initialization:', categoryIds);
+      const selectedGroups = accountGroups.filter(group => {
+        return categoryIds.includes(String(group.id));
+      });
+      console.log('Selected groups found for initialization:', selectedGroups);
+      setSelectedAccountGroups(selectedGroups);
+      // Also set accountGroupIds in formData
+      setFormData(prev => ({
+        ...prev,
+        accountGroupIds: categoryIds,
+      }));
+    } 
+  }, [open, isEdit, formData.category, accountGroups, selectedAccountGroups]);
+  useEffect(() => {
+    if (open && !isEdit) {
+      console.log('Add New Event - Initial formData.category:', formData.category);
+      console.log('Add New Event - Initial selectedAccountGroups:', selectedAccountGroups);
+    }
+  }, [open, isEdit, formData.category, selectedAccountGroups]);
+
   useEffect(() => {
     const fetchOrganizer = async () => {
       const res = await UseMethod("get", `get-church-locations`);
@@ -84,16 +143,31 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
     fetchOrganizer();
   }, [open])
 
-  // Load account types when group changes
   useEffect(() => {
+    console.log('Account Types useEffect - formData.accountGroupIds:', formData.accountGroupIds, 'formData.participants:', formData.participants);
     const fetchAccountTypes = async () => {
-      if (formData.accountGroupId) {
-        const res = await UseMethod("get", `account-types/${formData.accountGroupId}`);
-        setAccountTypes(res?.data || []);
+      if (formData.accountGroupIds && formData.accountGroupIds.length > 0) {
+        const allAccountTypes = [];
+        for (const groupId of formData.accountGroupIds) {
+          const res = await UseMethod("get", `account-types/${groupId}`);
+          if (res?.data) {
+            // Add group info to each account type for better identification
+            const group = accountGroups.find(g => g.id === groupId);
+            const typesWithGroup = res.data.map(type => ({
+              ...type,
+              groupName: group ? group.description : '',
+              groupId: groupId
+            }));
+            allAccountTypes.push(...typesWithGroup);
+          }
+        }
+        setAccountTypes(allAccountTypes);
+      } else {
+        setAccountTypes([]);
       }
     };
     fetchAccountTypes();
-  }, [formData.accountGroupId]);
+  }, [formData.accountGroupIds, accountGroups]);
 
   // Initialize Google Maps
   useEffect(() => {
@@ -168,23 +242,35 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
     setMarker(mapMarker);
   };
 
-  const handleCategoryChange = async (event, value) => {
-    if (!value?.id) return;
+  const handleCategoryChange = async (event, values) => {
+    setSelectedAccountGroups(values || []);
     setFormData((prev) => ({
       ...prev,
-      accountGroupId: value.id,
-      category: value.description,
-      participants: [],
+      accountGroupIds: values?.map(v => v.id) || [],
+      category: values?.map(v => v.id) || [], // Store IDs as an array of numbers
+      participants: [], // Reset participants when groups change
     }));
-    const res = await UseMethod("get", `account-types/${value.id}`);
-    setAccountTypes(res?.data || []);
   };
 
   const handlePlaceSelect = (event, value) => {
-    if (!value || !map || !marker) return;
+    if (!value || !value.place_id) {
+      console.warn('No place selected or missing place_id');
+      return;
+    }
+    
+    if (!window.google || !window.google.maps || !window.google.maps.places) {
+      console.warn('Google Maps Places API not loaded');
+      return;
+    }
+    
+    if (!map || !marker) {
+      console.warn('Map or marker not initialized');
+      return;
+    }
+    
     const placesService = new window.google.maps.places.PlacesService(map);
     placesService.getDetails({ placeId: value.place_id }, (place, status) => {
-      if (status === window.google.maps.places.PlacesServiceStatus.OK && place.geometry) {
+      if (status === window.google.maps.places.PlacesServiceStatus.OK && place && place.geometry) {
         const location = place.geometry.location;
         marker.setPosition(location);
         map.setCenter(location);
@@ -192,20 +278,47 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
           ...prev,
           latitude: location.lat(),
           longitude: location.lng(),
-          venue: place.name || "",
-          address: place.formatted_address || "",
+          venue: place.name || value.structured_formatting?.main_text || "",
+          address: place.formatted_address || value.description || "",
         }));
+        
+        // Clear the autocomplete options after selection
+        setPlaceOptions([]);
+      } else {
+        console.warn('Places service error:', status);
+        showSnackbar({ message: "Unable to get place details. Please try again.", type: "error" });
       }
     });
   };
 
-  const handleSearchChange = (event) => {
-    const input = event.target.value;
-    if (!input || !window.google) return;
+  const handleSearchChange = (event, value, reason) => {
+    const input = value;
+    if (!input || input.trim() === '') {
+      setPlaceOptions([]);
+      return;
+    }
+    
+    if (!window.google || !window.google.maps || !window.google.maps.places) {
+      console.warn('Google Maps Places API not loaded');
+      return;
+    }
+    
     const autocompleteService = new window.google.maps.places.AutocompleteService();
-    autocompleteService.getPlacePredictions({ input }, (predictions) => {
-      setPlaceOptions(predictions || []);
-    });
+    autocompleteService.getPlacePredictions(
+      { 
+        input,
+        componentRestrictions: { country: 'ph' }, // Restrict to Philippines
+        types: ['establishment', 'geocode'] // Include both places and addresses
+      }, 
+      (predictions, status) => {
+        if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
+          setPlaceOptions(predictions);
+        } else {
+          console.warn('Places API error:', status);
+          setPlaceOptions([]);
+        }
+      }
+    );
   };
 
   const locateUser = () => {
@@ -553,11 +666,12 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
                       type="date"
                       label="Start Date"
                       InputLabelProps={{ shrink: true }}
-                      value={formData.startDate}
+                      value={formData.startDate || ''}
                       onChange={(e) => {
                         const selectedDate = e.target.value;
                         const today = new Date().toISOString().split('T')[0];
-                        if (selectedDate >= today) {
+                        // Allow past dates when editing existing events
+                        if (isEdit || selectedDate >= today) {
                           setFormData({ ...formData, startDate: selectedDate });
                           // Reset end date if it's before the new start date
                           if (formData.endDate && formData.endDate < selectedDate) {
@@ -565,7 +679,7 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
                           }
                         }
                       }}
-                      inputProps={{ min: new Date().toISOString().split('T')[0] }}
+                      inputProps={{ min: isEdit ? undefined : new Date().toISOString().split('T')[0] }}
                       fullWidth
                       size="small"
                       InputProps={{ startAdornment: <CalendarTodayIcon fontSize="small" color="action" sx={{ mr: 1 }} /> }}
@@ -576,7 +690,7 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
                       type="time"
                       label="Start Time"
                       InputLabelProps={{ shrink: true }}
-                      value={formData.startTime}
+                      value={formData.startTime || ''}
                       onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
                       fullWidth
                       size="small"
@@ -588,9 +702,10 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
                       type="date"
                       label="End Date"
                       InputLabelProps={{ shrink: true }}
-                      value={formData.endDate}
+                      value={formData.endDate || ''}
                       onChange={(e) => {
                         const selectedEndDate = e.target.value;
+                        // Allow past dates when editing, but still validate end >= start
                         if (!formData.startDate || selectedEndDate >= formData.startDate) {
                           setFormData({ ...formData, endDate: selectedEndDate });
                         }
@@ -606,7 +721,7 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
                       type="time"
                       label="End Time"
                       InputLabelProps={{ shrink: true }}
-                      value={formData.endTime}
+                      value={formData.endTime || ''}
                       onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
                       fullWidth
                       size="small"
@@ -638,29 +753,7 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
                     
                     />
                   </Grid>
-                  <Grid size={{ md: 6, sm: 12 }} item xs={12} sm={6}>
-                    <TextField
-                      select
-                      label="Location"
-                      name="location"
-                      value={formData.location_id}
-                      onChange={(e) => setFormData({ ...formData, location_id: e.target.value })}
-                      fullWidth
-                      size="small"
-                      required
-
-                    >
-                      {locations.map((location) => (
-                        <MenuItem key={location.id} value={location.id}>
-                          {location.slug}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                  </Grid>
-                </Grid>
-
-                <Grid container spacing={2} sx={{mt:1}}>
-                  <Grid size={{ md: 6 }} item xs={6}>
+                   <Grid size={{ md: 6 }} item xs={6}>
                     <TextField
                       label="Contact Number"
                       value={formData.contact}
@@ -690,50 +783,73 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
                       InputProps={{ startAdornment: <ContactPhone fontSize="small" color="action" sx={{ mr: 1 }} /> }}
                     />
                   </Grid>
-                  <Grid size={{ md: 6 }} item xs={6}>
-                    {/* Category */}
-                    <Autocomplete
-                      options={accountGroups}
-                      getOptionLabel={(option) => option.description}
-                      value={accountGroups.find((g) => g.id === formData.accountGroupId) || null}
-                      onChange={handleCategoryChange}
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          label="Event Category"
-                          size="small"
-                          fullWidth
-                        
-                          InputProps={{
-                            ...params.InputProps,
-                            startAdornment: <CategorySharp fontSize="small" color="action" sx={{ mr: 1 }} />,
-                          }}
+                  {/* Conference section - only visible to users with role ID 1 */}
+                  {currentUser?.role_id === 1 && (
+                    <>
+                      <Grid size={{ md: 12 }} item xs={12}>
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={formData.isconference || false}
+                              onChange={(e) => setFormData({ ...formData, isconference: e.target.checked })}
+                              color="primary"
+                            />
+                          }
+                          label="This is a conference event (multiple locations)"
+                          sx={{  }}
                         />
-                      )}
-                    />
-                  </Grid>
+                      </Grid>
+                    
+                      <Grid size={{ md: 12, sm: 12 }} item xs={12} sm={6}>
+                        <Autocomplete
+                          multiple
+                          options={locations}
+                          getOptionLabel={(option) => option.slug}
+                          value={locations.filter(location => 
+                            formData.conference_locations?.includes(location.id)
+                          )}
+                          onChange={(e, values) => {
+                            setFormData({
+                              ...formData,
+                              conference_locations: values.map(v => v.id)
+                            });
+                          }}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label="Conference Locations"
+                              size="small"
+                              fullWidth
+                              required
+                            />
+                          )}
+                        />
+                      </Grid>
+                    </>
+                  )}
+                
                 </Grid>
+
+                <Grid container spacing={2} sx={{mt:1}}>
+                 
+                  <Grid size={{ md: 12 }} sx={{my:1}} item xs={6}>
+                    <Box>
                 <Autocomplete
                   multiple
                   disableCloseOnSelect
-                  options={accountTypes}
+                  options={accountGroups}
                   getOptionLabel={(option) => option.description}
-                  value={accountTypes.filter(type =>
-                    formData.participants?.includes(type.id)
-                  )}
-                  onChange={(e, values) =>
-                    setFormData({
-                      ...formData,
-                      participants: values.map((v) => v.id), // ✅ only store IDs
-                    })
-                  }
+                  value={selectedAccountGroups}
+                  onChange={handleCategoryChange}
+                  isOptionEqualToValue={(option, value) => {
+                       return String(option.id) === String(value.id);
+                  }}
                   renderOption={(props, option, { selected }) => (
                     <li {...props}>
                       <Box
                         component="span"
                         sx={{
                           width: 20,
-
                           height: 20,
                           mr: 1,
                           border: '1px solid gray',
@@ -741,7 +857,73 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
                           backgroundColor: selected ? '#1976d2' : '#fff',
                         }}
                       />
-                      {option.description}
+                      <Typography variant="body2">{option.description}</Typography>
+                    </li>
+                  )}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Event Categories"
+                      size="small"
+                      fullWidth
+                      placeholder="Select event categories"
+                      InputProps={{
+                        ...params.InputProps,
+                        startAdornment: (
+                          <>
+                            <CategorySharp fontSize="small" color="action" sx={{ mr: 1 }} />
+                            {params.InputProps.startAdornment}
+                          </>
+                        ),
+                      }}
+                    />
+                  )}
+                />
+                     </Box>
+                  </Grid>
+                </Grid>
+              
+                <Autocomplete
+                  multiple
+                  disableCloseOnSelect
+                  options={accountTypes}
+                  getOptionLabel={(option) => `${option.description} `}
+                  value={accountTypes.filter(type => formData.participants.includes(type.id))}
+                  onChange={(e, values) => {
+                    console.log('Account Type Autocomplete - selected values:', values);
+                    const participantData = values.map((v) => ({
+                      account_type_id: v.id,
+                      account_group_id: v.groupId
+                    }));
+                    setFormData({
+                      ...formData,
+                      participants: values.map((v) => v.id), // Store IDs for compatibility
+                      participantData: participantData // Store full data for backend
+                    });
+                  }}
+                  isOptionEqualToValue={(option, value) => {
+                   
+                    return option.id == value.id;
+                  }}
+                  renderOption={(props, option, { selected }) => (
+                    <li {...props}>
+                      <Box
+                        component="span"
+                        sx={{
+                          width: 20,
+                          height: 20,
+                          mr: 1,
+                          border: '1px solid gray',
+                          borderRadius: '4px',
+                          backgroundColor: selected ? '#1976d2' : '#fff',
+                        }}
+                      />
+                      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                        <Typography variant="body2">{option.description}</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {option.groupName}
+                        </Typography>
+                      </Box>
                     </li>
                   )}
                   renderInput={(params) => (
@@ -750,6 +932,7 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
                       label="Participants (Account Types)"
                       size="small"
                       fullWidth
+                      placeholder="Select account types from chosen categories"
                     />
                   )}
                 />

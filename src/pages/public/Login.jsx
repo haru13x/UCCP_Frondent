@@ -58,6 +58,9 @@ export default function Login() {
         localStorage.setItem("api_token", api_token);
         localStorage.setItem("user", JSON.stringify(user));
 
+        // Dispatch custom event to notify other components of user data update
+        window.dispatchEvent(new CustomEvent('userDataUpdated'));
+
         if (rememberMe) {
           localStorage.setItem("remember_email", email);
           localStorage.setItem("remember_password", password);
