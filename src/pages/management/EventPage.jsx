@@ -106,7 +106,7 @@ const EventPage = () => {
         cancel_date: event.cancel_date || "",
         location_id: event.location_id || "",
         location: event.location || "",
-         conference_locations: event.isconference ? (event.conference_locations || []) : [],
+         conference_locations: event.conference_locations || [],
         isconference: event.isconference || false,
         participantData: event.event_types.map((t) => ({
           account_type_id: t.id,
@@ -163,7 +163,7 @@ const EventPage = () => {
         participants: event.participants || [],
         accountGroupIds: event.accountGroupIds || [],
         location_id: "", // Not used anymore - only venue field
-        conference_locations: event.isconference ? (event.conference_locations || []) : [],
+        conference_locations: event?.conference_locations ||  [],
         isconference: event.isconference || false,
         participantData: event.event_types ? event.event_types.map((t) => ({
           account_type_id: t.id,

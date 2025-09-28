@@ -184,7 +184,7 @@ const EventSlideDialog = ({
       reviewId: editingReviewId,
       rating: overallRating,
       category_ratings: userRatings,
-      comment: userComment.trim(),
+      comment: userComment?.trim() || null,
     };
 
     try {
@@ -235,8 +235,14 @@ const EventSlideDialog = ({
         });
       }
     } catch (error) {
-      const message =
-        error.response?.data?.message || "Failed to submit review";
+      let message = "Failed to submit review";
+      
+      if (error.response?.status === 409 && error.response?.data?.error === 'duplicate_review') {
+        message = error.response.data.message || "You have already submitted a review for this event. You can only edit your existing review.";
+      } else {
+        message = error.response?.data?.message || "Failed to submit review";
+      }
+      
       showSnackbar({ message, type: "error" });
     }
   };

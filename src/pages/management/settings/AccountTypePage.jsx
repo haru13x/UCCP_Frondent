@@ -12,7 +12,9 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  TextField,
 } from "@mui/material";
+import SearchIcon from '@mui/icons-material/Search';
 import { DataGrid } from "@mui/x-data-grid";
 import { Visibility, Edit } from "@mui/icons-material";
 import { UseMethod } from "../../../composables/UseMethod";
@@ -23,10 +25,15 @@ const AccountTypePage = () => {
   const [accountTypes, setAccountTypes] = useState([]);
   const [filteredAccountTypes, setFilteredAccountTypes] = useState([]);
   const [selectedAccountType, setSelectedAccountType] = useState(null);
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('active');
+  const [nameFilter, setNameFilter] = useState('');
 
-  const fetchAccountTypes = async () => {
-    const res = await UseMethod("get", "account-types");
+  const fetchAccountTypes = async (status = 'active', search = '') => {
+    const queryParams = {};
+    if (status !== 'all') queryParams.status = status;
+    if (search.trim()) queryParams.search = search;
+    
+    const res = await UseMethod("get", "account-types", null, "", false, "json", Object.keys(queryParams).length ? queryParams : null);
     if (res?.data) {
       setAccountTypes(res.data);
       setFilteredAccountTypes(res.data);
@@ -36,23 +43,20 @@ const AccountTypePage = () => {
   const handleStatusFilterChange = (event) => {
     const value = event.target.value;
     setStatusFilter(value);
-    
-    if (value === 'all') {
-      setFilteredAccountTypes(accountTypes);
-    } else if (value === 'active') {
-      setFilteredAccountTypes(accountTypes.filter(type => type.is_active === 1));
-    } else if (value === 'inactive') {
-      setFilteredAccountTypes(accountTypes.filter(type => type.is_active === 0));
-    }
+  };
+
+  const handleNameFilterChange = (event) => {
+    const value = event.target.value;
+    setNameFilter(value);
+  };
+
+  const handleSearch = () => {
+    fetchAccountTypes(statusFilter, nameFilter);
   };
 
   useEffect(() => {
     fetchAccountTypes();
   }, []);
-
-  useEffect(() => {
-    handleStatusFilterChange({ target: { value: statusFilter } });
-  }, [accountTypes]);
 
   const columns = [
     { field: "id", headerName: "ID", width: 90 },
@@ -130,7 +134,7 @@ const AccountTypePage = () => {
       </Grid>
 
       <Grid container spacing={2} sx={{ mb: 2 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{md:2}} item xs={12} sm={6} md={3}>
           <FormControl fullWidth size="small">
             <InputLabel>Status Filter</InputLabel>
             <Select
@@ -143,6 +147,28 @@ const AccountTypePage = () => {
               <MenuItem value="inactive">Inactive</MenuItem>
             </Select>
           </FormControl>
+        </Grid>
+        <Grid size={{md:3}} item xs={12} sm={6} md={4}>
+          <TextField
+            fullWidth
+            size="small"
+            label="Search by Name"
+            placeholder="Search code, description, or group..."
+            value={nameFilter}
+            onChange={handleNameFilterChange}
+          />
+        </Grid>
+        <Grid size={{md:1}} item xs={12} sm={6} md={2}>
+          <Button
+            fullWidth
+            variant="contained"
+            size="medium"
+            onClick={handleSearch}
+            startIcon={<SearchIcon />}
+            sx={{ height: '40px' }}
+          >
+            Search
+          </Button>
         </Grid>
       </Grid>
 

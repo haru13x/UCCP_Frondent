@@ -50,11 +50,10 @@ const ChurchLocationFormModal = ({ open, onClose, churchLocation, onRefresh }) =
 
     try {
       const method = churchLocation ? "put" : "post";
-      const url = churchLocation
-        ? `church-locations/${churchLocation.id}`
-        : "church-locations";
+      const url = "church-locations";
+      const params = churchLocation ? churchLocation.id : null;
 
-      const response = await UseMethod(method, url, formData);
+      const response = await UseMethod(method, url, formData, params);
 
       if (response?.status === 200 || response?.status === 201) {
         if (onRefresh) onRefresh();

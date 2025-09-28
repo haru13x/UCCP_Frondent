@@ -1,6 +1,6 @@
 import axios from "axios";
 
-export const UseMethod = async (method,url, payload = null, params = "", isMultipart = false, responseType = "json") => {
+export const UseMethod = async (method,url, payload = null, params = "", isMultipart = false, responseType = "json", queryParams = null) => {
   try {
     const apiUrl = process.env.REACT_APP_API_URL;
     const authToken = localStorage.getItem("api_token");
@@ -21,7 +21,12 @@ export const UseMethod = async (method,url, payload = null, params = "", isMulti
 
     switch (method.toLowerCase()) {
       case "get":
-        response = await axios.get(`${api}/${params}`, { headers, responseType });
+        let getUrl = params ? `${api}/${params}` : api;
+        if (queryParams) {
+          const queryString = new URLSearchParams(queryParams).toString();
+          getUrl += `?${queryString}`;
+        }
+        response = await axios.get(getUrl, { headers, responseType });
         break;
 
       case "post":
@@ -29,7 +34,8 @@ export const UseMethod = async (method,url, payload = null, params = "", isMulti
         break;
 
       case "put":
-        response = await axios.put(api, payload, {headers, responseType, });
+        const putUrl = params ? `${api}/${params}` : api;
+        response = await axios.put(putUrl, payload, {headers, responseType, });
         break;
 
       case "delete":
