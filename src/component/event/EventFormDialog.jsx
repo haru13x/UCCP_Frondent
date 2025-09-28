@@ -799,7 +799,7 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
                           sx={{  }}
                         />
                       </Grid>
-                    
+         
                       <Grid size={{ md: 12, sm: 12 }} item xs={12} sm={6}>
                         <Autocomplete
                           multiple
@@ -809,9 +809,12 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
                             formData.conference_locations?.includes(location.id)
                           )}
                           onChange={(e, values) => {
+                            const locationIds = values.map(v => v.id);
                             setFormData({
                               ...formData,
-                              conference_locations: values.map(v => v.id)
+                              conference_locations: locationIds,
+                              // Automatically check conference checkbox if multiple locations selected
+                              isconference: locationIds.length > 1 ? true : formData.isconference
                             });
                           }}
                           renderInput={(params) => (
