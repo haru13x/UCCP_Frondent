@@ -39,6 +39,7 @@ import {
   LocationOn as LocationOnIcon,
   Phone as PhoneIcon,
   Group as GroupIcon,
+  Groups as GroupsIcon,
   Description as DescriptionIcon,
   Category as CategorySharp,
   Event as EventIcon,
@@ -410,7 +411,7 @@ const EventViewDialog = ({ open, onClose, event }) => {
             <Tab icon={<QRCodeIcon sx={{ fontSize: 16 }} />} label="QR Code" />
             <Tab icon={<GroupIcon sx={{ fontSize: 16 }} />} label="Registered" />
             <Tab icon={<Comment sx={{ fontSize: 16 }} />} label="Reviews" />
-            <Tab icon={<Insights fontSize="small" />} label="Overview" />
+            {/* <Tab icon={<Insights fontSize="small" />} label="Overview" /> */}
           </Tabs>
         </DialogTitle>
 
@@ -517,41 +518,12 @@ const EventViewDialog = ({ open, onClose, event }) => {
                     {event?.title}
                   </Typography>
 
-                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5, mb: 2 }}>
-                    <Chip
-                      icon={<Person />}
-                      label={`Organized by ${event?.organizer}`}
-                      variant="outlined"
-                      size="small"
-                      sx={{
-                        borderColor: "rgba(102, 126, 234, 0.3)",
-                        color: "#667eea",
-                        fontWeight: 500,
-                        fontSize: "0.75rem",
-                        "& .MuiChip-icon": { color: "#667eea", fontSize: "1rem" },
-                      }}
-                    />
-                    {event?.location?.name && (
-                      <Chip
-                        icon={<LocationIcon />}
-                        label={event.location.name}
-                        variant="outlined"
-                        size="small"
-                        sx={{
-                          borderColor: "rgba(118, 75, 162, 0.3)",
-                          color: "#764ba2",
-                          fontWeight: 500,
-                          fontSize: "0.75rem",
-                          "& .MuiChip-icon": { color: "#764ba2", fontSize: "1rem" },
-                        }}
-                      />
-                    )}
-                  </Box>
+                  
                 </Box>
 
                 {/* Event Details Grid */}
                 <Grid container spacing={2} sx={{ mb: 3 }}>
-                  <Grid item xs={12} md={6}>
+                  <Grid size={{ xs: 12, md: 6 }}>
                     <Box sx={{
                       p: 2,
                       borderRadius: 2,
@@ -560,7 +532,17 @@ const EventViewDialog = ({ open, onClose, event }) => {
                       height: "100%",
                     }}>
 
-
+  <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1.5 }}>
+                        <Person sx={{ color: "#0ea5e9", fontSize: 20 }} />
+                        <Box>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: "#334155" }}>
+                            Organizer
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {event?.organizer || "N/A"}
+                          </Typography>
+                        </Box>
+                      </Box>
                       <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1.5 }}>
                         <CalendarIcon sx={{ color: "#667eea", fontSize: 20 }} />
                         <Box>
@@ -600,7 +582,7 @@ const EventViewDialog = ({ open, onClose, event }) => {
                     </Box>
                   </Grid>
 
-                  <Grid item xs={12} md={6}>
+                  <Grid size={{ xs: 12, md: 6 }}>
                     <Box sx={{
                       p: 2,
                       borderRadius: 2,
@@ -608,17 +590,38 @@ const EventViewDialog = ({ open, onClose, event }) => {
                       border: "1px solid rgba(118, 75, 162, 0.1)",
                       height: "100%",
                     }}>
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                        <GroupIcon sx={{ color: "#22c55e", fontSize: 20 }} />
+                      
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1.5 }}>
+                        <CategorySharp sx={{ color: "#22c55e", fontSize: 20 }} />
                         <Box>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: "#334155" }}>
-                            Participant Types
+                            Event Mode
                           </Typography>
                           <Typography variant="body2" color="text.secondary">
-                            {event?.event_types?.map((type) => type.code).join(", ") || "Open to all"}
+                            {event?.event_modes?.length > 0
+                              ? event.event_modes.map(mode => mode.event_group.description).join(", ")
+                              : "No specific categories"}
                           </Typography>
                         </Box>
                       </Box>
+
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1.5 }}>
+                        <LocationOnIcon sx={{ color: "#0ea5e9", fontSize: 20 }} />
+                        <Box>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: "#334155" }}>
+                            Location Access
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {event?.isconference 
+                              ? event?.location_data?.length > 0
+                                ? event.location_data.map(loc => loc.name).join(", ")
+                                : "Open to all locations"
+                              : "Location specific"}
+                          </Typography>
+                        </Box>
+                      </Box>
+
+                    
                     
 
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1.5 }}>
@@ -1442,7 +1445,7 @@ const EventViewDialog = ({ open, onClose, event }) => {
             {/* Cancel Details Grid */}
             <Grid container spacing={2}>
               {/* Reason */}
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Box display="flex" alignItems="flex-start" gap={1}>
                   <DescriptionIcon fontSize="small" color="action" sx={{ mt: 0.5, flexShrink: 0 }} />
                   <Box>
@@ -1469,7 +1472,7 @@ const EventViewDialog = ({ open, onClose, event }) => {
               </Grid>
 
               {/* Cancelled By */}
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <Box display="flex" alignItems="center" gap={1}>
                   <Person fontSize="small" color="action" />
                   <Box>
@@ -1484,7 +1487,7 @@ const EventViewDialog = ({ open, onClose, event }) => {
               </Grid>
 
               {/* Date */}
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <Box display="flex" alignItems="center" gap={1}>
                   <EventAvailable fontSize="small" color="action" />
                   <Box>

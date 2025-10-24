@@ -58,8 +58,10 @@ const Sidebar = ({ collapsed = false }) => {
   const drawerWidth = collapsed ? DRAWER_WIDTH_COLLAPSED : DRAWER_WIDTH_EXPANDED;
 
   useEffect(() => {
-    const permissions = getUserPermissions();
-    setUserPermissions(permissions);
+    const updatePerms = () => setUserPermissions(getUserPermissions());
+    updatePerms();
+    window.addEventListener('userDataUpdated', updatePerms);
+    return () => window.removeEventListener('userDataUpdated', updatePerms);
   }, []);
 
   const filteredSidebar = filterSidebarByPermissions(sidebarConfig, userPermissions);
@@ -95,54 +97,11 @@ const Sidebar = ({ collapsed = false }) => {
         },
       }}
     >
-      <Box sx={{ marginTop: "86px", textAlign: "center" }}>
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            px: collapsed ? 2 : 8,
-            py: 2,
-            transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-            position: "relative",
-          }}
-        >
-          <Box 
-            sx={{ 
-              display: "flex", 
-              alignItems: "center",
-              opacity: collapsed ? 0 : 1,
-              transform: collapsed ? "scale(0.8)" : "scale(1)",
-              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-            }}
-          >
-            <ChurchIcon 
-              sx={{ 
-                color: theme.palette.primary.main, 
-                fontSize: collapsed ? 24 : 32, 
-                mr: collapsed ? 0 : 1.5,
-                filter: `drop-shadow(0 2px 4px ${alpha(theme.palette.primary.main, 0.3)})`,
-                transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-              }} 
-            />
-            {!collapsed && (
-              <Typography 
-                variant="h5" 
-                sx={{ 
-                  color: theme.palette.primary.main, 
-                  fontWeight: 700,
-                  letterSpacing: "0.5px",
-                  textShadow: `0 2px 4px ${alpha(theme.palette.primary.main, 0.2)}`,
-                }}
-              >
-                UCCP
-              </Typography>
-            )}
-          </Box>
-        </Box>
+      <Box sx={{ marginTop: "80px", textAlign: "center" }}>
+       
         <Divider 
           sx={{ 
-            my: 2, 
+            
             backgroundColor: alpha(theme.palette.primary.main, 0.12),
             height: 2,
             borderRadius: 1,

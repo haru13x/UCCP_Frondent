@@ -103,12 +103,24 @@ export const sidebarConfig = [
          rule: "view_account_group",
 
       },
-       {
-        label: "Account Type",
-        icon: ManageAccountsRounded,
-        path: "/settings/accountType",
-        rule: "view_accoount_type"
+      //  {
+      //   label: "Account Type",
+      //   icon: ManageAccountsRounded,
+      //   path: "/settings/accountType",
+      //   rule: "view_accoount_type"
 
+      // },
+      {
+        label: "Civil Status",
+        icon: AccountCircleOutlined,
+        path: "/settings/civil-status",
+        rule: "view_civil_statuses"
+      },
+      {
+        label: "Nationality",
+        icon: ManageAccountsRounded,
+        path: "/settings/nationality",
+        rule: "view_nationalities"
       },
       {
         label: "Church Location",

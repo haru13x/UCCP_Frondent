@@ -21,6 +21,8 @@ import EventList from "../pages/EventList";
 import RequestRegistration from "../pages/management/RequestRegistration";
 import ForgotPassword from "../pages/public/ForgotPassword";
 import Organizer from "../pages/management/Organizer";
+import NationalityPage from "../pages/management/settings/NationalityPage";
+import CivilStatusPage from "../pages/management/settings/CivilStatusPage";
 // Public route definitions (no need to wrap manually)
 const publicRoutes = [
   { path: "/", component: Login },
@@ -39,6 +41,8 @@ const privateRoutes = [
   { path: "/settings/accountType", component: AccountType },
   { path: "/settings/accountGroup", component: AccountGroup },
   { path: "/settings/rules", component: ChurchLocation },
+  { path: "/settings/nationality", component: NationalityPage },
+  { path: "/settings/civil-status", component: CivilStatusPage },
   { path: "/list", component: EventList },
   { path: "/my-list", component: Mylist },
   { path: "/qrcode", component: QRScannerPage },

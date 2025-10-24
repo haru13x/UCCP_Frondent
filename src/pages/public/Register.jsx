@@ -13,6 +13,10 @@ import {
   Container,
   Avatar,
   Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import {
   PersonAdd as PersonAddIcon,
@@ -41,13 +45,17 @@ export default function Register() {
     confirmPassword: "",
     location: "",
     accountGroupId: null,
-    account_type_id: [],
   });
 
   const [formErrors, setFormErrors] = useState({});
+  const [otpSent, setOtpSent] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [otpError, setOtpError] = useState("");
+  const [registrationData, setRegistrationData] = useState(null);
+  const [otpDialogOpen, setOtpDialogOpen] = useState(false);
   
   const [accountGroups, setAccountGroups] = useState([]);
-  const [accountTypes, setAccountTypes] = useState([]);
+  // Removed account types selection in favor of single account group
   const [locations, setLocations] = useState([]);
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -55,15 +63,9 @@ export default function Register() {
     setFormErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
-  const handleCategoryChange = async (event, value) => {
+  const handleCategoryChange = (event, value) => {
     if (!value?.id) return;
     setFormData((prev) => ({ ...prev, accountGroupId: value.id }));
-    try {
-      const res = await UseMethod("get", `account-types/${value.id}`);
-      setAccountTypes(res?.data || []);
-    } catch (error) {
-      console.error("Failed to load account types:", error);
-    }
   };
 
   const validateFields = () => {
@@ -91,9 +93,7 @@ export default function Register() {
       errors.confirmPassword = "Passwords do not match";
     }
 
-    if (formData.account_type_id.length === 0) {
-      errors.account_type_id = "At least one type is required";
-    }
+    // Removed account type validation; only single group is required
 
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -104,34 +104,64 @@ export default function Register() {
     if (!validateFields()) return;
 
     try {
-      const payload = {
-        is_request: 1,
-        username: formData.username,
-        email: formData.email,
-        password: formData.password,
-        password_confirmation: formData.confirmPassword,
-        first_name: formData.firstName,
-        last_name: formData.lastName,
-        middle_name: formData.middleName,
-        gender: formData.gender,
-        location: formData.location,
-        account_group_id: formData.accountGroupId,
-        account_type_id: formData.account_type_id,
-      };
+      if (!otpSent) {
+        // First step: Request OTP
+        const payload = {
+          email: formData.email,
+          registration_data: {
+            is_request: 1,
+            username: formData.username,
+            email: formData.email,
+            password: formData.password,
+            password_confirmation: formData.confirmPassword,
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            middle_name: formData.middleName,
+            gender: formData.gender,
+            location: formData.location,
+            group_id: formData.accountGroupId,
+          }
+        };
 
-      const res = await UseMethod("post", "register", payload);
+        const res = await UseMethod("post", "generate-registration-otp", payload);
 
-      if (res && (res.status === 200 || res.status === 201)) {
-        showSnackbar({
-          message: "Registration request submitted! Awaiting approval.",
-          type: "success",
-        });
-        setTimeout(() => navigate("/"), 1500); // Redirect to home
+        if (res && res.status === 200) {
+          setOtpSent(true);
+          setRegistrationData(payload.registration_data);
+          setOtpDialogOpen(true);
+          showSnackbar({
+            message: "OTP sent to your email. Please check and verify.",
+            type: "success",
+          });
+        } else {
+          showSnackbar({
+            message: res?.data?.message || "Failed to send OTP. Please try again.",
+            type: "error",
+          });
+        }
       } else {
-        showSnackbar({
-          message: res?.data?.message || "Registration failed. Please try again.",
-          type: "error",
-        });
+        // Second step: Verify OTP and complete registration
+        const verifyPayload = {
+          email: formData.email,
+          otp: otp
+        };
+
+        const res = await UseMethod("post", "verify-registration-otp", verifyPayload);
+
+        if (res && (res.status === 200 || res.status === 201)) {
+          setOtpDialogOpen(false);
+          showSnackbar({
+            message: "Registration request submitted! Awaiting approval (24hrs to approve by admin)",
+            type: "success",
+          });
+          setTimeout(() => navigate("/"), 1500);
+        } else {
+          setOtpError("Invalid OTP. Please try again.");
+          showSnackbar({
+            message: res?.data?.message || "OTP verification failed. Please try again.",
+            type: "error",
+          });
+        }
       }
     } catch (err) {
       console.error("Registration error:", err);
@@ -175,13 +205,12 @@ export default function Register() {
           display: "flex",
           position: "relative",
           overflow: "hidden",
-
         }}
       >
         <Container maxWidth="xl" sx={{ height: "90h", display: "flex", alignItems: "center", py: 4 }}>
           <Grid container spacing={5} sx={{ height: "100%", alignItems: "" }}>
             {/* Left Side - Welcome Content */}
-            <Grid size={{ md: 6 }} item xs={12} md={6} sx={{ pr: { md: 8 }, display: "flex", alignItems: "flex-start", justifyContent: "center" }}>
+            <Grid size={{ md: 6, }} item xs={12} md={6} sx={{ pr: { md: 8 }, display: "flex", alignItems: "flex-start", justifyContent: "center" }}>
               <Box sx={{ textAlign: "center", color: "white", pt: 4 }}>
                 <Avatar
                   sx={{
@@ -251,18 +280,16 @@ export default function Register() {
             </Grid>
 
             {/* Right Side - Registration Form */}
-            <Grid size={{ md: 6 }} item xs={12} md={6} sx={{ pl: { md: 8 } }}>
+            <Grid size={{ md: 6, sm: 12 , xs: 12 }} item xs={12} md={6} sx={{ pl: { md: 8 } }}>
               <Card
                 sx={{
                   maxWidth: 850,
-
                   background: "rgba(255, 255, 255, 0.95)",
                   backdropFilter: "blur(20px)",
                   border: "1px solid rgba(255, 255, 255, 0.2)",
                   boxShadow: "0 25px 50px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.1)",
                   position: "relative",
                   overflow: "hidden",
-
                 }}
               >
                 <CardContent sx={{ p: { xs: 3, sm: 5 } }}>
@@ -293,7 +320,7 @@ export default function Register() {
                   <Box component="form" onSubmit={handleSubmit}>
                     <Grid container spacing={1}>
                       {/* Name Fields */}
-                      <Grid size={{ md: 6, sm: 12 }} item xs={12} sm={6}>
+                      <Grid size={{ md: 6, sm: 12, xs: 12 }} item xs={12} sm={6}>
                         <TextField
                           label="First Name"
                           name="firstName"
@@ -307,7 +334,7 @@ export default function Register() {
                           sx={inputStyle}
                         />
                       </Grid>
-                      <Grid size={{ md: 6, sm: 12 }} item xs={12} sm={6}>
+                      <Grid  size={{ md: 6, sm: 12, xs: 12 }}  item xs={12} sm={6}>
                         <TextField
                           label="Last Name"
                           name="lastName"
@@ -321,7 +348,7 @@ export default function Register() {
                           sx={inputStyle}
                         />
                       </Grid>
-                      <Grid size={{ md: 6, sm: 12 }} item xs={12} sm={6}>
+                      <Grid  size={{ md: 6, sm: 12, xs: 12 }}  item xs={12} sm={6}>
                         <TextField
                           label="Middle Name (Optional)"
                           name="middleName"
@@ -332,7 +359,7 @@ export default function Register() {
                           sx={inputStyle}
                         />
                       </Grid>
-                      <Grid size={{ md: 6, sm: 12 }} item xs={12} sm={6}>
+                      <Grid  size={{ md: 6, sm: 12, xs: 12 }}  item xs={12} sm={6}>
                         <TextField
                           select
                           label="Gender"
@@ -352,7 +379,7 @@ export default function Register() {
                       </Grid>
 
                       {/* Login Info */}
-                      <Grid size={{ md: 6, sm: 12 }} item xs={12} sm={6}>
+                      <Grid  size={{ md: 6, sm: 12, xs: 12 }}  item xs={12} sm={6}>
                         <TextField
                           label="Username"
                           name="username"
@@ -366,7 +393,7 @@ export default function Register() {
                           sx={inputStyle}
                         />
                       </Grid>
-                      <Grid size={{ md: 6, sm: 12 }} item xs={12} sm={6}>
+                      <Grid  size={{ md: 6, sm: 12, xs: 12 }}  item xs={12} sm={6}>
                         <TextField
                           label="Email"
                           name="email"
@@ -381,7 +408,7 @@ export default function Register() {
                           sx={inputStyle}
                         />
                       </Grid>
-                      <Grid size={{ md: 6, sm: 12 }} item xs={12} sm={6}>
+                      <Grid  size={{ md: 6, sm: 12, xs: 12 }}  item xs={12} sm={6}>
                         <TextField
                           label="Password"
                           name="password"
@@ -396,7 +423,7 @@ export default function Register() {
                           sx={inputStyle}
                         />
                       </Grid>
-                      <Grid size={{ md: 6, sm: 12 }} item xs={12} sm={6}>
+                      <Grid  size={{ md: 6, sm: 12, xs: 12 }}  item xs={12} sm={6}>
                         <TextField
                           label="Confirm Password"
                           name="confirmPassword"
@@ -413,7 +440,7 @@ export default function Register() {
                       </Grid>
 
                       {/* Location & Group */}
-                      <Grid size={{ md: 6, sm: 12 }} item xs={12} sm={6}>
+                      <Grid  size={{ md: 6, sm: 12, xs: 12 }}  item xs={12} sm={6}>
                         <TextField
                           select
                           label="Location"
@@ -434,7 +461,7 @@ export default function Register() {
                           ))}
                         </TextField>
                       </Grid>
-                      <Grid size={{ md: 6, sm: 12 }} item xs={12} sm={6}>
+                      <Grid  size={{ md: 6, sm: 12, xs: 12 }}  item xs={12} sm={6}>
                         <Autocomplete
                           options={accountGroups}
                           getOptionLabel={(option) => option.description}
@@ -456,51 +483,7 @@ export default function Register() {
                         />
                       </Grid>
 
-                      {/* Account Types */}
-                      <Grid size={{ md: 12, sm: 12 }} item xs={12}>
-                        <Autocomplete
-                          multiple
-                          options={accountTypes}
-                          disableCloseOnSelect
-                          getOptionLabel={(option) => option.description}
-                          value={accountTypes.filter((type) =>
-                            formData.account_type_id.includes(type.id)
-                          )}
-                          onChange={(e, values) =>
-                            setFormData({
-                              ...formData,
-                              account_type_id: values.map((v) => v.id),
-                            })
-                          }
-                          renderOption={(props, option, { selected }) => (
-                            <li {...props}>
-                              <Box
-                                component="span"
-                                sx={{
-                                  width: 18,
-                                  height: 18,
-                                  mr: 1,
-                                  border: "1px solid #ccc",
-                                  borderRadius: "4px",
-                                  backgroundColor: selected ? "#1976d2" : "#fff",
-                                }}
-                              />
-                              {option.description}
-                            </li>
-                          )}
-                          renderInput={(params) => (
-                            <TextField
-                              {...params}
-                              label="Account Types"
-                              size="small"
-
-                              error={!!formErrors.account_type_id}
-                              helperText={formErrors.account_type_id}
-                              sx={inputStyle}
-                            />
-                          )}
-                        />
-                      </Grid>
+                      {/* Account Types removed: single group selection only */}
 
                       {/* Submit Button */}
                       <Grid size={{ md: 12, sm: 12 }} item xs={12} mt={3}>
@@ -604,6 +587,78 @@ export default function Register() {
           </Grid>
         </Container>
       </Box>
+
+      {/* OTP Dialog */}
+      <Dialog 
+        open={otpDialogOpen} 
+        onClose={() => setOtpDialogOpen(false)}
+        PaperProps={{
+          sx: {
+            width: '100%',
+            maxWidth: '400px',
+            borderRadius: '16px',
+            p: 2,
+          }
+        }}
+      >
+        <DialogTitle sx={{ textAlign: 'center', pb: 1 }}>
+          <Typography variant="h5" sx={{ fontWeight: 700, color: '#764ba2' }}>
+            Enter OTP Code
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" sx={{ mb: 3, textAlign: 'center', color: 'text.secondary' }}>
+            Please enter the 6-digit OTP code sent to your email
+          </Typography>
+          <TextField
+            label="Enter OTP"
+            value={otp}
+            onChange={(e) => {
+              setOtp(e.target.value);
+              setOtpError("");
+            }}
+            fullWidth
+            size="large"
+            required
+            error={!!otpError}
+            helperText={otpError}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: '12px',
+                fontSize: '1.2rem',
+                letterSpacing: '0.2em',
+              },
+            }}
+            inputProps={{
+              maxLength: 6,
+              style: { textAlign: 'center' }
+            }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: 'center', pb: 3 }}>
+          <Button
+            onClick={handleSubmit}
+            variant="contained"
+            fullWidth
+            sx={{
+              py: 1.5,
+              borderRadius: '12px',
+              fontWeight: 700,
+              fontSize: '1.1rem',
+              textTransform: 'none',
+              background: 'linear-gradient(45deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+              backgroundSize: '200% 200%',
+              '&:hover': {
+                backgroundPosition: '100% 0',
+                transform: 'translateY(-2px)',
+                boxShadow: '0 8px 25px rgba(102, 126, 234, 0.4)',
+              },
+            }}
+          >
+            Verify OTP
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

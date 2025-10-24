@@ -43,7 +43,7 @@ const loadGoogleMapsScript = (callback) => {
     return;
   }
   const script = document.createElement("script");
-  script.src = "https://maps.googleapis.com/maps/api/js?key=AIzaSyA-Psh9ZzR9Qp7tiJcH5RTqhFrr9nYZRdQ&libraries=places";
+  script.src = "https://maps.googleapis.com/maps/api/js?key=AIzaSyBIa8_O28LKACZThESLc7OeY9S1I4tXjkk&libraries=places";
   script.async = true;
   script.defer = true;
   script.onload = callback;
@@ -65,7 +65,6 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
   const [marker, setMarker] = useState(null);
   const [placeOptions, setPlaceOptions] = useState([]);
   const [accountGroups, setAccountGroups] = useState([]);
-  const [accountTypes, setAccountTypes] = useState([]);
   const [selectedAccountGroups, setSelectedAccountGroups] = useState([]);
   const [openProgramForm, setOpenProgramForm] = useState(false);
   const [programs, setPrograms] = useState([]);
@@ -143,31 +142,16 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
     fetchOrganizer();
   }, [open])
 
+  // Auto-assign category to current user's group when not admin
   useEffect(() => {
-    console.log('Account Types useEffect - formData.accountGroupIds:', formData.accountGroupIds, 'formData.participants:', formData.participants);
-    const fetchAccountTypes = async () => {
-      if (formData.accountGroupIds && formData.accountGroupIds.length > 0) {
-        const allAccountTypes = [];
-        for (const groupId of formData.accountGroupIds) {
-          const res = await UseMethod("get", `account-types/${groupId}`);
-          if (res?.data) {
-            // Add group info to each account type for better identification
-            const group = accountGroups.find(g => g.id === groupId);
-            const typesWithGroup = res.data.map(type => ({
-              ...type,
-              groupName: group ? group.description : '',
-              groupId: groupId
-            }));
-            allAccountTypes.push(...typesWithGroup);
-          }
-        }
-        setAccountTypes(allAccountTypes);
-      } else {
-        setAccountTypes([]);
-      }
-    };
-    fetchAccountTypes();
-  }, [formData.accountGroupIds, accountGroups]);
+    if (open && !isEdit && currentUser && currentUser.role_id !== 1 && currentUser.group_id) {
+      setFormData(prev => ({
+        ...prev,
+        category: [String(currentUser.group_id)],
+        accountGroupIds: [String(currentUser.group_id)],
+      }));
+    }
+  }, [open, isEdit, currentUser]);
 
   // Initialize Google Maps
   useEffect(() => {
@@ -248,7 +232,6 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
       ...prev,
       accountGroupIds: values?.map(v => v.id) || [],
       category: values?.map(v => v.id) || [], // Store IDs as an array of numbers
-      participants: [], // Reset participants when groups change
     }));
   };
 
@@ -783,53 +766,21 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
                       InputProps={{ startAdornment: <ContactPhone fontSize="small" color="action" sx={{ mr: 1 }} /> }}
                     />
                   </Grid>
-                  {/* Conference section - only visible to users with role ID 1 */}
-                  {currentUser?.role_id === 1 && (
-                    <>
-                      <Grid size={{ md: 12 }} item xs={12}>
-                        <FormControlLabel
-                          control={
-                            <Checkbox
-                              checked={formData.isconference || false}
-                              onChange={(e) => setFormData({ ...formData, isconference: e.target.checked })}
-                              color="primary"
-                            />
-                          }
-                          label="This is a conference event (multiple locations)"
-                          sx={{  }}
-                        />
-                      </Grid>
-         
-                      <Grid size={{ md: 12, sm: 12 }} item xs={12} sm={6}>
-                        <Autocomplete
-                          multiple
-                          options={locations}
-                          getOptionLabel={(option) => option.slug}
-                          value={locations.filter(location => 
-                            formData.conference_locations?.includes(location.id)
-                          )}
-                          onChange={(e, values) => {
-                            const locationIds = values.map(v => v.id);
-                            setFormData({
-                              ...formData,
-                              conference_locations: locationIds,
-                              // Automatically check conference checkbox if multiple locations selected
-                              isconference: locationIds.length > 1 ? true : formData.isconference
-                            });
-                          }}
-                          renderInput={(params) => (
-                            <TextField
-                              {...params}
-                              label="Conference Locations"
-                              size="small"
-                              fullWidth
-                              required
-                            />
-                          )}
-                        />
-                      </Grid>
-                    </>
-                  )}
+                  {/* Conference toggle (open to all) - visible to admins; defaults to checked */}
+                  {/* {currentUser?.role_id === 1 && ( */}
+                    <Grid size={{ md: 12 }} item xs={12}>
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={formData.isconference ?? true}
+                            onChange={(e) => setFormData({ ...formData, isconference: e.target.checked })}
+                            color="primary"
+                          />
+                        }
+                        label="Open to all (All church Location Recommended)"
+                      />
+                    </Grid>
+                  {/* )} */}
                 
                 </Grid>
 
@@ -837,108 +788,82 @@ const EventFormDialog = ({ open, onClose, formData, setFormData, onSave, isEdit 
                  
                   <Grid size={{ md: 12 }} sx={{my:1}} item xs={6}>
                     <Box>
-                <Autocomplete
-                  multiple
-                  disableCloseOnSelect
-                  options={accountGroups}
-                  getOptionLabel={(option) => option.description}
-                  value={selectedAccountGroups}
-                  onChange={handleCategoryChange}
-                  isOptionEqualToValue={(option, value) => {
-                       return String(option.id) === String(value.id);
-                  }}
-                  renderOption={(props, option, { selected }) => (
-                    <li {...props}>
-                      <Box
-                        component="span"
-                        sx={{
-                          width: 20,
-                          height: 20,
-                          mr: 1,
-                          border: '1px solid gray',
-                          borderRadius: '4px',
-                          backgroundColor: selected ? '#1976d2' : '#fff',
+                {currentUser?.role_id === 1 && (
+                  <Autocomplete
+                    multiple
+                    disableCloseOnSelect
+                    options={accountGroups}
+                    getOptionLabel={(option) => option.description}
+                    value={selectedAccountGroups}
+                    onChange={handleCategoryChange}
+                    isOptionEqualToValue={(option, value) => {
+                         return String(option.id) === String(value.id);
+                    }}
+                    renderOption={(props, option, { selected }) => (
+                      <li {...props}>
+                        <Box
+                          component="span"
+                          sx={{
+                            width: 20,
+                            height: 20,
+                            mr: 1,
+                            border: '1px solid gray',
+                            borderRadius: '4px',
+                            backgroundColor: selected ? '#1976d2' : '#fff',
+                          }}
+                        />
+                        <Typography variant="body2">{option.description}</Typography>
+                      </li>
+                    )}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Event Categories"
+                        size="small"
+                        fullWidth
+                        placeholder="Select event categories"
+                        InputProps={{
+                          ...params.InputProps,
+                          startAdornment: (
+                            <>
+                              <CategorySharp fontSize="small" color="action" sx={{ mr: 1 }} />
+                              {params.InputProps.startAdornment}
+                            </>
+                          ),
                         }}
                       />
-                      <Typography variant="body2">{option.description}</Typography>
-                    </li>
-                  )}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Event Categories"
-                      size="small"
-                      fullWidth
-                      placeholder="Select event categories"
-                      InputProps={{
-                        ...params.InputProps,
-                        startAdornment: (
-                          <>
-                            <CategorySharp fontSize="small" color="action" sx={{ mr: 1 }} />
-                            {params.InputProps.startAdornment}
-                          </>
-                        ),
-                      }}
-                    />
-                  )}
-                />
+                    )}
+                  />
+                )}
                      </Box>
                   </Grid>
                 </Grid>
               
-                <Autocomplete
-                  multiple
-                  disableCloseOnSelect
-                  options={accountTypes}
-                  getOptionLabel={(option) => `${option.description} `}
-                  value={accountTypes.filter(type => formData.participants.includes(type.id))}
-                  onChange={(e, values) => {
-                    console.log('Account Type Autocomplete - selected values:', values);
-                    const participantData = values.map((v) => ({
-                      account_type_id: v.id,
-                      account_group_id: v.groupId
-                    }));
-                    setFormData({
-                      ...formData,
-                      participants: values.map((v) => v.id), // Store IDs for compatibility
-                      participantData: participantData // Store full data for backend
-                    });
-                  }}
-                  isOptionEqualToValue={(option, value) => {
-                   
-                    return option.id == value.id;
-                  }}
-                  renderOption={(props, option, { selected }) => (
-                    <li {...props}>
-                      <Box
-                        component="span"
-                        sx={{
-                          width: 20,
-                          height: 20,
-                          mr: 1,
-                          border: '1px solid gray',
-                          borderRadius: '4px',
-                          backgroundColor: selected ? '#1976d2' : '#fff',
-                        }}
-                      />
-                      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                        <Typography variant="body2">{option.description}</Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {option.groupName}
-                        </Typography>
-                      </Box>
-                    </li>
-                  )}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Participants (Account Types)"
-                      size="small"
-                      fullWidth
-                      placeholder="Select account types from chosen categories"
+                {/* Single location selector when not conference (specific location) */}
+                {!formData.isconference && (
+                  <Grid size={{ md: 12 }} item xs={12} sx={{ mt: 1 }}>
+                    <Autocomplete
+                      options={locations}
+                      getOptionLabel={(option) => option.slug}
+                      value={locations.find((loc) => String(loc.id) === String(formData.location_id)) || null}
+                      onChange={(e, value) => {
+                        setFormData({
+                          ...formData,
+                          location_id: value ? value.id : '',
+                        });
+                      }}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Location"
+                          size="small"
+                          fullWidth
+                          required
+                        />
+                      )}
                     />
-                  )}
-                />
+                  </Grid>
+                )}
 
                 <Card sx={{ mt: 1, borderRadius: 3, boxShadow: 3 }}>
                   <CardContent>
