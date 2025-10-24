@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ExcelJS from 'exceljs';
 import {
   Dialog,
   DialogTitle,
@@ -15,6 +16,7 @@ import {
   IconButton,
   Alert,
   LinearProgress,
+  Grid,
 } from '@mui/material';
 import {
   CloudUpload,
@@ -25,16 +27,17 @@ import {
 } from '@mui/icons-material';
 import { UseMethod } from '../../composables/UseMethod';
 
-const UploadExcelDialog = ({ open, onClose }) => {
+const UploadExcelDialog = ({ open, onClose, onSuccess }) => {
   const [uploadForm, setUploadForm] = useState({
     role: '',
     accountGroupId: '',
-    accountTypeId: [], // make it array
+    locationId: '',
     file: null,
   });
 
   const [accountGroups, setAccountGroups] = useState([]);
-  const [accountTypes, setAccountTypes] = useState([]);
+  const [locations, setLocations] = useState([]);
+  // Removed account types; we only support assigning a single group
   const [roles, setRoles] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -43,16 +46,16 @@ const UploadExcelDialog = ({ open, onClose }) => {
       (async () => {
         const groupRes = await UseMethod('get', 'account-groups');
         const roleRes = await UseMethod('get', 'get-roles');
+        const locationRes = await UseMethod('get', 'get-church-locations');
         setAccountGroups(groupRes?.data || []);
         setRoles(roleRes?.data || []);
+        setLocations(locationRes?.data || []);
       })();
     }
   }, [open]);
 
   const handleGroupChange = async (groupId) => {
-    setUploadForm((prev) => ({ ...prev, accountGroupId: groupId, accountTypeId: [] }));
-    const res = await UseMethod('get', `account-types/${groupId}`);
-    setAccountTypes(res?.data || []);
+    setUploadForm((prev) => ({ ...prev, accountGroupId: groupId }));
   };
 
   const handleInputChange = (key, value) => {
@@ -64,33 +67,102 @@ const UploadExcelDialog = ({ open, onClose }) => {
   };
 
   const handleDownloadTemplate = () => {
-    // Create a sample Excel template
-      const templateData = [
-      ['Name', 'Email', 'Phone', 'Department'],
-      ['John Doe', 'john@example.com', '123-456-7890', 'IT'],
-      ['Jane Smith', 'jane@example.com', '098-765-4321', 'HR'],
+    // Create Excel template with headers and data validation
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Users');
+
+    // Define columns with width and validation
+    worksheet.columns = [
+      { header: 'Username', key: 'username', width: 15 },
+      { header: 'Email', key: 'email', width: 25 },
+      { header: 'First Name', key: 'firstName', width: 15 },
+      { header: 'Last Name', key: 'lastName', width: 15 },
+      { header: 'Middle Name', key: 'middleName', width: 15 },
+      { header: 'Birthdate (YYYY-MM-DD)', key: 'birthdate', width: 20 },
+      { header: 'Gender', key: 'gender', width: 10 },
+      { header: 'Phone Number', key: 'phone', width: 15 }
     ];
-    
-    const csvContent = templateData.map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'user_upload_template.csv';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
+
+    // Add validation for required fields
+    for (let i = 2; i <= 1000; i++) {
+      // Add validation for gender when row has data
+      worksheet.getCell(`G${i}`).dataValidation = {
+        type: 'list',
+        allowBlank: true,
+        formulae: ['"Male,Female"'],
+        showInputMessage: true,
+        promptTitle: 'Gender',
+        prompt: 'Select gender from the list',
+        showErrorMessage: true,
+        errorTitle: 'Invalid Gender',
+        error: 'Please select either Male or Female'
+      };
+
+      // Add validation for birthdate when row has data
+      worksheet.getCell(`F${i}`).dataValidation = {
+        type: 'date',
+        allowBlank: true,
+        operator: 'between',
+        showErrorMessage: true,
+        errorStyle: 'error',
+        errorTitle: 'Invalid Date',
+        error: 'Please enter a date in YYYY-MM-DD format',
+        formulae: ['1900-01-01', '2100-12-31']
+      };
+    }
+
+    // Add data validation for required fields
+    ['A', 'B', 'C', 'D'].forEach(col => {
+      for (let i = 2; i <= 1000; i++) {
+        worksheet.getCell(`${col}${i}`).dataValidation = {
+          type: 'custom',
+          allowBlank: true,
+          formulae: ['LEN(TRIM(A1))>0'],
+          showErrorMessage: true,
+          errorStyle: 'error',
+          errorTitle: 'Required Field',
+          error: 'This field is required when adding a new user'
+        };
+      }
+    });
+
+    // Set date format for birthdate column
+    worksheet.getColumn('F').numFmt = 'yyyy-mm-dd';
+
+    // Style the header row
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE0E0E0' }
+    };
+
+    // Auto-filter for all columns
+    worksheet.autoFilter = {
+      from: { row: 1, column: 1 },
+      to: { row: 1, column: 8 }
+    };
+
+    // Generate the file
+    workbook.xlsx.writeBuffer().then(buffer => {
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'user_upload_template.xlsx';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    });
   };
 
   const handleUpload = async () => {
     setIsUploading(true);
     const formData = new FormData();
     formData.append('role', uploadForm.role);
-    formData.append('account_group_id', uploadForm.accountGroupId);
-    uploadForm.accountTypeId.forEach((typeId) => {
-      formData.append('account_type_id[]', typeId); // array syntax
-    });
+    formData.append('group_id', uploadForm.accountGroupId);
+    formData.append('location_id', uploadForm.locationId);
     formData.append('file', uploadForm.file);
 
     try {
@@ -100,6 +172,17 @@ const UploadExcelDialog = ({ open, onClose }) => {
         alert('✅ Excel uploaded successfully!');
         if (res?.data?.existing_emails?.length) {
           alert('⚠️ These emails already exist:\n' + res.data.existing_emails.join('\n'));
+        }
+        // Refresh data after successful upload
+        const groupRes = await UseMethod('get', 'account-groups');
+        const roleRes = await UseMethod('get', 'get-roles');
+        const locationRes = await UseMethod('get', 'get-church-locations');
+        setAccountGroups(groupRes?.data || []);
+        setRoles(roleRes?.data || []);
+        setLocations(locationRes?.data || []);
+        // Call onSuccess callback to refresh parent data
+        if (onSuccess) {
+          onSuccess();
         }
         onClose();
       } else {
@@ -179,94 +262,71 @@ const UploadExcelDialog = ({ open, onClose }) => {
                 User Configuration
               </Typography>
               
-              <Box display="flex" flexDirection="column" gap={2.5}>
-                <TextField
-                  select
-                  size="small"
-                  label="Select Role"
-                  value={uploadForm.role}
-                  onChange={(e) => handleInputChange('role', e.target.value)}
-                  fullWidth
-                  variant="outlined"
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: 2,
-                      backgroundColor: 'white',
-                    }
-                  }}
-                >
-                  {roles.map((role) => (
-                    <MenuItem key={role.id} value={role.id}>
-                      {role.name}
-                    </MenuItem>
-                  ))}
-                </TextField>
-
-                <TextField
-                  select
-                  label="Select Account Group"
-                  value={uploadForm.accountGroupId}
-                  onChange={(e) => handleGroupChange(e.target.value)}
-                  fullWidth
-                  variant="outlined"
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: 2,
-                      backgroundColor: 'white',
-                    }
-                  }}
-                >
-                  {accountGroups.map((group) => (
-                    <MenuItem key={group.id} value={group.id}>
-                      {group.description}
-                    </MenuItem>
-                  ))}
-                </TextField>
-
-                <TextField
-                  select
-                  label="Select Account Types"
-                  value={uploadForm.accountTypeId}
-                  onChange={(e) => handleInputChange('accountTypeId', e.target.value)}
-                  SelectProps={{
-                    multiple: true,
-                    renderValue: (selected) => (
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                        {selected.map((id) => {
-                          const found = accountTypes.find((t) => t.id === id);
-                          return (
-                            <Chip 
-                              key={id} 
-                              label={found?.description || id} 
-                              size="small"
-                              sx={{ 
-                                backgroundColor: '#e0e7ff', 
-                                color: '#3730a3',
-                                fontWeight: 500
-                              }}
-                            />
-                          );
-                        })}
-                      </Box>
-                    ),
-                  }}
-                  fullWidth
-                  variant="outlined"
-                  disabled={!uploadForm.accountGroupId}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: 2,
-                      backgroundColor: 'white',
-                    }
-                  }}
-                >
-                  {accountTypes.map((type) => (
-                    <MenuItem key={type.id} value={type.id}>
-                      {type.description}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Box>
+              <Grid container spacing={2}>
+                <Grid size={4} item xs={12} sm={6}>
+                  <TextField
+                    select
+                    fullWidth
+                    size="small"
+                    label="Select Location"
+                    value={uploadForm.locationId}
+                    onChange={(e) => handleInputChange('locationId', e.target.value)}
+                    sx={{ backgroundColor: 'white' }}
+                  >
+                    {locations.map((location) => (
+                      <MenuItem key={location.id} value={location.id}>
+                        {location.name}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
+                <Grid size={4} item xs={12} sm={6}>
+                  <TextField
+                    select
+                    size="small"
+                    label="Select Role"
+                    value={uploadForm.role}
+                    onChange={(e) => handleInputChange('role', e.target.value)}
+                    fullWidth
+                    variant="outlined"
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 2,
+                        backgroundColor: 'white',
+                      }
+                    }}
+                  >
+                    {roles.map((role) => (
+                      <MenuItem key={role.id} value={role.id}>
+                        {role.name}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
+                <Grid size={4} item xs={12} sm={6}>
+                  <TextField
+                    select
+                    size="small"
+                    label="Select Account Group"
+                    value={uploadForm.accountGroupId}
+                    onChange={(e) => handleGroupChange(e.target.value)}
+                    fullWidth
+                    variant="outlined"
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 2,
+                        backgroundColor: 'white',
+                      }
+                    }}
+                  >
+                    {accountGroups.map((group) => (
+                      <MenuItem key={group.id} value={group.id}>
+                        {group.description}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
+              </Grid>
             </Paper>
 
             <Paper elevation={0} sx={{ p: 3, backgroundColor: '#f0fdf4', borderRadius: 2, border: '2px dashed #10b981' }}>
@@ -350,7 +410,6 @@ const UploadExcelDialog = ({ open, onClose }) => {
             isUploading ||
             !uploadForm.role ||
             !uploadForm.accountGroupId ||
-            uploadForm.accountTypeId.length === 0 ||
             !uploadForm.file
           }
           sx={{

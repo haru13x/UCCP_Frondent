@@ -31,7 +31,7 @@ const genders = [
 const UserFormDialog = ({ open, onClose, onSave, formData, setFormData, isEdit }) => {
   const [roles, setRoles] = useState([]);
   const [accountGroups, setAccountGroups] = useState([]);
-  const [accountTypes, setAccountTypes] = useState([]);
+  // Removed account types; we only support single group selection
   const [locations, setLocations] = useState([]);
   const handleChange = (field) => (e) => {
     setFormData({ ...formData, [field]: e.target.value });
@@ -45,25 +45,14 @@ const UserFormDialog = ({ open, onClose, onSave, formData, setFormData, isEdit }
     };
     if (open) fetchAccountGroups();
   }, [open]);
-  useEffect(() => {
-    const fetchOnEdit = async () => {
-      if (formData.accountGroupId) {
-        const res = await UseMethod("get", `account-types/${formData.accountGroupId}`);
-        setAccountTypes(res?.data || []);
-      }
-    };
-    fetchOnEdit();
-  }, [formData.accountGroupId]);
+  // Removed account types loading on group change
   const handleCategoryChange = async (event, value) => {
     if (!value?.id) return;
     setFormData((prev) => ({
       ...prev,
       accountGroupId: value.id,
       category: value.description,
-      account_type_id: [],
     }));
-    const res = await UseMethod("get", `account-types/${value.id}`);
-    setAccountTypes(res?.data || []);
   };
   useEffect(() => {
     const fetchRoles = async () => {
@@ -222,49 +211,7 @@ const UserFormDialog = ({ open, onClose, onSave, formData, setFormData, isEdit }
 
 
               </Grid>
-              <Grid size={{ md: 12 }}
-
-              >
-                <Autocomplete
-                  multiple
-                  disableCloseOnSelect
-                  options={accountTypes}
-                  getOptionLabel={(option) => option.description}
-                  value={accountTypes.filter((type) => formData.account_type_id?.includes(type.id))}
-                  onChange={(e, values) =>
-                    setFormData({
-                      ...formData,
-                      account_type_id: values.map((v) => v.id),
-                    })
-                  }
-                  renderOption={(props, option, { selected }) => (
-                    <li {...props}>
-                      <Box
-                        component="span"
-                        sx={{
-                          width: 20,
-                          height: 20,
-                          mr: 1,
-                          border: '1px solid gray',
-                          borderRadius: '4px',
-                          backgroundColor: selected ? '#1976d2' : '#fff',
-                        }}
-                      />
-                      {option.description}
-                    </li>
-                  )}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Users (Account Types)"
-                      size="small"
-                      fullWidth
-                    />
-                  )}
-                />
-
-
-              </Grid>
+              {/* Removed account types selection; single group only */}
             </Grid>
           </CardContent>
         </Card>

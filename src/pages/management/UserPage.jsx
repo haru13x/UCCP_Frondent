@@ -39,23 +39,62 @@ const UserPage = () => {
     role: "",
   });
   const [selectedUser, setSelectedUser] = useState(null);
+  const [searchText, setSearchText] = useState('');
+  const [roles, setRoles] = useState([]);
+  const [groups, setGroups] = useState([]);
+  const [roleFilter, setRoleFilter] = useState(0);
+  const [groupFilter, setGroupFilter] = useState(0);
   const [excelDialogOpen, setExcelDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [searchText, setSearchText] = useState('');
   const [openEnabled, setOpenEnabled] = useState(false);
+
+  // Fetch roles and groups on component mount
+  useEffect(() => {
+    const fetchFilters = async () => {
+      try {
+        const [rolesResponse, groupsResponse] = await Promise.all([
+          UseMethod('get', 'roles'),
+          UseMethod('get', 'account-groups')
+        ]);
+
+        if (rolesResponse?.data) {
+          const rolesWithAll = [{ name: 'All Roles', id:0 }, ...rolesResponse.data];
+          setRoles(rolesWithAll);
+          
+        }
+
+        if (groupsResponse?.data) {
+          const groupsWithAll = [{ description: 'All Groups', id:0 }, ...groupsResponse.data];
+          setGroups(groupsWithAll);
+          
+        }
+
+      } catch (error) {
+        console.error('Failed to fetch filters:', error);
+      }
+    };
+    fetchFilters();
+  }, []);
+
   // ✅ Fetch and flatten nested user data
   const fetchUsers = async (search = '') => {
     setLoading(true);
     try {
-      const response = await UseMethod("post", "get-users", { search });
+      const response = await UseMethod("post", "get-users", {
+        search,
+        role_id: roleFilter,
+        group_id: groupFilter
+      });
       const flatUsers = response.data.map((user) => ({
         ...user,
+        fullname: user.details?.last_name + ', ' + user.details?.first_name,
         phone: user.details?.phone_number || "N/A",
         gender: user.details?.sex?.name || "N/A",
         roleName: user.role?.name || "N/A",
         status: user.status_id,
         churchLocation: user.location_id || 0,
-        location : user.location?.name || 'No Specific Location Assign',  
+        location: user.location?.name || 'No Specific Location Assign',
+        groupName: user.group?.description || (user.account_type && user.account_type[0]?.account_group?.description) || 'N/A',
       }));
       setUsers(flatUsers);
     } catch (error) {
@@ -67,7 +106,7 @@ const UserPage = () => {
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [roleFilter, groupFilter]); // Refetch when filters change
 
   const handleOpenAdd = () => {
     setIsEdit(false);
@@ -78,6 +117,7 @@ const UserPage = () => {
   const handleOpenEdit = (user) => {
     setIsEdit(true);
     setFormData({
+      
       user_id: user.id,
       username: user.username,
       email: user.email,
@@ -90,8 +130,7 @@ const UserPage = () => {
       phone: user.details?.phone_number || "",
       gender: user.details?.sex_id || "",
       role: user.role?.id || "",
-      accountGroupId: user.account_type[0]?.group_id || "",
-      account_type_id: user.account_type.map((t) => t.account_type_id),
+      accountGroupId: user.group_id || (user.account_type && user.account_type[0]?.group_id) || "",
       churchLocationId: user.location_id || "",
 
     });
@@ -113,7 +152,7 @@ const UserPage = () => {
   }
   const handleSave = async () => {
     try {
-      const payload = { ...formData, role: formData.role };
+      const payload = { ...formData, role: formData.role, group_id: formData.accountGroupId };
       const url = isEdit ? "update-users" : "register";
       const response = await UseMethod("post", url, payload);
 
@@ -139,7 +178,7 @@ const UserPage = () => {
       }
     } catch (error) {
       console.error("Failed to disable user:", error);
-  
+
     }
     finally {
       setOpenCancel(false);
@@ -168,11 +207,12 @@ const UserPage = () => {
     fetchUsers(searchText);
   };
   const columns = [
-    { field: "name", headerName: "Name", flex: 1 },
+    { field: "fullname", headerName: "Name", flex: 1 },
     { field: "email", headerName: "Email", flex: 1 },
     // { field: "phone", headerName: "Phone", flex: 1 },
     { field: "gender", headerName: "Gender", flex: 1 },
     { field: "roleName", headerName: "Role", flex: 1 },
+    { field: "groupName", headerName: "Group", flex: 1 },
     { field: "location", headerName: "Church Location", flex: 1 },
     {
       field: 'actions',
@@ -241,16 +281,12 @@ const UserPage = () => {
           px={2}
           py={2}
         >
-          <Typography variant="h6">User Management</Typography>
-
           <Grid
-            width={'40vw'}
+            width={'60vw'}
             sx={{
               display: 'flex',
               gap: 2
-
             }}>
-
             <TextField
               variant="outlined"
               placeholder="Search by name, group, type…"
@@ -262,9 +298,49 @@ const UserPage = () => {
               }}
               size='small'
             />
-            <Button variant="contained" onClick={handleSearchClick}>
+            <TextField
+              select
+              size="small"
+              value={roleFilter}
+              onChange={(e) => {
+                setRoleFilter(e.target.value);
+                fetchUsers(searchText);
+              }}
+              SelectProps={{
+                native: true
+              }}
+              
+              sx={{ minWidth: 150 }}
+            >
+              {roles.map((role) => (
+                <option key={role.id} value={role.id}>
+                  {role.name}
+                </option>
+              ))}
+            </TextField>
+            <TextField
+              select
+              size="small"
+              value={groupFilter}
+              onChange={(e) => {
+                setGroupFilter(e.target.value);
+                fetchUsers(searchText);
+              }}
+              SelectProps={{
+                native: true
+              }}
+           
+              sx={{ minWidth: 150 }}
+            >
+              {groups.map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.description}
+                </option>
+              ))}
+            </TextField>
+            {/* <Button variant="contained" onClick={handleSearchClick}>
               Search
-            </Button>
+            </Button> */}
           </Grid>
           <Grid sx={{
             display: 'flex',
@@ -281,7 +357,6 @@ const UserPage = () => {
               Upload Excel
             </Button>
           </Grid>
-
         </Box>
 
         <Box sx={{ height: "75vh", width: "100%" }}>
@@ -316,6 +391,7 @@ const UserPage = () => {
       <UploadExcelDialog
         open={excelDialogOpen}
         onClose={() => setExcelDialogOpen(false)}
+        onSuccess={() => fetchUsers()}
       />
 
 

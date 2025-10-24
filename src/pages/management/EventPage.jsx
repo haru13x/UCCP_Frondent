@@ -28,7 +28,6 @@ import EventViewDialog from "../../component/event/EventViewDialog";
 import { CalendarMonth, Cancel, CancelPresentation, DocumentScanner, EditDocument, GeneratingTokensRounded, Group, Person, Person2TwoTone, Report, ReportSharp, Title, TitleTwoTone } from "@mui/icons-material";
 import { useSnackbar } from "../../component/event/SnackbarProvider ";
 import { CancelOutlined, Event, AccessTime, LocationOn } from '@mui/icons-material'
-// ... (imports unchanged)
 import EventReportDialog from "../../component/event/EventReportDialog";
 import { ca, se } from "date-fns/locale";
 import CancelEventDialog from "../../component/event/CancelEventDialog";
@@ -45,6 +44,8 @@ const EventPage = () => {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [eventToCancel, setEventToCancel] = useState(null);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [accountGroups, setAccountGroups] = useState([]);
 
   const [formData, setFormData] = useState({
     id: "",
@@ -67,7 +68,6 @@ const EventPage = () => {
     accountGroupId: "",
     sponsors: [],
     programs: [],
-    participants: [],
     
   });
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -76,9 +76,8 @@ const EventPage = () => {
 
     const response = await UseMethod("post", "get-events", filters); // POST request
     if (response?.data) {
-      const mappedEvents = response.data.map((event, index) => ({
+      let mappedEvents = response.data.map((event, index) => ({
         id: event.id || index,
-        image: event.image || "",
         title: event.title,
         startTime: event.start_time,
         startDate: event.start_date,
@@ -93,26 +92,39 @@ const EventPage = () => {
         latitude: event.latitude,
         longitude: event.longitude,
         description: event.description,
-        image: event.image,
+        image: event.image || "",
         status: event.status_id === 1 ? "Active" : "Cancelled",
-        programs: event.event_programs ?? [],
-        sponsors: event.events_sponser ?? [],
-        accountGroupId: event.event_types[0]?.group_id || "",
-        participants: event.event_types.map((t) => t.id) || [],
-        
-        event_types: event.event_types || [],
+        // Only keep needed program data
+        programs: Array.isArray(event.event_programs) ? event.event_programs.map(p => ({
+          start_time: p.start_time,
+          end_time: p.end_time,
+          activity: p.activity
+        })) : [],
+        accountGroupId: (Array.isArray(event.accountGroupIds) && event.accountGroupIds.length > 0)
+          ? String(event.accountGroupIds[0])
+          : "",
         cancel_by: event.cancel_by || "",
         cancel_reason: event.cancel_reason || "",
         cancel_date: event.cancel_date || "",
         location_id: event.location_id || "",
         location: event.location || "",
-         conference_locations: event.conference_locations || [],
+        conference_locations: event.conference_locations || [],
         isconference: event.isconference || false,
-        participantData: event.event_types.map((t) => ({
-          account_type_id: t.id,
-          account_group_id: t.group_id
-        })) || []
+        event_modes: event.event_modes || [],
+        location_data: event.location_data || []
       }));
+
+      // Client-side category filter (backend may ignore category filter)
+      if (filters && filters.category) {
+        const catId = String(filters.category);
+        mappedEvents = mappedEvents.filter(ev => {
+          const cats = Array.isArray(ev.category)
+            ? ev.category.map(v => String(v))
+            : String(ev.category || '').split(',').map(id => id.trim()).filter(Boolean);
+          return cats.includes(catId);
+        });
+      }
+
       setEvents(mappedEvents);
     }
     setLoading(false);
@@ -121,11 +133,33 @@ const EventPage = () => {
     search: "",
     dateFilter: "upcoming", // default
     status_id: 1, // active
+    category: "",
   });
 
   useEffect(() => {
     fetchEvents();
   }, []);
+
+  // Load current user once
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      try {
+        setCurrentUser(JSON.parse(userData));
+      } catch {}
+    }
+  }, []);
+
+  // Load account groups for admin only
+  useEffect(() => {
+    const loadAccountGroups = async () => {
+      const res = await UseMethod("get", "account-groups");
+      if (res?.data) setAccountGroups(res.data);
+    };
+    if (currentUser?.role_id === 1) {
+      loadAccountGroups();
+    }
+  }, [currentUser]);
 
   const handleOpenForm = (event = null) => {
     console.log('handleOpenForm called with event:', event);
@@ -160,15 +194,10 @@ const EventPage = () => {
         sponsors: event.sponsors || [],
         programs: event.programs || [],
         status: event.status || "",
-        participants: event.participants || [],
         accountGroupIds: event.accountGroupIds || [],
         location_id: "", // Not used anymore - only venue field
         conference_locations: event?.conference_locations ||  [],
-        isconference: event.isconference || false,
-        participantData: event.event_types ? event.event_types.map((t) => ({
-          account_type_id: t.id,
-          account_group_id: t.group_id
-        })) : []
+        isconference: event.isconference ?? true
       };
       console.log('Mapped formData:', mappedFormData);
        setFormData(mappedFormData);
@@ -194,12 +223,10 @@ const EventPage = () => {
         sponsors: [],
         programs: [],
         status: "",
-        participants: [],
         accountGroupIds: [],
         location_id: "",
         conference_locations: [],
-        isconference: false,
-        participantData: []
+        isconference: true
       });
     }
     setOpenForm(true);
@@ -213,7 +240,13 @@ const EventPage = () => {
     form.append("start_time", formData.startTime);
     form.append("end_date", formData.endDate);
     form.append("end_time", formData.endTime);
-    form.append("category", formData.category);
+    // Only admins can choose categories; others forced to their own group
+    const categoryList = currentUser?.role_id === 1
+      ? (Array.isArray(formData.category)
+          ? formData.category.map((v) => String(v))
+          : String(formData.category || '').split(',').filter(Boolean))
+      : (currentUser?.group_id ? [String(currentUser.group_id)] : []);
+    form.append("category", categoryList.join(","));
     form.append("organizer", formData.organizer);
     form.append("contact", formData.contact);
     form.append("attendees", formData.attendees);
@@ -226,23 +259,19 @@ const EventPage = () => {
     form.append("isconference", formData.isconference ? 1 : 0);
     
     // Handle location data based on event type
-    if (formData.isconference) {
-      // For conference events, send multiple location IDs
-      if (Array.isArray(formData.conference_locations)) {
-        form.append("conference_locations", JSON.stringify(formData.conference_locations));
-      }
-    } else {
+    // Open to all (conference) does not include specific locations
+    if (!formData.isconference) {
       // For regular events, send single location ID
       form.append("location_id", formData.location_id);
     }
     
-    if (Array.isArray(formData.participants)) {
-      form.append("participants", JSON.stringify(formData.participants));
-    }
+    // Remove participants (account types) from payload
     
     // Send participantData with account_group_id information
-    if (Array.isArray(formData.participantData)) {
-      form.append("participantData", JSON.stringify(formData.participantData));
+    // Account types removed; only groups are used
+    // Auto-assign auth_group_id for non-admin creators
+    if (currentUser?.role_id === 1 && currentUser?.group_id) {
+      form.append("auth_group_id", String(currentUser.group_id));
     }
 
     // Attach image file
@@ -290,64 +319,80 @@ const EventPage = () => {
     { field: "endDate", headerName: "End Date", width: 100 },
     { field: "venue", headerName: "Venue", flex: 1 },
     { field: "organizer", headerName: "Organizer", flex: 1 },
+    // Display active event modes (account groups) safely using renderCell
+    {
+      field: "groups",
+      headerName: "Groups",
+      flex: 1,
+      sortable: false,
+      renderCell: (params) => {
+        const row = params?.row || {};
+        const modes = Array.isArray(row.event_modes) ? row.event_modes : [];
+        const names = modes
+          .filter((m) => m?.status_id === 1 && m?.event_group)
+          .map((m) => m.event_group?.description || m.event_group?.code || String(m.event_group?.id))
+          .filter(Boolean);
+        return <span>{names.length ? names.join(", ") : "-"}</span>;
+      },
+    },
     { field: "status", headerName: "Status", flex: 1 },
-  {
-    field: 'actions',
-    headerName: 'Actions',
-    width: 290,
-    sortable: false,
-    align: 'center',
-    headerAlign: 'center',
-    renderCell: (params) => (
-      <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        height={50}
-        flexDirection="row"
-       
-        width="100%"
-        gap={1}
-        flexWrap="wrap"
-      >
-        <Button
-          size="small"
-          variant="outlined"
-          color="info"
-          onClick={() => handleView(params.row)}
-          startIcon={<VisibilityIcon />}
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      width: 290,
+      sortable: false,
+      align: 'center',
+      headerAlign: 'center',
+      renderCell: (params) => (
+        <Box
+          display="flex"
+          justifyContent="center"
+          alignItems="center"
+          height={50}
+          flexDirection="row"
+         
+          width="100%"
+          gap={1}
+          flexWrap="wrap"
         >
-          View
-        </Button>
+          <Button
+            size="small"
+            variant="outlined"
+            color="info"
+            onClick={() => handleView(params.row)}
+            startIcon={<VisibilityIcon />}
+          >
+            View
+          </Button>
 
-        {params.row.status === 'Active' && (
-          <>
-            <Button
-              size="small"
-              variant="contained"
-              color="primary"
-              onClick={() => handleOpenForm(params.row)}
-              startIcon={<EditIcon />}
-            >
-              Edit
-            </Button>
-            <Button
-              size="small"
-              variant="contained"
-              color="error"
-              onClick={() => {
-                setEventToCancel(params.row);
-                setCancelDialogOpen(true);
-              }}
-              startIcon={<CancelPresentation />}
-            >
-              Cancel
-            </Button>
-          </>
-        )}
-      </Box>
-    ),
-  },
+          {params.row.status === 'Active' && (
+            <>
+              <Button
+                size="small"
+                variant="contained"
+                color="primary"
+                onClick={() => handleOpenForm(params.row)}
+                startIcon={<EditIcon />}
+              >
+                Edit
+              </Button>
+              <Button
+                size="small"
+                variant="contained"
+                color="error"
+                onClick={() => {
+                  setEventToCancel(params.row);
+                  setCancelDialogOpen(true);
+                }}
+                startIcon={<CancelPresentation />}
+              >
+                Cancel
+              </Button>
+            </>
+          )}
+        </Box>
+      ),
+    },
 
   ];
   const handleGenerateReport = async (filters) => {
@@ -391,6 +436,7 @@ const EventPage = () => {
                   search: filter.search,
                   date_filter: filter.dateFilter,
                   status_id: filter.status_id,
+                  category: filter.category || undefined,
                 });
               }}
             />
@@ -413,6 +459,31 @@ const EventPage = () => {
               <option value="past">Past</option>
             </TextField>
           </Grid>
+
+          {/* Category filter: visible only for admin (role_id === 1) */}
+          {currentUser?.role_id === 1 && (
+            <Grid item xs={12} md={4}>
+              <TextField
+                select
+                fullWidth
+                placeholder="Category"
+                size="small"
+                SelectProps={{ native: true }}
+                value={filter.category}
+                onChange={(e) =>
+                  setFilter((prev) => ({ ...prev, category: e.target.value }))
+                }
+              >
+                <option value="">All</option>
+                {accountGroups.map((g) => (
+                  <option key={g.id} value={String(g.id)}>
+                    {g.description || g.code || `Group ${g.id}`}
+                  </option>
+                ))}
+              </TextField>
+            </Grid>
+          )}
+
           <Grid item xs={12} md={4}>
 
             <TextField
@@ -440,6 +511,7 @@ const EventPage = () => {
                 search: filter.search,
                 date_filter: filter.dateFilter,
                 status_id: filter.status_id,
+                category: filter.category || undefined,
               })}
             >
               Search

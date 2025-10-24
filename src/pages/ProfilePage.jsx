@@ -39,7 +39,8 @@ import {
   Visibility,
   VisibilityOff,
   Security,
-  AccountCircle
+  AccountCircle,
+  Groups
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import axios from 'axios';
@@ -129,6 +130,9 @@ const ProfilePage = () => {
   const [editMode, setEditMode] = useState(false);
   const [loading, setLoading] = useState(false);
   const [userDetails, setUserDetails] = useState({});
+  const [imagePreview, setImagePreview] = useState(null);
+  const [nationalities, setNationalities] = useState([]);
+  const [civilStatuses, setCivilStatuses] = useState([]);
   const [form, setForm] = useState({
     first_name: '',
     last_name: '',
@@ -138,7 +142,12 @@ const ProfilePage = () => {
     mobile: '',
     birthdate: '',
     gender: '',
-    address: ''
+    address: '',
+    // Family background
+    civil_status: '',
+    nationality: '',
+    father_name: '',
+    mother_name: ''
   });
   const [passwordForm, setPasswordForm] = useState({
     current_password: '',
@@ -152,11 +161,32 @@ const ProfilePage = () => {
   });
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [selectedImage, setSelectedImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
 
   useEffect(() => {
     fetchUserProfile();
+    fetchNationalities();
+    fetchCivilStatuses();
   }, []);
+
+  const fetchNationalities = async () => {
+    try {
+      const res = await UseMethod('get', 'nationalities');
+      const data = res?.data ?? res ?? [];
+      setNationalities(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error loading nationalities:', error);
+    }
+  };
+
+  const fetchCivilStatuses = async () => {
+    try {
+      const res = await UseMethod('get', 'civil-statuses');
+      const data = res?.data ?? res ?? [];
+      setCivilStatuses(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error loading civil statuses:', error);
+    }
+  };
 
   const fetchUserProfile = async () => {
     try {
@@ -168,12 +198,10 @@ const ProfilePage = () => {
         
         if (response?.data) {
           const responseData = response.data;
-          // Backend returns nested structure with 'data' and 'role' properties
           const userData = responseData.data || responseData;
           const userRole = responseData.role;
           
-          // Store complete user profile including role
-          setUserDetails({ ...userData, role: userRole });
+          setUserDetails({ ...userData, role: userData.role });
           setForm({
             first_name: userData.first_name || '',
             last_name: userData.last_name || '',
@@ -183,25 +211,33 @@ const ProfilePage = () => {
             mobile: userData.phone_number || '',
             birthdate: userData.birthdate || '',
             gender: userData.sex_id || '',
-            address: userData.address || ''
+            address: userData.address || '',
+            // Family background
+            civil_status: userData.civil_status || userData.details?.civil_status || '',
+            nationality: userData.nationality || userData.details?.nationality || '',
+            father_name: userData.father_name || userData.details?.father_name || '',
+            mother_name: userData.mother_name || userData.details?.mother_name || ''
           });
         }
       } else {
-        // Fallback to localStorage
         const user = JSON.parse(localStorage.getItem('user') || '{}');
-        // Handle both old and new data structures
         const userData = user.details ? { ...user.details, email: user.email, username: user.username } : user;
         setUserDetails(userData);
         setForm({
           first_name: userData.first_name || '',
           last_name: userData.last_name || '',
           middle_name: userData.middle_name || '',
-          username: userData.username || '', // Now from user table
-          email: userData.email || '', // Now from user table
+          username: userData.username || '',
+          email: userData.email || '',
           mobile: userData.phone_number || '',
           birthdate: userData.birthdate || '',
           gender: userData.sex_id || '',
-          address: userData.address || ''
+          address: userData.address || '',
+          // Family background
+          civil_status: userData.civil_status || '',
+          nationality: userData.nationality || '',
+          father_name: userData.father_name || '',
+          mother_name: userData.mother_name || ''
         });
       }
     } catch (error) {
@@ -231,17 +267,21 @@ const ProfilePage = () => {
   const toggleEditMode = () => {
     setEditMode(!editMode);
     if (editMode) {
-      // Reset form to original values when canceling
       setForm({
         first_name: userDetails.first_name || '',
         last_name: userDetails.last_name || '',
         middle_name: userDetails.middle_name || '',
-        username: userDetails.username || '', // Now from user table
-        email: userDetails.email || '', // Now from user table
+        username: userDetails.username || '',
+        email: userDetails.email || '',
         mobile: userDetails.phone_number || '',
         birthdate: userDetails.birthdate || '',
         gender: userDetails.sex_id || '',
-        address: userDetails.address || ''
+        address: userDetails.address || '',
+        // Family background
+        civil_status: userDetails.civil_status || userDetails.details?.civil_status || '',
+        nationality: userDetails.nationality || userDetails.details?.nationality || '',
+        father_name: userDetails.father_name || userDetails.details?.father_name || '',
+        mother_name: userDetails.mother_name || userDetails.details?.mother_name || ''
       });
     }
   };
@@ -288,20 +328,11 @@ const ProfilePage = () => {
       setLoading(true);
       const token = localStorage.getItem('api_token');
       
-      // Debug token information
-      console.log('Token check:', {
-        tokenExists: !!token,
-        tokenLength: token ? token.length : 0,
-        tokenPreview: token ? token.substring(0, 10) + '...' : 'null'
-      });
-      
       if (!token) {
         showSnackbar('Please login to update profile', 'error');
         return;
       }
 
-      // Prepare form data with sex_id instead of gender and phone_number instead of mobile
-      // Backend now expects username and handles firstname/lastname -> name mapping
       const formData = new FormData();
       formData.append('first_name', form.first_name);
       formData.append('last_name', form.last_name);
@@ -311,31 +342,28 @@ const ProfilePage = () => {
       formData.append('phone_number', form.mobile || '');
       formData.append('birthdate', form.birthdate || '');
       formData.append('address', form.address || '');
+      formData.append('barangay', form.barangay || '');
+      formData.append('municipal', form.municipal || '');
+      formData.append('province', form.province || '');
       formData.append('sex_id', form.gender || '');
+      // Family background
+      formData.append('civil_status', form.civil_status || '');
+      formData.append('nationality', form.nationality || '');
+      formData.append('father_name', form.father_name || '');
+      formData.append('mother_name', form.mother_name || '');
       
-      // Add image if selected
       if (selectedImage) {
         formData.append('image', selectedImage);
       }
 
-      const response = await axios.post('http://localhost:8000/api/profile?_method=PUT', formData, {
-        headers: { 
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
-        }
-      });
+      const response = await UseMethod('post', 'profile?_method=PUT', formData, "", true);
       
       if (response.data.success) {
-        const updatedUser = response.data.data;
-        const userRole = response.data.role;
-        // Include role information in user details
-        const completeUserData = { ...updatedUser, role: userRole };
+        const updatedUser = response.data.data; // already includes role
+        const completeUserData = updatedUser;
         setUserDetails(completeUserData);
-        // Update localStorage with fresh data from backend including role
         localStorage.setItem('user', JSON.stringify(completeUserData));
-        // Dispatch custom event to notify other components of user data update
         window.dispatchEvent(new CustomEvent('userDataUpdated'));
-        // Clear image selection after successful upload
         setSelectedImage(null);
         setImagePreview(null);
         setEditMode(false);
@@ -343,12 +371,8 @@ const ProfilePage = () => {
       }
     } catch (error) {
       console.error('Error updating profile:', error);
-      
-      // Display backend error message if available
       if (error.response && error.response.data && error.response.data.message) {
         showSnackbar(error.response.data.message, 'error');
-        
-        // Log debug information if available
         if (error.response.data.debug) {
           console.log('Backend debug info:', error.response.data.debug);
         }
@@ -413,7 +437,7 @@ const ProfilePage = () => {
             <Grid item sx={{ xs: 4, sm: 4, md: 3, textAlign: { xs: 'center', sm: 'left' } }}>
               <Box sx={{ position: 'relative', display: 'inline-block' }}>
                 <StyledAvatar
-                   src={imagePreview || (userDetails.image ? `http://localhost:8000/storage/${userDetails.image}` : null)}
+                   src={imagePreview || (userDetails.image ? `${process.env.REACT_APP_API_URL}/storage/${userDetails.image}` : null)}
                  >
                    {!imagePreview && !userDetails.image && getInitials(userDetails.first_name, userDetails.last_name)}
                  </StyledAvatar>
@@ -446,21 +470,15 @@ const ProfilePage = () => {
                  )}
               </Box>
             </Grid>
-            <Grid item sx={{ xs: 12, sm: 8, md: 9 }}>
-              <Typography variant="h4" fontWeight="700" gutterBottom sx={{ fontSize: { xs: '1.75rem', md: '2.25rem' } }}>
+            <Grid item xs={12} sm={8} md={4}>
+              <Typography variant="h5" fontWeight="700" gutterBottom sx={{ fontSize: { xs: '1.75rem', md: '2.25rem' } }}>
                 {`${userDetails.first_name || ''} ${userDetails.last_name || ''}`}
               </Typography>
-              <Typography variant="body1" sx={{ opacity: 0.9, mb: 1 }}>
-                {userDetails.email}
+              <Typography variant="subtitle2" fontWeight="700" sx={{ opacity: 1 }}>
+                {userDetails.group?.description || 'No Group'}  -   {userDetails.role?.name}
               </Typography>
-              {userDetails.role && (
-                <Typography variant="body2" sx={{ opacity: 0.8, mb: 1, color: 'primary.main', fontWeight: 500 }}>
-                  Role: {userDetails.role.name}
-                </Typography>
-              )}
-              <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                Manage your profile and security settings
-              </Typography>
+         
+             
             </Grid>
           </Grid>
         </Box>
@@ -484,12 +502,17 @@ const ProfilePage = () => {
               iconPosition="start" 
               label="Security" 
             />
+            <StyledTab 
+              icon={<Groups />} 
+              iconPosition="start" 
+              label="Family Background" 
+            />
           </Tabs>
         </Box>
 
         {/* Personal Information Tab */}
         <TabPanel value={tabValue} index={0}>
-          <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+          <CardContent >
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
               <Typography variant="h6" fontWeight="600" color="primary">
                 Personal Information
@@ -765,6 +788,174 @@ const ProfilePage = () => {
                 </Button>
               </Grid>
             </Grid>
+
+            {editMode && (
+              <Fade in={editMode}>
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5, mt: 3 }}>
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    startIcon={<Cancel />}
+                    onClick={toggleEditMode}
+                    sx={{ borderRadius: 2, px: 2.5 }}
+                    size="small"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    startIcon={<Save />}
+                    onClick={handleSave}
+                    disabled={loading}
+                    sx={{ borderRadius: 2, px: 3 }}
+                    size="small"
+                  >
+                    {loading ? 'Saving...' : 'Save Changes'}
+                  </Button>
+                </Box>
+              </Fade>
+            )}
+
+          </CardContent>
+        </TabPanel>
+
+        {/* Family Background Tab */}
+        <TabPanel value={tabValue} index={2}>
+          <CardContent>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+              <Typography variant="h6" fontWeight="600" color="primary">
+                Family Background
+              </Typography>
+              <Button
+                variant={editMode ? 'outlined' : 'contained'}
+                color={editMode ? 'error' : 'primary'}
+                startIcon={editMode ? <Cancel /> : <Edit />}
+                onClick={toggleEditMode}
+                sx={{ borderRadius: 2, px: 2.5, py: 1 }}
+                size="small"
+              >
+                {editMode ? 'Cancel' : 'Edit'}
+              </Button>
+            </Box>
+
+            <Grid container spacing={{ xs: 2, sm: 2, md: 2 }}>
+              {/* Civil Status */}
+              <Grid size={{md:4}} item xs={12} sm={6} md={4}>
+                <Typography variant="caption" fontWeight="600" color="text.secondary" mb={0.5} display="block">
+                  Civil Status
+                </Typography>
+                {editMode ? (
+                  <StyledTextField
+                    fullWidth
+                    size="small"
+                    select
+                    name="civil_status"
+                    value={form.civil_status || ''}
+                    onChange={handleInputChange}
+                  >
+                    {civilStatuses.length
+                      ? civilStatuses.map(status => (
+                          <MenuItem key={status.id || status} value={status.name || status}>{status.name || status}</MenuItem>
+                        ))
+                      : ['Single','Married','Widowed','Separated'].map(cs => (
+                          <MenuItem key={cs} value={cs}>{cs}</MenuItem>
+                        ))}
+                  </StyledTextField>
+                ) : (
+                  <StyledTextField fullWidth size="small" value={form.civil_status || ''} InputProps={{ readOnly: true }} />
+                )}
+              </Grid>
+
+              {/* Nationality */}
+              <Grid size={{md:4}} item xs={12} sm={6} md={4}>
+                <Typography variant="caption" fontWeight="600" color="text.secondary" mb={0.5} display="block">
+                  Nationality
+                </Typography>
+                {editMode ? (
+                  <StyledTextField
+                    fullWidth
+                    size="small"
+                    select
+                    name="nationality"
+                    value={form.nationality || ''}
+                    onChange={handleInputChange}
+                  >
+                    {nationalities.map(n => (
+                      <MenuItem key={n.id || n} value={n.name || n}>{n.name || n}</MenuItem>
+                    ))}
+                  </StyledTextField>
+                ) : (
+                  <StyledTextField fullWidth size="small" value={form.nationality || ''} InputProps={{ readOnly: true }} />
+                )}
+              </Grid>
+
+              {/* Father's Name */}
+              <Grid size={{md:7}} item xs={12} sm={6} md={4}>
+                <Typography variant="caption" fontWeight="600" color="text.secondary" mb={0.5} display="block">
+                  Father's Name
+                </Typography>
+                {editMode ? (
+                  <StyledTextField
+                    fullWidth
+                    size="small"
+                    name="father_name"
+                    value={form.father_name || ''}
+                    onChange={handleInputChange}
+                  />
+                ) : (
+                  <StyledTextField fullWidth size="small" value={form.father_name || ''} InputProps={{ readOnly: true }} />
+                )}
+              </Grid>
+
+              {/* Mother's Name */}
+              <Grid size={{md:7}} item xs={12} sm={6} md={4}>
+                <Typography variant="caption" fontWeight="600" color="text.secondary" mb={0.5} display="block">
+                  Mother's Name
+                </Typography>
+                {editMode ? (
+                  <StyledTextField
+                    fullWidth
+                    size="small"
+                    name="mother_name"
+                    value={form.mother_name || ''}
+                    onChange={handleInputChange}
+                  />
+                ) : (
+                  <StyledTextField fullWidth size="small" value={form.mother_name || ''} InputProps={{ readOnly: true }} />
+                )}
+              </Grid>
+
+            </Grid>
+
+            {editMode && (
+              <Fade in={editMode}>
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5, mt: 3 }}>
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    startIcon={<Cancel />}
+                    onClick={toggleEditMode}
+                    sx={{ borderRadius: 2, px: 2.5 }}
+                    size="small"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    startIcon={<Save />}
+                    onClick={handleSave}
+                    disabled={loading}
+                    sx={{ borderRadius: 2, px: 3 }}
+                    size="small"
+                  >
+                    {loading ? 'Saving...' : 'Save Changes'}
+                  </Button>
+                </Box>
+              </Fade>
+            )}
+
           </CardContent>
         </TabPanel>
       </ProfileCard>
