@@ -27,8 +27,15 @@ import EventSlideDialog from "../component/event/EventSlideDialog";
 import { useSnackbar } from "../component/event/SnackbarProvider ";
 import Calendar from "../component/Calendar";
 
+// Parse YYYY-MM-DD as a local date to avoid timezone shift
+const parseLocalDate = (dateStr) => {
+  if (!dateStr) return new Date();
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, (m || 1) - 1, d || 1);
+};
+
 const formatTimelineDate = (dateStr) => {
-  const date = new Date(dateStr);
+  const date = parseLocalDate(dateStr);
   return new Intl.DateTimeFormat("en-US", {
     month: "short",
     day: "2-digit",
@@ -40,7 +47,7 @@ const formatTimelineDate = (dateStr) => {
 const groupByDate = (items) => {
   const groups = {};
   items.forEach((item) => {
-    const date = item.start_date || item.date;
+    const date = item.start_date;
     if (!groups[date]) groups[date] = [];
     groups[date].push(item);
   });
@@ -50,7 +57,8 @@ const groupByDate = (items) => {
 const MyList = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
   const [loading, setLoading] = useState(true);
-  const [events, setEvents] = useState([]);
+  const [events, setEvents] = useState([]); // events shown in the timeline
+  const [monthEvents, setMonthEvents] = useState([]); // events used for calendar dots
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [tabIndex, setTabIndex] = useState(0);
@@ -63,29 +71,24 @@ const MyList = () => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
-  // Removed categorizedEvents state since we show all events directly
 
-  // Fetch events for a specific month and year
-  const fetchMonthlyEvents = async (month, year, specificDate = null) => {
+  // Fetch events for a specific month and year (for calendar dots and default timeline)
+  const fetchMonthEvents = async (month, year) => {
     setLoading(true);
     try {
-      let url = `my-events-list?month=${month}&year=${year}`;
-      if (specificDate) {
-        url = `my-events-list?date=${specificDate}`;
-      }
-      
-      const res = await UseMethod("get", url);
-      
-      if (res?.data && Array.isArray(res.data)) {
-        const eventsWithType = res.data.map((e) => ({ ...e, type: "event" }));
-        setEvents(eventsWithType);
-        
-        // No need to categorize events anymore since we show all events
+      const monthUrl = `my-events-list?month=${month}&year=${year}`;
+      const monthRes = await UseMethod("get", monthUrl);
+      const data = Array.isArray(monthRes?.data) ? monthRes.data : [];
+      setMonthEvents(data);
+      // If no specific date selected, show month events in timeline
+      if (!selectedDate) {
+        const timelineReady = data.map((e) => ({ ...e, type: e.type || "event" }));
+        setEvents(timelineReady);
       }
     } catch (error) {
-      console.error("Failed to fetch events:", error);
+      console.error("Failed to fetch month events:", error);
       showSnackbar({
-        message: "Failed to load your events. Please try again.",
+        message: "Failed to load your month events.",
         type: "error",
       });
     } finally {
@@ -93,28 +96,50 @@ const MyList = () => {
     }
   };
 
-  // Removed categorization logic since we now show all events directly
+  // Fetch events for a specific date (for timeline only)
+  const fetchDateEvents = async (specificDate) => {
+    setLoading(true);
+    try {
+      const dateUrl = `my-events-list?date=${specificDate}`;
+      const dateRes = await UseMethod("get", dateUrl);
+      const data = Array.isArray(dateRes?.data) ? dateRes.data : [];
+      const timelineReady = data.map((e) => ({ ...e, type: e.type || "event" }));
+      setEvents(timelineReady);
+    } catch (error) {
+      console.error("Failed to fetch date events:", error);
+      showSnackbar({
+        message: "Failed to load events for the selected date.",
+        type: "error",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (selectedDate) {
-      // Fetch events for specific date
-      fetchMonthlyEvents(currentMonth, currentYear, selectedDate);
-    } else {
-      // Fetch events for current month
-      fetchMonthlyEvents(currentMonth, currentYear);
+    // Initialize with current month
+    fetchMonthEvents(currentMonth, currentYear);
+  }, []);
+
+  useEffect(() => {
+    // When month/year changes, clear selected date and refetch month events
+    if (selectedDate === null) {
+      fetchMonthEvents(currentMonth, currentYear);
     }
   }, [currentMonth, currentYear, selectedDate]);
 
   useEffect(() => {
-    // Initialize with current month
-    fetchMonthlyEvents(currentMonth, currentYear);
-  }, []);
+    // When a specific date is selected, fetch only that date's events
+    if (selectedDate) {
+      fetchDateEvents(selectedDate);
+    }
+  }, [selectedDate]);
 
   const handleSearch = () => {
     if (selectedDate) {
-      fetchMonthlyEvents(currentMonth, currentYear, selectedDate);
+      fetchDateEvents(selectedDate);
     } else {
-      fetchMonthlyEvents(currentMonth, currentYear);
+      fetchMonthEvents(currentMonth, currentYear);
     }
   };
 
@@ -219,27 +244,32 @@ const MyList = () => {
     );
   };
 
-  // Handle calendar date click
+  // Handle calendar date click: ONLY fetch by date, do not refetch month
   const handleDateClick = (dateStr) => {
     setSelectedDate(dateStr);
+    fetchDateEvents(dateStr);
   };
 
   // Handle calendar month change
   const handleMonthChange = (monthDate) => {
     const newMonth = monthDate.getMonth() + 1; // JavaScript months are 0-indexed
     const newYear = monthDate.getFullYear();
-    
     setCurrentMonth(newMonth);
     setCurrentYear(newYear);
     setSelectedDate(null); // Clear specific date selection when changing months
+    // Fetch month events for the new month/year
+    fetchMonthEvents(newMonth, newYear);
   };
   
   // Clear date filter
   const handleClearFilter = () => {
     setSelectedDate(null);
     const today = new Date();
-    setCurrentMonth(today.getMonth() + 1);
-    setCurrentYear(today.getFullYear());
+    const m = today.getMonth() + 1;
+    const y = today.getFullYear();
+    setCurrentMonth(m);
+    setCurrentYear(y);
+    fetchMonthEvents(m, y);
   };
 
   // Render Timeline View
@@ -323,7 +353,7 @@ const MyList = () => {
           </Typography>
           {selectedDate && (
             <Typography variant="body1" color="text.secondary">
-              - {new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+              - {parseLocalDate(selectedDate).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
             </Typography>
           )}
         </Box>
@@ -334,7 +364,7 @@ const MyList = () => {
           {selectedDate && (
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, bgcolor: "primary.50", px: 2, py: 1, borderRadius: 1 }}>
               <Typography variant="body2" color="primary.main">
-                Viewing: {new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+                Viewing: {parseLocalDate(selectedDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
               </Typography>
               <Button
                 size="small"
@@ -433,7 +463,7 @@ const MyList = () => {
                   <Box component="img" src="/event.png" alt="No events" sx={{ width: 320, opacity: 0.6 }} />
                   <Typography variant="h6" color="text.secondary">
                     {selectedDate 
-                      ? `No Events Found for ${new Date(selectedDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}`
+                      ? `No Events Found for ${parseLocalDate(selectedDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}`
                       : `No Events Found for ${new Date(currentYear, currentMonth - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`
                     }
                   </Typography>
@@ -459,7 +489,7 @@ const MyList = () => {
           >
 
             <Calendar 
-              events={events} 
+              events={monthEvents} 
               onDateClick={handleDateClick}
               selectedDate={selectedDate}
               onMonthChange={handleMonthChange}

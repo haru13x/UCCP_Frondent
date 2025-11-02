@@ -435,10 +435,13 @@ const ProfilePage = () => {
         <Box sx={{ position: 'relative', zIndex: 1 }}>
           <Grid container spacing={3} alignItems="center">
             <Grid item sx={{ xs: 4, sm: 4, md: 3, textAlign: { xs: 'center', sm: 'left' } }}>
+             
+             
               <Box sx={{ position: 'relative', display: 'inline-block' }}>
                 <StyledAvatar
                    src={imagePreview || (userDetails.image ? `${process.env.REACT_APP_API_URL}/storage/${userDetails.image}` : null)}
                  >
+           
                    {!imagePreview && !userDetails.image && getInitials(userDetails.first_name, userDetails.last_name)}
                  </StyledAvatar>
                 <input

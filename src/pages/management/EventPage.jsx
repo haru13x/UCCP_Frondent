@@ -31,6 +31,7 @@ import { CancelOutlined, Event, AccessTime, LocationOn } from '@mui/icons-materi
 import EventReportDialog from "../../component/event/EventReportDialog";
 import { ca, se } from "date-fns/locale";
 import CancelEventDialog from "../../component/event/CancelEventDialog";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const EventPage = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
@@ -46,7 +47,7 @@ const EventPage = () => {
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [accountGroups, setAccountGroups] = useState([]);
-
+  const [loadingReport, setLoadingReport] = useState(false);
   const [formData, setFormData] = useState({
     id: "",
     title: "",
@@ -71,6 +72,8 @@ const EventPage = () => {
     
   });
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const location = useLocation();
+  const navigate = useNavigate();
   const fetchEvents = async (filters = {}) => {
     setLoading(true);
 
@@ -139,6 +142,72 @@ const EventPage = () => {
   useEffect(() => {
     fetchEvents();
   }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const eid = params.get("eventId");
+    if (!eid) return;
+
+    const openFromList = () => {
+      const ev = events.find((e) => String(e.id) === String(eid));
+      if (ev) {
+        setSelectedEvent(ev);
+        setOpenView(true);
+        return true;
+      }
+      return false;
+    };
+
+    const openFromApi = async () => {
+      const res = await UseMethod("get", `get-event/${eid}`);
+      const data = res?.data;
+      if (!data) return;
+      const event = {
+        id: data.id || "",
+        title: data.title,
+        startDate: data.start_date,
+        startTime: data.start_time,
+        endDate: data.end_date,
+        endTime: data.end_time,
+        category: data.category,
+        organizer: data.organizer,
+        contact: data.contact || "",
+        attendees: data.attendees,
+        venue: data.venue,
+        address: data.address,
+        latitude: data.latitude,
+        longitude: data.longitude,
+        description: data.description,
+        image: data.image || "",
+        status: data.status_id === 1 ? "Active" : "Cancelled",
+        programs: Array.isArray(data.event_programs) ? data.event_programs.map(p => ({
+          start_time: p.start_time,
+          end_time: p.end_time,
+          activity: p.activity
+        })) : [],
+        accountGroupIds: data.accountGroupIds || [],
+        cancel_by: data.cancel_by || "",
+        cancel_reason: data.cancel_reason || "",
+        cancel_date: data.cancel_date || "",
+        location_id: data.location_id || "",
+        location: data.location || "",
+        conference_locations: data.conference_locations || [],
+        isconference: data.isconference || false,
+        event_modes: data.event_modes || [],
+        location_data: data.location_data || [],
+      };
+      setSelectedEvent(event);
+      setOpenView(true);
+    };
+
+    if (!openFromList()) {
+      openFromApi();
+    }
+
+    const newSearch = new URLSearchParams(location.search);
+    newSearch.delete("eventId");
+    navigate(`${location.pathname}?${newSearch.toString()}`, { replace: true });
+  }, [location.search, events]);
 
   // Load current user once
   useEffect(() => {
@@ -396,6 +465,8 @@ const EventPage = () => {
 
   ];
   const handleGenerateReport = async (filters) => {
+
+    setLoadingReport(true);
     try {
       const response = await UseMethod("post", "generate-event-report", filters, "", true, "blob");
 
@@ -417,6 +488,8 @@ const EventPage = () => {
       console.error("Report error:", err);
       // Re-throw to let EventReportDialog handle the error state
       throw err;
+    } finally {
+      setLoadingReport(false);
     }
   };
   return (
@@ -559,6 +632,7 @@ const EventPage = () => {
       <EventReportDialog
         open={reportDialogOpen}
         onClose={() => setReportDialogOpen(false)}
+        loading={loadingReport}
         onGenerate={(filters) => {
           handleGenerateReport(filters);
         }}

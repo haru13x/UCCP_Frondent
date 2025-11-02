@@ -10,18 +10,28 @@ import {
   useTheme,
   alpha,
   Tooltip,
+  Badge,
+  List,
+  ListItem,
+  ListItemText,
+  Divider,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import PersonIcon from "@mui/icons-material/Person";
 import LogoutIcon from "@mui/icons-material/Logout";
+import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { UseMethod } from "../composables/UseMethod";
 
 const TopBars = ({ toggleDrawer }) => {
   const [anchorEl, setAnchorEl] = useState(null);
+  const [notifAnchorEl, setNotifAnchorEl] = useState(null);
   const [userDetails, setUserDetails] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const open = Boolean(anchorEl);
+  const notifOpen = Boolean(notifAnchorEl);
   const theme = useTheme();
   const navigate = useNavigate();
   const apiUrl = process.env.REACT_APP_API_URL;
@@ -77,25 +87,111 @@ const TopBars = ({ toggleDrawer }) => {
     };
   }, []);
 
+  // Poll for new notifications and accumulate in state
+  useEffect(() => {
+    let isMounted = true;
+    const fetchNotifications = async () => {
+      try {
+        const token = localStorage.getItem('api_token');
+        if (!token) return; // skip if not logged in
+        const res = await UseMethod("get", "notifications/all");
+        const items = res?.data?.data || [];
+        
+        // Set initial notifications
+        if (isMounted) {
+          setNotifications((prev) => {
+            // Avoid duplicates by id
+            const existingIds = new Set(prev.map((n) => n.id));
+            const merged = [
+              ...items.filter((n) => !existingIds.has(n.id)),
+              ...prev,
+            ];
+            return merged.slice(0, 20); // keep last 20
+          });
+          
+          // Calculate total unread notifications (is_read = 0)
+          const unreadItems = items.filter(item => item.is_read === 0);
+          setUnreadCount(unreadItems.length);
+        }
+      } catch (err) {
+        console.error("Error fetching notifications:", err);
+      }
+    };
+
+    // initial fetch and interval polling
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 60000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
+
+  // Fetch recent notifications when opening the menu
+  const fetchRecentNotifications = async () => {
+    try {
+      const token = localStorage.getItem('api_token');
+      if (!token) return;
+      const res = await UseMethod("get", "notifications/recent");
+      const items = res?.data?.data || [];
+      setNotifications((prev) => {
+        const existingIds = new Set(prev.map((n) => n.id));
+        const merged = [
+          ...items.filter((n) => !existingIds.has(n.id)),
+          ...prev,
+        ];
+        return merged.slice(0, 20);
+      });
+      
+      // Calculate total unread notifications
+      const allNotifications = await UseMethod("get", "notifications/all");
+      const allItems = allNotifications?.data?.data || [];
+      const unreadCount = allItems.filter(item => item.is_read === 0).length;
+      setUnreadCount(unreadCount);
+    } catch (err) {
+      console.error("Error fetching recent notifications:", err);
+    }
+  };
+
   const handleLogOut = () => {
-  // Clear token and user data
-  localStorage.removeItem("api_token");
-  localStorage.removeItem("user");
+    // Clear token and user data
+    localStorage.removeItem("api_token");
+    localStorage.removeItem("user");
 
-  // Dispatch custom event to notify other components of user data update
-  window.dispatchEvent(new CustomEvent('userDataUpdated'));
+    // Dispatch custom event to notify other components of user data update
+    window.dispatchEvent(new CustomEvent('userDataUpdated'));
 
-  // Optionally clear all localStorage
-  // localStorage.clear();
+    // Redirect to login page
+    navigate("/", { replace: true });
+  };
 
-  // Redirect to login page
-  navigate("/", { replace: true });
-};
+  const handleProfile = () => {
+    // Redirect to profile page   
+    navigate("/profile", { replace: true });
+  };
 
-const handleProfile = () => {
-  // Redirect to profile page   
-  navigate("/profile", { replace: true });
-};
+  const handleOpenNotif = async (e) => {
+    setNotifAnchorEl(e.currentTarget);
+    // Reset unread count when opening notifications
+    setUnreadCount(0);
+    await fetchRecentNotifications();
+  };
+
+  const handleCloseNotif = () => {
+    setNotifAnchorEl(null);
+  };
+
+  const handleNotificationClick = async (n) => {
+    try {
+      await UseMethod("post", `notifications/${n.id}/read`);
+      setNotifications((prev) => prev.map((item) => item.id === n.id ? { ...item, is_read: 1 } : item));
+    } catch (err) {
+      console.error("Failed to mark notification as read", err);
+    }
+    handleCloseNotif();
+    navigate(`/list?eventId=${n.event_id}`);
+  };
 
   return (
     <AppBar
@@ -177,7 +273,82 @@ const handleProfile = () => {
             </Typography>
           </Box>
 
-          <Box>
+          <Box display="flex" alignItems="center" gap={1.5}>
+            {/* Notifications Icon (left of avatar) */}
+            <Tooltip title=" Notifications" placement="bottom">
+              <IconButton
+                onClick={handleOpenNotif}
+                sx={{
+                  padding: 1,
+                  color: "white",
+                  backgroundColor: alpha(theme.palette.common.white, 0.08),
+                  borderRadius: 2,
+                  transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                  "&:hover": {
+                    transform: "scale(1.05)",
+                    boxShadow: `0 4px 12px ${alpha(theme.palette.common.black, 0.2)}`,
+                    backgroundColor: alpha(theme.palette.common.white, 0.15),
+                  },
+                }}
+              >
+                <Badge badgeContent={unreadCount} color="error" overlap="circular">
+                  <NotificationsNoneIcon sx={{ fontSize: 26 }} />
+                </Badge>
+              </IconButton>
+            </Tooltip>
+            <Menu
+              open={notifOpen}
+              anchorEl={notifAnchorEl}
+              onClose={handleCloseNotif}
+              sx={{
+                "& .MuiPaper-root": {
+                  borderRadius: 3,
+                  minWidth: 320,
+                  maxWidth: 360,
+                  background: `linear-gradient(135deg, 
+                    ${alpha(theme.palette.background.paper, 0.95)} 0%, 
+                    ${alpha(theme.palette.background.paper, 0.9)} 100%
+                  )`,
+                  backdropFilter: "blur(20px)",
+                  boxShadow: `0 8px 32px ${alpha(theme.palette.common.black, 0.12)}`,
+                  border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                  mt: 1,
+                },
+              }}
+              transformOrigin={{ horizontal: "right", vertical: "top" }}
+              anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
+            >
+              <Box sx={{ px: 2, pt: 1 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                   Notifications
+                </Typography>
+                <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                  Recent updates and alerts
+                </Typography>
+              </Box>
+              <Divider sx={{ my: 1 }} />
+              <List dense disablePadding sx={{ maxHeight: 320, overflowY: "auto" }}>
+                {notifications.length === 0 ? (
+                  <Box sx={{ px: 2, py: 2 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      No notifications yet.
+                    </Typography>
+                  </Box>
+                ) : (
+                  notifications.map((n) => (
+                    <ListItem key={n.id} alignItems="flex-start" sx={{ px: 2 }} button onClick={() => handleNotificationClick(n)}>
+                      <ListItemText
+                        primary={n.title || "Notification"}
+                        secondary={n.body || ""}
+                        primaryTypographyProps={{ fontWeight: 600 }}
+                        secondaryTypographyProps={{ variant: "caption" }}
+                      />
+                    </ListItem>
+                  ))
+                )}
+              </List>
+            </Menu>
+
             <Tooltip title="User Menu" placement="bottom">
               <IconButton 
                 onClick={(e) => setAnchorEl(e.currentTarget)} 

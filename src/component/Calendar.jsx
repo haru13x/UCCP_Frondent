@@ -59,13 +59,9 @@ const Calendar = ({ events = [], onDateClick, selectedDate, onMonthChange }) => 
   const hasEvents = (day) => {
     const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     
-
-    
     return events.some(event => {
       const eventDate = event.start_date || event.date;
       const matches = eventDate === dateStr;
-      
-
       
       return matches;
     });
@@ -78,6 +74,26 @@ const Calendar = ({ events = [], onDateClick, selectedDate, onMonthChange }) => 
       const eventDate = event.start_date || event.date;
       return eventDate === dateStr;
     }).length;
+  };
+  
+  // Get event status color for a specific date
+  const getEventStatusColor = (day) => {
+    const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const dateEvents = events.filter(event => {
+      const eventDate = event.start_date || event.date;
+      return eventDate === dateStr;
+    });
+    
+    if (dateEvents.length === 0) return null;
+    
+    // Priority: canceled > active > default
+    if (dateEvents.some(event => event.status_id === 2  )) {
+      return '#f44336'; // Red for canceled events
+    } else if (dateEvents.some(event => event.status_id === 1)) {
+      return '#2196f3'; // Blue for active events
+    } else {
+      return '#4caf50'; // Green for default/other status
+    }
   };
 
   // Check if date is today
@@ -176,7 +192,7 @@ const Calendar = ({ events = [], onDateClick, selectedDate, onMonthChange }) => 
                 width: eventsCount > 1 ? 16 : 8,
                 height: eventsCount > 1 ? 16 : 8,
                 borderRadius: '50%',
-                backgroundColor: todayFlag ? 'white' : 'primary.main',
+                backgroundColor: todayFlag ? 'white' : getEventStatusColor(day) || 'primary.main',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -306,18 +322,34 @@ const Calendar = ({ events = [], onDateClick, selectedDate, onMonthChange }) => 
 
       {/* Legend */}
       <Box mt={2} pt={2} borderTop={1} borderColor="divider">
-        <Box display="flex" alignItems="center" gap={1}>
-          <Box
-            sx={{
-              width: 8,
-              height: 8,
-              borderRadius: '50%',
-              backgroundColor: 'primary.main',
-            }}
-          />
-          <Typography variant="caption" color="text.secondary">
-            Has Events
-          </Typography>
+        <Box display="flex" flexDirection="column" gap={1}>
+          <Box display="flex" alignItems="center" gap={1}>
+            <Box
+              sx={{
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                backgroundColor: '#2196f3', // Blue
+              }}
+            />
+            <Typography variant="caption" color="text.secondary">
+              Active Events
+            </Typography>
+          </Box>
+          <Box display="flex" alignItems="center" gap={1}>
+            <Box
+              sx={{
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                backgroundColor: '#f44336', // Red
+              }}
+            />
+            <Typography variant="caption" color="text.secondary">
+              Canceled Events
+            </Typography>
+          </Box>
+         
         </Box>
       </Box>
     </Paper>

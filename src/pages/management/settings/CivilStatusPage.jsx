@@ -17,7 +17,6 @@ import { DataGrid } from "@mui/x-data-grid";
 import { Edit } from "@mui/icons-material";
 import { UseMethod } from "../../../composables/UseMethod";
 import CivilStatusFormModal from "../../../component/users/CivilStatusFormModal";
-
 const CivilStatusPage = () => {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState([]);
