@@ -8,11 +8,12 @@ import MainLayout from "../layout/MainLayout";
 import UserPage from "../pages/management/UserPage";
 import EventPage from "../pages/management/EventPage";
 import Middleware from "./middleware";
-
 import Role from "../pages/management/settings/RolePage";
 import AccountType from "../pages/management/settings/AccountTypePage";
 import AccountGroup from "../pages/management/settings/AccountGroupPage";
 import ChurchLocation from "../pages/management/settings/ChurchLocationPage";
+import CivilStatusPage from "../pages/management/settings/CivilStatusPage";
+import NationalityPage from "../pages/management/settings/NationalityPage";
 import NoPermission from "../pages/public/NoPermission";
 import Mylist from "../pages/MyList";
 import QRScannerPage from "../pages/QRScannerPage";
@@ -21,8 +22,6 @@ import EventList from "../pages/EventList";
 import RequestRegistration from "../pages/management/RequestRegistration";
 import ForgotPassword from "../pages/public/ForgotPassword";
 import Organizer from "../pages/management/Organizer";
-import NationalityPage from "../pages/management/settings/NationalityPage";
-import CivilStatusPage from "../pages/management/settings/CivilStatusPage";
 // Public route definitions (no need to wrap manually)
 const publicRoutes = [
   { path: "/", component: Login },
@@ -41,8 +40,9 @@ const privateRoutes = [
   { path: "/settings/accountType", component: AccountType },
   { path: "/settings/accountGroup", component: AccountGroup },
   { path: "/settings/rules", component: ChurchLocation },
-  { path: "/settings/nationality", component: NationalityPage },
-  { path: "/settings/civil-status", component: CivilStatusPage },
+  { path: "/settings/civil-status", component: CivilStatusPage, rule: "view_civil_statuses" },
+  { path: "/settings/nationality", component: NationalityPage, rule: "view_nationalities" },
+  
   { path: "/list", component: EventList },
   { path: "/my-list", component: Mylist },
   { path: "/qrcode", component: QRScannerPage },

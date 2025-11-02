@@ -150,13 +150,68 @@ const EventViewDialog = ({ open, onClose, event }) => {
       ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
       : "–";
 
+    const genderDistribution = registeredUsers.reduce((acc, user) => {
+      const gender = user.details?.gender || "Unknown";
+      acc[gender] = (acc[gender] || 0) + 1;
+      return acc;
+    }, {});
+
     return [
       { label: "Total Registrations", value: total, color: "primary" },
       { label: "Attended", value: attended, color: "success" },
       { label: "Not Attended", value: total - attended, color: "error" },
       { label: "Avg. Rating", value: avgRating, icon: <Star fontSize="small" color="warning" /> },
+         
     ];
   }, [registeredUsers, reviews]);
+
+  const genderDistributionData = useMemo(() => {
+    const data = registeredUsers.reduce((acc, user) => {
+      // Access gender from user.details.sex.name or fallback to sex_id mapping
+      let gender = "Unknown";
+      if (user.details?.sex?.name) {
+        gender = user.details.sex.name;
+      } else if (user.details?.sex_id) {
+        // Fallback mapping for sex_id: 1 = Male, 2 = Female
+        gender = user.details.sex_id === 1 ? "Male" : user.details.sex_id === 2 ? "Female" : "Unknown";
+      }
+      acc[gender] = (acc[gender] || 0) + 1;
+      return acc;
+    }, {});
+    return Object.keys(data).map((gender) => ({ name: gender, value: data[gender] }));
+  }, [registeredUsers]);
+
+  const registrationTrendData = useMemo(() => {
+    const trend = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Normalize today to start of day
+
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - i);
+      const dateString = date.toISOString().split("T")[0];
+
+      const count = registeredUsers.filter(user => {
+        const registrationDate = new Date(user.created_at);
+        registrationDate.setHours(0, 0, 0, 0);
+        return registrationDate.getTime() === date.getTime();
+      }).length;
+
+      trend.push({ date: dateString.slice(5), count });
+    }
+    return trend;
+  }, [registeredUsers]);
+
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF'];
+
+  const attendanceData = useMemo(() => {
+    const attended = registeredUsers.filter((u) => u.is_attend).length;
+    const notAttended = registeredUsers.length - attended;
+    return [
+      { name: "Attended", value: attended },
+      { name: "Not Attended", value: notAttended },
+    ];
+  }, [registeredUsers]);
 
   // Fetch QR Code
   useEffect(() => {
@@ -180,7 +235,7 @@ const EventViewDialog = ({ open, onClose, event }) => {
 
   // Fetch Registered Users
   useEffect(() => {
-    if (tabIndex !== 2 || !event?.id) return;
+    if ((tabIndex !== 2 && tabIndex !== 4) || !event?.id) return;
     fetchEventRegistered();
   }, [tabIndex, event?.id, searchTerm, currentPage]);
 
@@ -202,7 +257,7 @@ const EventViewDialog = ({ open, onClose, event }) => {
 
   // Fetch Reviews
   useEffect(() => {
-    if (!open || tabIndex !== 3 || !event?.id || hasFetched) return;
+    if (!open || (tabIndex !== 3 && tabIndex !== 4) || !event?.id || hasFetched) return;
 
     const fetchReviews = async () => {
       setLoadingReviews(true);
@@ -411,7 +466,7 @@ const EventViewDialog = ({ open, onClose, event }) => {
             <Tab icon={<QRCodeIcon sx={{ fontSize: 16 }} />} label="QR Code" />
             <Tab icon={<GroupIcon sx={{ fontSize: 16 }} />} label="Registered" />
             <Tab icon={<Comment sx={{ fontSize: 16 }} />} label="Reviews" />
-            {/* <Tab icon={<Insights fontSize="small" />} label="Overview" /> */}
+            <Tab icon={<Insights fontSize="small" />} label="Overview" />
           </Tabs>
         </DialogTitle>
 
@@ -1692,33 +1747,35 @@ const EventViewDialog = ({ open, onClose, event }) => {
 
         {/* Tab 4: Overview */}
         {tabIndex === 4 && (
-          <Box sx={{ padding: 2, bgcolor: "#fff", borderRadius: 2, boxShadow: 1, marginTop: 3 }}>
+          <Box sx={{ padding: 1, bgcolor: "#fff", borderRadius: 2, boxShadow: 1, marginTop: 2 }}>
             {/* Title */}
-            <Typography variant="h5" fontWeight={600} mb={3} color="primary" display="flex" alignItems="center" gap={1}>
-              <Insights fontSize="large" /> 📊 Event Overview
+            <Typography variant="h6" fontWeight={600} mb={2} color="primary" display="flex" alignItems="center" gap={1}>
+              <Insights fontSize="medium" /> 📊 Event Overview
             </Typography>
 
             {/* Stats Cards */}
-            <Grid container spacing={3} mb={4}>
+            <Grid container spacing={2} mb={3}>
               {overviewStats.map((stat, i) => (
-                <Grid size={{ md: 6 }} item xs={12} sm={6} md={3} key={i}>
+                <Grid size={{ md: 3 }} item xs={6} sm={3} key={i}>
                   <Card
                     sx={{
                       textAlign: "center",
-                      borderRadius: 3,
-                      boxShadow: 3,
+                      borderRadius: 2,
+                      boxShadow: 2,
+                      p: 1,
+                      minHeight: 80,
                       transition: "transform 0.2s, box-shadow 0.2s",
                       "&:hover": {
-                        transform: "translateY(-4px)",
-                        boxShadow: 6,
+                        transform: "translateY(-2px)",
+                        boxShadow: 4,
                       },
                     }}
                   >
-                    <CardContent>
-                      <Typography variant="h6" color="text.secondary" display="flex" alignItems="center" justifyContent="center">
+                    <CardContent sx={{ p: 1, "&:last-child": { pb: 1 } }}>
+                      <Typography variant="body2" color="text.secondary" display="flex" alignItems="center" justifyContent="center" fontSize="0.75rem">
                         {stat.icon || null} {stat.label}
                       </Typography>
-                      <Typography variant="h4" fontWeight="bold" color={stat.color}>
+                      <Typography variant="h6" fontWeight="bold" color={stat.color}>
                         {stat.value}
                       </Typography>
                     </CardContent>
@@ -1728,76 +1785,111 @@ const EventViewDialog = ({ open, onClose, event }) => {
             </Grid>
 
             {/* Charts Grid */}
-            <Grid container spacing={4}>
-              {/* Pie Chart: Attendance */}
-              <Grid size={{ md: 6 }} item xs={12} md={6}>
-                <Card sx={{ borderRadius: 4, boxShadow: 3, height: 480, py: 5 }}>
-                  <Typography variant="h6" fontWeight={600} color="primary" gutterBottom>
-                    🎯 Attendance Distribution
+            <Grid container spacing={2}>
+              {/* Pie Chart: Gender Distribution */}
+              <Grid item xs={12} sm={6} size={{ md: 6 }}>
+                <Card sx={{ borderRadius: 2, boxShadow: 2, height: 280, p: 1 }}>
+                  <Typography variant="body1" fontWeight={600} color="primary" gutterBottom fontSize="0.9rem">
+                    🚻 Gender Distribution
                   </Typography>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={[
-                          { name: "Attended", value: registeredUsers.filter((u) => u.is_attend).length },
-                          { name: "Not Attended", value: registeredUsers.filter((u) => !u.is_attend).length },
-                        ]}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        outerRadius={100}
-                        fill="#8884d8"
-                        dataKey="value"
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                      >
-                        {[
-                          <Cell key="attended" fill="#388e3c" />,
-                          <Cell key="not-attended" fill="#d32f2f" />,
-                        ]}
-                      </Pie>
-                      <Tooltip formatter={(value) => `${value} people`} />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  {genderDistributionData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="90%">
+                      <PieChart>
+                        <Pie
+                          data={genderDistributionData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          outerRadius={60}
+                          dataKey="value"
+                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        >
+                          {genderDistributionData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <Box sx={{ textAlign: "center", py: 2 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        No gender data available.
+                      </Typography>
+                    </Box>
+                  )}
                 </Card>
               </Grid>
 
-              {/* Bar Chart: Simulated Registration Trend */}
-              <Grid size={{ md: 6 }} item xs={12} md={6}>
-                <Card sx={{ borderRadius: 4, boxShadow: 3, p: 2, height: 300 }}>
-                  <Typography variant="h6" fontWeight={600} color="primary" gutterBottom>
+              {/* Pie Chart: Attendance */}
+              <Grid item xs={12} sm={6} size={{ md: 6 }}>
+                <Card sx={{ borderRadius: 2, boxShadow: 2, height: 280, p: 1 }}>
+                  <Typography variant="body1" fontWeight={600} color="primary" gutterBottom fontSize="0.9rem">
+                    🎯 Attendance Distribution
+                  </Typography>
+                  {attendanceData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="90%">
+                      <PieChart>
+                        <Pie
+                          data={attendanceData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          outerRadius={60}
+                          dataKey="value"
+                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        >
+                          {attendanceData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value) => `${value} people`} />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <Box sx={{ textAlign: "center", py: 2 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        No attendance data available.
+                      </Typography>
+                    </Box>
+                  )}
+                </Card>
+              </Grid>
+
+              {/* Bar Chart: Registration Trend */}
+              <Grid item xs={12} sm={6} size={{ md: 12 }}>
+                <Card sx={{ borderRadius: 2, boxShadow: 2, height: 300, p: 1 }}>
+                  <Typography variant="body1" fontWeight={600} color="primary" gutterBottom fontSize="0.9rem">
                     📈 Registration Trend (Last 7 Days)
                   </Typography>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={(() => {
-                        const trend = [];
-                        const today = new Date();
-                        for (let i = 6; i >= 0; i--) {
-                          const date = new Date(today);
-                          date.setDate(today.getDate() - i);
-                          const dateString = date.toISOString().split("T")[0];
-                          // Simulate registrations (you can replace with real data)
-                          const count = Math.floor(Math.random() * 5) + 1;
-                          trend.push({ date: dateString.slice(5), count });
-                        }
-                        return trend;
-                      })()}
-                      barSize={20}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" />
-                      <YAxis />
-                      <Tooltip formatter={(value) => [`${value} registrations`, ""]} />
-                      <Legend />
-                      <Bar dataKey="count" fill="#1976d2" radius={[10, 10, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
+                  {registrationTrendData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="90%">
+                      <BarChart
+                        data={registrationTrendData}
+                        barSize={15}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="date" fontSize={10} />
+                        <YAxis fontSize={10} />
+                        <Tooltip formatter={(value) => [`${value} registrations`, ""]} />
+                        <Legend />
+                        <Bar dataKey="count" fill="#1976d2" radius={[8, 8, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <Box sx={{ textAlign: "center", py: 2 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        No registration trend data available.
+                      </Typography>
+                    </Box>
+                  )}
                 </Card>
               </Grid>
             </Grid>
 
-            {/* Summary Card */}
+            {/* Summary Card
             <Card
               sx={{
                 mt: 4,
@@ -1841,7 +1933,7 @@ const EventViewDialog = ({ open, onClose, event }) => {
                   .
                 </Typography>
               </CardContent>
-            </Card>
+            </Card> */}
           </Box>
         )}
       </DialogContent>

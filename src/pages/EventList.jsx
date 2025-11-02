@@ -27,6 +27,7 @@ import {
 import { UseMethod } from "../composables/UseMethod";
 import EventSlideDialog from "../component/event/EventSlideDialog";
 import { useSnackbar } from "../component/event/SnackbarProvider ";
+import { useSearchParams, useNavigate } from "react-router-dom";
 const formatTimelineDate = (dateStr) => {
   const date = new Date(dateStr);
   return new Intl.DateTimeFormat("en-US", {
@@ -61,6 +62,8 @@ const EventList = () => {
   const [searchInput, setSearchInput] = useState("");
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   const fetchTabData = async (tabName) => {
     setLoading(true);
@@ -90,6 +93,49 @@ const EventList = () => {
     fetchTabData(tab);
   };
 
+
+
+
+  useEffect(() => {
+    const eventId = searchParams.get("eventId");
+    if (!eventId) return;
+
+    const normalizeId = (id) => String(id);
+    const findIn = (arr) => arr?.find((e) => normalizeId(e.id) === normalizeId(eventId));
+
+    const found =
+      findIn(events[tab]) ||
+      findIn(events.today) ||
+      findIn(events.upcoming);
+
+    const openEvent = (evt) => {
+      setSelectedEvent(evt);
+      setDialogOpen(true);
+      setTabIndex(0);
+      setQrPath(null);
+    };
+
+    if (found) {
+      openEvent(found);
+    } else {
+      (async () => {
+        try {
+          const res = await UseMethod("get", `get-event/${eventId}`);
+          if (res?.data) {
+            const evt = { ...res.data, type: "event" };
+            openEvent(evt);
+          }
+        } catch (error) {
+          console.error("Failed to fetch event by ID:", error);
+          showSnackbar({
+            message: "Unable to open event from notification.",
+            type: "error",
+          });
+        }
+      })();
+    }
+  }, [searchParams, events, tab]);
+
   const handleGenerateQR = async () => {
     setLoadingQR(true);
     try {
@@ -118,6 +164,25 @@ const EventList = () => {
     const icon = isEvent ? <EventIcon /> : <MeetingIcon />;
     const color = isEvent ? "success" : "primary";
 
+    // Determine event status (started/ended)
+    const now = new Date();
+    const startDate = new Date(`${item.start_date} ${item.start_time}`);
+    const endDate = new Date(`${item.end_date} ${item.end_time}`);
+    
+    const hasStarted = now >= startDate;
+    const hasEnded = now >= endDate;
+    
+    let statusText = "";
+    let statusColor = "";
+    
+    if (hasEnded) {
+      statusText = "Event Ended";
+      statusColor = "error.main";
+    } else if (hasStarted) {
+      statusText = "Event Started";
+      statusColor = "warning.main";
+    }
+
     return (
       <Card
         key={`${item.type}-${item.id}`}
@@ -145,9 +210,26 @@ const EventList = () => {
           <Box display="flex" flexDirection={isMobile ? "column" : "row"} gap={2}>
             <Avatar sx={{ bgcolor: `${color}.main`, alignSelf: "flex-start" }}>{icon}</Avatar>
             <Box flex={1}>
-              <Typography variant="h6" fontWeight="600" color="text.primary">
-                {item.title}
-              </Typography>
+              <Box display="flex" justifyContent="space-between" alignItems="center">
+                <Typography variant="h6" fontWeight="600" color="text.primary">
+                  {item.title}
+                </Typography>
+                {statusText && (
+                  <Typography 
+                    variant="caption" 
+                    sx={{ 
+                      color: "white", 
+                      bgcolor: statusColor, 
+                      px: 1, 
+                      py: 0.5, 
+                      borderRadius: 1,
+                      fontWeight: "medium"
+                    }}
+                  >
+                    {statusText}
+                  </Typography>
+                )}
+              </Box>
               <Typography variant="body2" color="text.secondary" display="flex" alignItems="center" mt={0.5}>
                 <CalendarToday fontSize="small" sx={{ mr: 0.5 }} />
                 {item.start_date} {item.start_time} – {item.end_date} {item.end_time}
@@ -353,7 +435,7 @@ const EventList = () => {
       {/* Slide Dialog */}
       <EventSlideDialog
         open={dialogOpen}
-        onClose={() =>{ setDialogOpen(false); fetchTabData(tab)}}
+        onClose={() => { setDialogOpen(false); setSearchParams({}); fetchTabData(tab); }}
         event={selectedEvent}
         tabIndex={tabIndex}
         setTabIndex={setTabIndex}

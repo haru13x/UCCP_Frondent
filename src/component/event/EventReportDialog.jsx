@@ -13,7 +13,7 @@ import {
   Typography,
   Chip,
   Divider,
-} from "@mui/material";
+} from "@mui/material"
 import {
   GetApp as DownloadIcon,
   Assessment as ReportIcon,
@@ -23,10 +23,17 @@ import {
 } from "@mui/icons-material";
 import { UseMethod } from "../../composables/UseMethod";
 
-export default function EventReportDialog({ open, onClose, onGenerate }) {
+export default function EventReportDialog({ open, onClose, loading, onGenerate }) {
+  // Default date range: last 30 days
+  const today = new Date();
+  const toDateStr = new Date(today).toISOString().slice(0, 10);
+  const fromDateObj = new Date(today);
+  fromDateObj.setDate(today.getDate() - 30);
+  const fromDateStr = fromDateObj.toISOString().slice(0, 10);
+
   const [filters, setFilters] = useState({
-    fromDate: "",
-    toDate: "",
+    fromDate: fromDateStr,
+    toDate: toDateStr,
     status: "1", // Default: Active
     locationId: "",
   });
@@ -85,7 +92,7 @@ export default function EventReportDialog({ open, onClose, onGenerate }) {
       <DialogContent dividers sx={{ p: 3 }}>
         <Box sx={{ mb: 2 }}>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Configure your report parameters below. All fields are optional - leave empty for comprehensive data.
+            Date range and status are required. Location is optional.
           </Typography>
           <Divider sx={{ mb: 3 }} />
         </Box>
@@ -240,8 +247,8 @@ export default function EventReportDialog({ open, onClose, onGenerate }) {
         <Button 
           onClick={handleGenerate} 
           variant="contained" 
-          disabled={isGenerating}
-          startIcon={isGenerating ? <CircularProgress size={20} color="inherit" /> : <DownloadIcon />}
+          disabled={loading || !filters.fromDate || !filters.toDate}
+          startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <DownloadIcon />}
           sx={{ 
             background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
             borderRadius: 2,
@@ -262,7 +269,7 @@ export default function EventReportDialog({ open, onClose, onGenerate }) {
             }
           }}
         >
-          {isGenerating ? 'Generating Report...' : '📊 Generate PDF Report'}
+          {loading ? 'Generating Report...' : '📊 Generate PDF Report'}
         </Button>
       </DialogActions>
     </Dialog>

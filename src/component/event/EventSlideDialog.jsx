@@ -81,11 +81,17 @@ const EventSlideDialog = ({
   const [hasUserReviewed, setHasUserReviewed] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
   const now = new Date();
-  const eventStart = new Date(`${event?.start_date}T${event?.start_time}`);
+  const eventStart = event?.start_date && event?.start_time ? new Date(`${event.start_date}T${event.start_time}`) : null;
+  const eventEnd = event?.end_date && event?.end_time ? new Date(`${event.end_date}T${event.end_time}`) : null;
+  
+  const hasEventStarted = () => {
+    if (!eventStart) return false;
+    return now >= eventStart;
+  };
+  
   const hasEventEnded = () => {
-    if (!event?.end_date || !event?.end_time) return false;
-    const eventEnd = new Date(`${event.end_date}T${event.end_time}`);
-    return now > eventEnd;
+    if (!eventEnd) return false;
+    return now >= eventEnd;
   };
 
   // Fetch reviews only when Reviews tab is selected
@@ -979,36 +985,45 @@ const EventSlideDialog = ({
       </DialogContent>
 
       {/* Footer Action */}
-      {!hasEventEnded() && (
-        <DialogActions
+      <DialogActions
+        sx={{
+          p: 2,
+          borderTop: "1px solid #dee2e6",
+          backgroundColor: "#ffffff",
+        }}
+      >
+        <Button
+          variant="contained"
+          color="primary"
+          fullWidth={isMobile}
+          size="large"
+          onClick={handleRegister}
+          disabled={event?.is_registered === 1 || hasEventStarted() || hasEventEnded()}
           sx={{
-            p: 2,
-            borderTop: "1px solid #dee2e6",
-            backgroundColor: "#ffffff",
+            fontWeight: "bold",
+            fontSize: "16px",
+            py: 1.5,
+            borderRadius: 2,
+            backgroundColor: 
+              event?.is_registered === 1 ? "#6c757d" : 
+              hasEventEnded() ? "#dc3545" :
+              hasEventStarted() ? "#fd7e14" : 
+              "#007bb6",
+            "&:hover": {
+              backgroundColor: 
+                event?.is_registered === 1 ? "#5a6268" : 
+                hasEventEnded() ? "#c82333" :
+                hasEventStarted() ? "#e96b02" : 
+                "#005a87",
+            },
           }}
         >
-          <Button
-            variant="contained"
-            color="primary"
-            fullWidth={isMobile}
-            size="large"
-            onClick={handleRegister}
-            disabled={event?.is_registered === 1}
-            sx={{
-              fontWeight: "bold",
-              fontSize: "16px",
-              py: 1.5,
-              borderRadius: 2,
-              backgroundColor: event?.is_registered === 1 ? "#6c757d" : "#007bb6",
-              "&:hover": {
-                backgroundColor: event?.is_registered === 1 ? "#5a6268" : "#005a87",
-              },
-            }}
-          >
-            {event?.is_registered === 1 ? "Already Registered" : "Register for This Event"}
-          </Button>
-        </DialogActions>
-      )}
+          {event?.is_registered === 1 ? "Already Registered" : 
+           hasEventEnded() ? "Event Already Ended" :
+           hasEventStarted() ? "Event Already Started" :
+           "Register for This Event"}
+        </Button>
+      </DialogActions>
     </Dialog>
   );
 };
