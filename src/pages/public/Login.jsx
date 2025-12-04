@@ -443,6 +443,7 @@ export default function Login() {
                              },
                            },
                          }}
+                         onClick={() => navigate('/forget-password')}
                        >
                          Forgot Password?
                        </Typography>

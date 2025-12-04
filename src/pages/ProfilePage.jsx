@@ -43,7 +43,6 @@ import {
   Groups
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
-import axios from 'axios';
 import { UseMethod } from '../composables/UseMethod';
 
 const ProfileHeader = styled(Paper)(({ theme }) => ({
@@ -404,15 +403,13 @@ const ProfilePage = () => {
         return;
       }
       
-      const response = await axios.post('http://localhost:8000/api/change-password', {
+      const response = await UseMethod('post', 'change-password', {
         current_password: passwordForm.current_password,
         new_password: passwordForm.new_password,
         new_password_confirmation: passwordForm.confirm_password
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
       });
-      
-      if (response.data.success) {
+
+      if (response?.data?.success) {
         setPasswordForm({ current_password: '', new_password: '', confirm_password: '' });
         showSnackbar('Password changed successfully!');
       }

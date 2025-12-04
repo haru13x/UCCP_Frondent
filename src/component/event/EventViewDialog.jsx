@@ -213,6 +213,46 @@ const EventViewDialog = ({ open, onClose, event }) => {
     ];
   }, [registeredUsers]);
 
+  // Per-location stats (registrations and attendance)
+  const locationStats = useMemo(() => {
+    const byLoc = new Map();
+    registeredUsers.forEach((u) => {
+      // Backend returns relation as snake_case: details.church_location
+      // Fall back to camelCase if present
+      const locName =
+        u?.church_location_name ||
+        u?.details?.church_location?.name ||
+        u?.details?.churchLocation?.name ||
+        "Unknown";
+      const isAttend = !!u?.is_attend;
+      const entry = byLoc.get(locName) || { name: locName, registered: 0, attended: 0 };
+      entry.registered += 1;
+      if (isAttend) entry.attended += 1;
+      byLoc.set(locName, entry);
+    });
+    return Array.from(byLoc.values());
+  }, [registeredUsers]);
+
+  const locationRegData = useMemo(
+    () => locationStats.map((s) => ({ name: s.name, value: s.registered })),
+    [locationStats]
+  );
+
+  const locationAttendData = useMemo(
+    () => locationStats.map((s) => ({ name: s.name, value: s.attended })),
+    [locationStats]
+  );
+
+  // Totals for percentage computation shown at the bottom of charts
+  const locationRegTotal = useMemo(
+    () => locationRegData.reduce((sum, e) => sum + (e.value || 0), 0),
+    [locationRegData]
+  );
+  const locationAttendTotal = useMemo(
+    () => locationAttendData.reduce((sum, e) => sum + (e.value || 0), 0),
+    [locationAttendData]
+  );
+
   // Fetch QR Code
   useEffect(() => {
     if (!event?.id || !open) return;
@@ -1808,7 +1848,7 @@ const EventViewDialog = ({ open, onClose, event }) => {
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
                         </Pie>
-                        <Tooltip />
+                        <RechartsTooltip />
                         <Legend />
                       </PieChart>
                     </ResponsiveContainer>
@@ -1844,7 +1884,7 @@ const EventViewDialog = ({ open, onClose, event }) => {
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
                         </Pie>
-                        <Tooltip formatter={(value) => `${value} people`} />
+                        <RechartsTooltip formatter={(value) => `${value} people`} />
                         <Legend />
                       </PieChart>
                     </ResponsiveContainer>
@@ -1856,6 +1896,102 @@ const EventViewDialog = ({ open, onClose, event }) => {
                     </Box>
                   )}
                 </Card>
+              </Grid>
+
+              {/* Pie Charts: By Church Location */}
+              <Grid item xs={12} size={{ md: 12 }}>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6} size={{ md: 6 }}>
+                    <Card sx={{ borderRadius: 2, boxShadow: 2, height: 300, p: 1 }}>
+                      <Typography variant="body1" fontWeight={600} color="primary" gutterBottom fontSize="0.9rem">
+                        📍 Registrations by Church Location
+                      </Typography>
+                      {locationRegData.length > 0 ? (
+                        <>
+                          <ResponsiveContainer width="100%" height="75%">
+                            <PieChart>
+                              <Pie
+                                data={locationRegData}
+                                cx="50%"
+                                cy="50%"
+                                labelLine={false}
+                                outerRadius={70}
+                                dataKey="value"
+                              >
+                                {locationRegData.map((entry, index) => (
+                                  <Cell key={`loc-reg-${index}`} fill={COLORS[index % COLORS.length]} />
+                                ))}
+                              </Pie>
+                              <RechartsTooltip formatter={(value, name) => [`${value}`, name]} />
+                            </PieChart>
+                          </ResponsiveContainer>
+                          <Box sx={{ mt: 1 }}>
+                            {locationRegData.map((entry, index) => {
+                              const pct = locationRegTotal ? Math.round((entry.value / locationRegTotal) * 100) : 0;
+                              return (
+                                <Box key={`loc-reg-bottom-${index}`} sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+                                  <Box sx={{ width: 10, height: 10, borderRadius: 1, bgcolor: COLORS[index % COLORS.length], mr: 1 }} />
+                                  <Typography variant="caption">{entry.name}: {pct}% ({entry.value})</Typography>
+                                </Box>
+                              );
+                            })}
+                          </Box>
+                        </>
+                      ) : (
+                        <Box sx={{ textAlign: "center", py: 2 }}>
+                          <Typography variant="body2" color="text.secondary">
+                            No registration data by location.
+                          </Typography>
+                        </Box>
+                      )}
+                    </Card>
+                  </Grid>
+                  <Grid item xs={12} sm={6} size={{ md: 6 }}>
+                    <Card sx={{ borderRadius: 2, boxShadow: 2, height: 300, p: 1 }}>
+                      <Typography variant="body1" fontWeight={600} color="primary" gutterBottom fontSize="0.9rem">
+                        ✅ Attendance by Church Location
+                      </Typography>
+                      {locationAttendData.length > 0 ? (
+                        <>
+                          <ResponsiveContainer width="100%" height="75%">
+                            <PieChart>
+                              <Pie
+                                data={locationAttendData}
+                                cx="50%"
+                                cy="50%"
+                                labelLine={false}
+                                outerRadius={70}
+                                dataKey="value"
+                              >
+                                {locationAttendData.map((entry, index) => (
+                                  <Cell key={`loc-att-${index}`} fill={COLORS[index % COLORS.length]} />
+                                ))}
+                              </Pie>
+                              <RechartsTooltip formatter={(value, name) => [`${value}`, name]} />
+                            </PieChart>
+                          </ResponsiveContainer>
+                          <Box sx={{ mt: 1 }}>
+                            {locationAttendData.map((entry, index) => {
+                              const pct = locationAttendTotal ? Math.round((entry.value / locationAttendTotal) * 100) : 0;
+                              return (
+                                <Box key={`loc-att-bottom-${index}`} sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+                                  <Box sx={{ width: 10, height: 10, borderRadius: 1, bgcolor: COLORS[index % COLORS.length], mr: 1 }} />
+                                  <Typography variant="caption">{entry.name}: {pct}% ({entry.value})</Typography>
+                                </Box>
+                              );
+                            })}
+                          </Box>
+                        </>
+                      ) : (
+                        <Box sx={{ textAlign: "center", py: 2 }}>
+                          <Typography variant="body2" color="text.secondary">
+                            No attendance data by location.
+                          </Typography>
+                        </Box>
+                      )}
+                    </Card>
+                  </Grid>
+                </Grid>
               </Grid>
 
               {/* Bar Chart: Registration Trend */}

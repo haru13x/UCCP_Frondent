@@ -24,6 +24,8 @@ import {
   CardContent,
   Chip,
   Stack,
+  Alert,
+  AlertTitle,
 } from "@mui/material";
 import {
   ArrowBack as ArrowBackIcon,
@@ -40,6 +42,7 @@ import {
   Event as EventIcon,
   Restaurant as FoodIcon,
   Hotel as AccommodationIcon,
+  HourglassEmpty as HourglassEmptyIcon,
 } from "@mui/icons-material";
 import Slide from "@mui/material/Slide";
 import { useSnackbar } from "./SnackbarProvider ";
@@ -83,6 +86,7 @@ const EventSlideDialog = ({
   const now = new Date();
   const eventStart = event?.start_date && event?.start_time ? new Date(`${event.start_date}T${event.start_time}`) : null;
   const eventEnd = event?.end_date && event?.end_time ? new Date(`${event.end_date}T${event.end_time}`) : null;
+  const isCancelled = event?.status_id === 2 || event?.status === "Cancelled";
   
   const hasEventStarted = () => {
     if (!eventStart) return false;
@@ -389,6 +393,31 @@ const EventSlideDialog = ({
         {/* Tab 0: Event Details */}
         {tabIndex === 0 && (
           <Box>
+            {/* Cancelled Banner */}
+            {isCancelled && (
+              <Box
+                sx={{
+                  m: 2,
+                  p: 2,
+                  borderRadius: 2,
+                  border: "1px solid #e03131",
+                  color: "error.dark",
+                }}
+              >
+                <Typography variant="subtitle1" fontWeight={700}>
+                  Event Cancelled
+                </Typography>
+                <Typography variant="body2" sx={{ mt: 0.5 }}>
+                  <strong>Reason:</strong> {event?.cancel_reason || "No reason provided"}
+                </Typography>
+                {(event?.cancel_by || event?.cancel_date) && (
+                  <Typography variant="caption" sx={{ display: "block", mt: 0.5 }}>
+                    {event?.cancel_by && (<span><strong>Cancelled By:</strong> {event.cancel_by} </span>)}
+                    {event?.cancel_date && (<span><strong> • On:</strong> {event.cancel_date}</span>)}
+                  </Typography>
+                )}
+              </Box>
+            )}
             {/* Image */}
             <Box
               sx={{
@@ -511,7 +540,32 @@ const EventSlideDialog = ({
         {/* Tab 1: Reviews */}
         {tabIndex === 1 && (
           <Box sx={{mt:2}}>
-            
+            {/* Cancelled Banner in Reviews Tab */}
+            {isCancelled && (
+              <Box
+                sx={{
+                  mb: 2,
+                  p: 2,
+                  borderRadius: 2,
+                  border: "1px solid #e03131",
+                  color: "error.dark",
+                }}
+              >
+                <Typography variant="subtitle1" fontWeight={700}>
+                  Event Cancelled
+                </Typography>
+                <Typography variant="body2" sx={{ mt: 0.5 }}>
+                  <strong>Reason:</strong> {event?.cancel_reason || "No reason provided"}
+                </Typography>
+                {(event?.cancel_by || event?.cancel_date) && (
+                  <Typography variant="caption" sx={{ display: "block", mt: 0.5 }}>
+                    {event?.cancel_by && (<span><strong>Cancelled By:</strong> {event.cancel_by} </span>)}
+                    {event?.cancel_date && (<span><strong> • On:</strong> {event.cancel_date}</span>)}
+                  </Typography>
+                )}
+              </Box>
+            )}
+
 
 
 
@@ -972,11 +1026,31 @@ const EventSlideDialog = ({
                   </CardContent>
                 </Card>
               ) : null
-            ) :
-              <Typography variant="caption" color="text.secondary" textAlign="center" mt={3} sx={{ fontSize: '0.8rem' }}>
-                You can't Review yet Event not End Yet
-              </Typography>
-            }
+            ) : (
+              <Box sx={{ mt: 3 }}>
+                <Alert
+                  icon={<HourglassEmptyIcon />}
+                  severity="info"
+                  sx={{
+                    borderRadius: 2,
+                    bgcolor: 'rgba(25,118,210,0.06)',
+                    color: 'text.primary',
+                    border: '1px solid rgba(25,118,210,0.18)'
+                  }}
+                >
+                  <AlertTitle sx={{ fontWeight: 700 }}>Reviews available after  attended and the event has ended</AlertTitle>
+                  You can submit your review once the event has finished.
+                  {event?.end_date && event?.end_time && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+                      <CalendarIcon fontSize="small" color="primary" />
+                      <Typography variant="caption" color="text.secondary">
+                        Ends on {event.end_date} at {event.end_time}
+                      </Typography>
+                    </Box>
+                  )}
+                </Alert>
+              </Box>
+            )}
            
             
       
@@ -998,7 +1072,7 @@ const EventSlideDialog = ({
           fullWidth={isMobile}
           size="large"
           onClick={handleRegister}
-          disabled={event?.is_registered === 1 || hasEventStarted() || hasEventEnded()}
+          disabled={event?.is_registered === 1 || hasEventStarted() || hasEventEnded() || isCancelled}
           sx={{
             fontWeight: "bold",
             fontSize: "16px",
@@ -1006,19 +1080,22 @@ const EventSlideDialog = ({
             borderRadius: 2,
             backgroundColor: 
               event?.is_registered === 1 ? "#6c757d" : 
+              isCancelled ? "#6c757d" :
               hasEventEnded() ? "#dc3545" :
               hasEventStarted() ? "#fd7e14" : 
               "#007bb6",
             "&:hover": {
               backgroundColor: 
                 event?.is_registered === 1 ? "#5a6268" : 
+                isCancelled ? "#5a6268" :
                 hasEventEnded() ? "#c82333" :
                 hasEventStarted() ? "#e96b02" : 
                 "#005a87",
             },
           }}
         >
-          {event?.is_registered === 1 ? "Already Registered" : 
+          {isCancelled ? "Event Cancelled" :
+           event?.is_registered === 1 ? "Already Registered" : 
            hasEventEnded() ? "Event Already Ended" :
            hasEventStarted() ? "Event Already Started" :
            "Register for This Event"}

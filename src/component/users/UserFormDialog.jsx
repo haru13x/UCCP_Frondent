@@ -17,10 +17,13 @@ import {
   Divider,
   Box,
   Autocomplete,
+  InputAdornment,
 } from "@mui/material";
 import { useState, useEffect } from "react";
 import CloseIcon from "@mui/icons-material/Close";
 import SaveIcon from "@mui/icons-material/Save";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import { UseMethod } from "../../composables/UseMethod";
 const genders = [
   { label: "Male", value: 1 },
@@ -33,6 +36,7 @@ const UserFormDialog = ({ open, onClose, onSave, formData, setFormData, isEdit }
   const [accountGroups, setAccountGroups] = useState([]);
   // Removed account types; we only support single group selection
   const [locations, setLocations] = useState([]);
+  const [showPassword, setShowPassword] = useState(false);
   const handleChange = (field) => (e) => {
     setFormData({ ...formData, [field]: e.target.value });
   };
@@ -177,7 +181,28 @@ const UserFormDialog = ({ open, onClose, onSave, formData, setFormData, isEdit }
                 <TextField label="Username" size="small" value={formData.username || ""} onChange={handleChange("username")} fullWidth />
               </Grid>
               <Grid size={{ md: 6 }}>
-                <TextField label="Password" type="password" size="small" value={formData.password || ""} onChange={handleChange("password")} fullWidth />
+                <TextField
+                  label={isEdit ? "New Password" : "Password"}
+                  type={showPassword ? "text" : "password"}
+                  size="small"
+                  value={formData.password || ""}
+                  onChange={handleChange("password")}
+                  fullWidth
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          aria-label="Toggle password visibility"
+                          onClick={() => setShowPassword((prev) => !prev)}
+                          edge="end"
+                          size="small"
+                        >
+                          {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                />
               </Grid>
               <Grid item size={{ md: 6 }}>
                 <TextField
