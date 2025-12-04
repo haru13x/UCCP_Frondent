@@ -15,6 +15,7 @@ import {
   InputAdornment,
   useMediaQuery,
   useTheme,
+  Chip,
 } from "@mui/material";
 import {
   Event as EventIcon,
@@ -183,6 +184,12 @@ const EventList = () => {
       statusColor = "warning.main";
     }
 
+    // Determine cancellation status
+    const statusName = item.status || item.status_name || "";
+    const isCancelled = (item.status_id === 4) ||
+      (typeof statusName === "string" && statusName.toLowerCase().includes("cancel")) ||
+      Boolean(item.cancel_reason);
+
     return (
       <Card
         key={`${item.type}-${item.id}`}
@@ -214,21 +221,30 @@ const EventList = () => {
                 <Typography variant="h6" fontWeight="600" color="text.primary">
                   {item.title}
                 </Typography>
-                {statusText && (
-                  <Typography 
-                    variant="caption" 
-                    sx={{ 
-                      color: "white", 
-                      bgcolor: statusColor, 
-                      px: 1, 
-                      py: 0.5, 
-                      borderRadius: 1,
-                      fontWeight: "medium"
-                    }}
-                  >
-                    {statusText}
-                  </Typography>
-                )}
+                <Box display="flex" alignItems="center" gap={1}>
+                  <Chip
+                    label={isCancelled ? "Event Cancelled" : "Active"}
+                    color={isCancelled ? "error" : "success"}
+                    size="small"
+                    icon={isCancelled ? <EventBusy fontSize="small" /> : <EventIcon fontSize="small" />}
+                    sx={{ fontWeight: 600 }}
+                  />
+                  {statusText && (
+                    <Typography 
+                      variant="caption" 
+                      sx={{ 
+                        color: "white", 
+                        bgcolor: statusColor, 
+                        px: 1, 
+                        py: 0.5, 
+                        borderRadius: 1,
+                        fontWeight: "medium"
+                      }}
+                    >
+                      {statusText}
+                    </Typography>
+                  )}
+                </Box>
               </Box>
               <Typography variant="body2" color="text.secondary" display="flex" alignItems="center" mt={0.5}>
                 <CalendarToday fontSize="small" sx={{ mr: 0.5 }} />

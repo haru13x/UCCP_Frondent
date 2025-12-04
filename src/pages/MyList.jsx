@@ -13,6 +13,7 @@ import {
   InputAdornment,
   useMediaQuery,
   useTheme,
+  Chip,
 } from "@mui/material";
 import {
   Event as EventIcon,
@@ -170,6 +171,7 @@ const MyList = () => {
     const isEvent = item.type === "event";
     const icon = isEvent ? <EventIcon /> : <MeetingIcon />;
     const color = isEvent ? "success" : "primary";
+    const isCancelled = item.status_id === 2 || item.status === "Cancelled";
 
     return (
       <Card
@@ -198,9 +200,18 @@ const MyList = () => {
           <Box display="flex" flexDirection={isMobile ? "column" : "row"} gap={2}>
             <Avatar sx={{ bgcolor: `${color}.main`, alignSelf: "flex-start" }}>{icon}</Avatar>
             <Box flex={1}>
-              <Typography variant="h6" fontWeight="600" color="text.primary">
-                {item.title}
-              </Typography>
+              <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
+                <Typography variant="h6" fontWeight="600" color="text.primary">
+                  {item.title}
+                </Typography>
+                <Chip
+                  size="small"
+                  label={isCancelled ? "Cancelled" : "Active"}
+                  color={isCancelled ? "error" : "success"}
+                  icon={isCancelled ? <EventBusy fontSize="small" /> : undefined}
+                  sx={{ fontWeight: 600 }}
+                />
+              </Box>
               <Typography variant="body2" color="text.secondary" display="flex" alignItems="center" mt={0.5}>
                 <CalendarToday fontSize="small" sx={{ mr: 0.5 }} />
                 {item.start_date} {item.start_time} – {item.end_date} {item.end_time}

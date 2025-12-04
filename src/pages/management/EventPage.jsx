@@ -140,8 +140,24 @@ const EventPage = () => {
   });
 
   useEffect(() => {
-    fetchEvents();
+    // Initial load: fetch using default filters (upcoming by default)
+    fetchEvents({
+      search: filter.search,
+      date_filter: filter.dateFilter,
+      status_id: filter.status_id,
+      category: filter.category || undefined,
+    });
   }, []);
+
+  // Auto-fetch when date filter changes
+  useEffect(() => {
+    fetchEvents({
+      search: filter.search,
+      date_filter: filter.dateFilter,
+      status_id: filter.status_id,
+      category: filter.category || undefined,
+    });
+  }, [filter.dateFilter]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -434,30 +450,32 @@ const EventPage = () => {
             View
           </Button>
 
-          {params.row.status === 'Active' && (
-            <>
-              <Button
-                size="small"
-                variant="contained"
-                color="primary"
-                onClick={() => handleOpenForm(params.row)}
-                startIcon={<EditIcon />}
-              >
-                Edit
-              </Button>
-              <Button
-                size="small"
-                variant="contained"
-                color="error"
-                onClick={() => {
-                  setEventToCancel(params.row);
-                  setCancelDialogOpen(true);
-                }}
-                startIcon={<CancelPresentation />}
-              >
-                Cancel
-              </Button>
-            </>
+          {params.row.status === 'Active' && filter.dateFilter !== 'past' && (
+            !isEventOver(params.row) && (
+              <>
+                <Button
+                  size="small"
+                  variant="contained"
+                  color="primary"
+                  onClick={() => handleOpenForm(params.row)}
+                  startIcon={<EditIcon />}
+                >
+                  Edit
+                </Button>
+                <Button
+                  size="small"
+                  variant="contained"
+                  color="error"
+                  onClick={() => {
+                    setEventToCancel(params.row);
+                    setCancelDialogOpen(true);
+                  }}
+                  startIcon={<CancelPresentation />}
+                >
+                  Cancel
+                </Button>
+              </>
+            )
           )}
         </Box>
       ),
@@ -514,7 +532,7 @@ const EventPage = () => {
               }}
             />
           </Grid>
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12} md={4} size={{ md: 2 }}>
 
             <TextField
               select
@@ -533,9 +551,9 @@ const EventPage = () => {
             </TextField>
           </Grid>
 
-          {/* Category filter: visible only for admin (role_id === 1) */}
+          {/* Category filter: visible only for admin (role_id === 1)
           {currentUser?.role_id === 1 && (
-            <Grid item xs={12} md={4}>
+            <Grid item xs={12} md={4} size={{ md: 2 }}>
               <TextField
                 select
                 fullWidth
@@ -555,7 +573,7 @@ const EventPage = () => {
                 ))}
               </TextField>
             </Grid>
-          )}
+          )} */}
 
           <Grid item xs={12} md={4}>
 
@@ -678,3 +696,17 @@ const EventPage = () => {
 };
 
 export default EventPage;
+  // Helper: determine if an event has already ended/passed
+  const isEventOver = (row) => {
+    try {
+      const endDate = row?.end_date || row?.start_date;
+      const endTime = row?.end_time || row?.start_time || "23:59:59";
+      if (!endDate) return false;
+      const endIso = `${endDate}T${(endTime || "23:59:59").padEnd(8, "0")}`;
+      const endAt = new Date(endIso);
+      if (Number.isNaN(endAt.getTime())) return false;
+      return Date.now() > endAt.getTime();
+    } catch (e) {
+      return false;
+    }
+  };
